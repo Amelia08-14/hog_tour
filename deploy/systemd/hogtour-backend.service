@@ -1,0 +1,14 @@
+[Unit]
+Description=HOG Tour Backend (Express)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/var/www/hogtour/backend
+ExecStart=/usr/bin/node src/server.js
+Restart=always
+RestartSec=3
+EnvironmentFile=/etc/hogtour/backend.env
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,384 @@
+const express = require('express')
+const cors = require('cors')
+require('dotenv').config()
+
+const { initDb, getDb } = require('./db')
+const { newToken, signToken, safeEqual } = require('./security')
+const QRCode = require('qrcode')
+
+function nowIso() {
+  return new Date().toISOString()
+}
+
+function requireApiKey(req, res, next) {
+  const expected = process.env.PAYMENT_API_KEY
+  if (!expected) return res.status(500).json({ error: 'PAYMENT_API_KEY is not configured' })
+  const got = req.header('x-api-key')
+  if (!got || got !== expected) return res.status(401).json({ error: 'unauthorized' })
+  return next()
+}
+
+function createApp() {
+  const app = express()
+
+  app.use(cors())
+  app.use(express.json({ limit: '2mb' }))
+
+  app.get('/health', (req, res) => res.json({ ok: true }))
+
+  app.post('/v1/registrations', async (req, res) => {
+    try {
+      const body = req.body || {}
+
+      const required = [
+        'prenom',
+        'nom',
+        'sexe',
+        'adresse',
+        'ville',
+        'paysIso2',
+        'phoneCountryIso2',
+        'phoneNumber',
+        'email',
+        'nationalite',
+        'profil',
+        'hebergement',
+        'tailleTshirt',
+        'paiementMode',
+        'permisNum',
+        'immatriculation',
+      ]
+
+      const missing = required.filter(k => !body[k] || String(body[k]).trim() === '')
+      if (missing.length) return res.status(400).json({ error: 'missing_fields', fields: missing })
+
+      if (body.nationalite === 'Autre' && (!body.nationaliteAutre || String(body.nationaliteAutre).trim() === '')) {
+        return res.status(400).json({ error: 'missing_fields', fields: ['nationaliteAutre'] })
+      }
+      if (body.profil === "Membre d'un groupe de Motards" && (!body.profilGroupe || String(body.profilGroupe).trim() === '')) {
+        return res.status(400).json({ error: 'missing_fields', fields: ['profilGroupe'] })
+      }
+
+      const db = await getDb()
+      const registrationId = require('uuid').v4()
+      const paymentId = require('uuid').v4()
+      const badgeId = require('uuid').v4()
+      const token = newToken()
+
+      const createdAt = nowIso()
+
+      await db.exec('BEGIN')
+      try {
+        await db.run(
+          `INSERT INTO registrations (
+            id, created_at, updated_at,
+            prenom, nom, sexe, adresse, ville,
+            pays_iso2, phone_country_iso2, phone_number,
+            email, nationalite, nationalite_autre,
+            profil, profil_groupe,
+            hebergement, taille_tshirt, paiement_mode,
+            permis_num, immatriculation
+          ) VALUES (
+            ?, ?, ?,
+            ?, ?, ?, ?, ?,
+            ?, ?, ?,
+            ?, ?, ?,
+            ?, ?,
+            ?, ?, ?,
+            ?, ?
+          );`,
+          [
+            registrationId,
+            createdAt,
+            createdAt,
+            String(body.prenom).trim(),
+            String(body.nom).trim(),
+            String(body.sexe).trim(),
+            String(body.adresse).trim(),
+            String(body.ville).trim(),
+            String(body.paysIso2).trim().toUpperCase(),
+            String(body.phoneCountryIso2).trim().toUpperCase(),
+            String(body.phoneNumber).trim(),
+            String(body.email).trim(),
+            String(body.nationalite).trim(),
+            body.nationaliteAutre ? String(body.nationaliteAutre).trim() : null,
+            String(body.profil).trim(),
+            body.profilGroupe ? String(body.profilGroupe).trim() : null,
+            String(body.hebergement).trim(),
+            String(body.tailleTshirt).trim(),
+            String(body.paiementMode).trim(),
+            String(body.permisNum).trim(),
+            String(body.immatriculation).trim(),
+          ],
+        )
+
+        await db.run(
+          `INSERT INTO payments (
+            id, registration_id, status, amount_cents, currency, method, reference, updated_at, updated_by
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+          [paymentId, registrationId, 'unpaid', null, null, null, null, createdAt, null],
+        )
+
+        await db.run(
+          `INSERT INTO badges (id, registration_id, token, issued_at) VALUES (?, ?, ?, ?);`,
+          [badgeId, registrationId, token, createdAt],
+        )
+
+        await db.exec('COMMIT')
+      } catch (e) {
+        await db.exec('ROLLBACK')
+        throw e
+      }
+
+      const baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${Number(process.env.PORT) || 4000}`
+      const sig = signToken(token)
+      const badgeUrl = `${baseUrl.replace(/\/$/, '')}/v1/badge?token=${encodeURIComponent(token)}&sig=${encodeURIComponent(sig)}`
+
+      return res.status(201).json({
+        id: registrationId,
+        badge: { url: badgeUrl },
+      })
+    } catch (e) {
+      return res.status(500).json({ error: 'server_error' })
+    }
+  })
+
+  app.get('/v1/badge', async (req, res) => {
+    try {
+      const token = typeof req.query.token === 'string' ? req.query.token : ''
+      const sig = typeof req.query.sig === 'string' ? req.query.sig : ''
+      if (!token || !sig) return res.status(400).json({ error: 'missing_params' })
+
+      const expectedSig = signToken(token)
+      if (!safeEqual(sig, expectedSig)) return res.status(401).json({ error: 'invalid_signature' })
+
+      const db = await getDb()
+      const badge = await db.get(
+        `SELECT b.id as badge_id, b.issued_at, r.id as registration_id, r.prenom, r.nom, r.email
+         FROM badges b
+         JOIN registrations r ON r.id = b.registration_id
+         WHERE b.token = ?`,
+        [token],
+      )
+      if (!badge) return res.status(404).json({ error: 'not_found' })
+
+      const baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${Number(process.env.PORT) || 4000}`
+      const badgeUrl = `${baseUrl.replace(/\/$/, '')}/v1/badge?token=${encodeURIComponent(token)}&sig=${encodeURIComponent(sig)}`
+      const svg = await QRCode.toString(badgeUrl, { type: 'svg', margin: 1, width: 260 })
+
+      const html = `<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Badge H.O.G Tour 2026</title>
+    <style>
+      :root { color-scheme: dark; }
+      body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:#0B0B0B; color:#F5F5F5; }
+      .wrap { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:40px 16px; }
+      .card { width:100%; max-width:540px; border:1px solid rgba(255,107,0,.18); background:#121212; padding:28px; }
+      .tag { letter-spacing:.22em; text-transform:uppercase; font-size:12px; color:rgba(255,255,255,.75); }
+      h1 { margin:10px 0 0; font-size:28px; letter-spacing:.12em; text-transform:uppercase; color:#FF6B00; }
+      .meta { margin-top:10px; color:rgba(255,255,255,.8); font-size:14px; line-height:1.5; }
+      .qr { margin-top:18px; display:flex; justify-content:center; background:#fff; padding:14px; }
+      .hint { margin-top:14px; color:rgba(255,255,255,.7); font-size:12px; line-height:1.5; }
+      .link { margin-top:10px; font-size:12px; word-break:break-all; color:rgba(255,255,255,.6); }
+      a { color:#FF6B00; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <div class="tag">Badge</div>
+        <h1>H.O.G Tour 2026</h1>
+        <div class="meta">
+          <div><strong>${escapeHtml(String(badge.prenom || ''))} ${escapeHtml(String(badge.nom || ''))}</strong></div>
+          <div>${escapeHtml(String(badge.email || ''))}</div>
+        </div>
+        <div class="qr">${svg}</div>
+        <div class="hint">
+          Gardez ce badge. Pour vérification/paiement, le QR code contient votre lien badge (token + signature).
+        </div>
+        <div class="link">${escapeHtml(badgeUrl)}</div>
+      </div>
+    </div>
+  </body>
+</html>`
+
+      res.setHeader('content-type', 'text/html; charset=utf-8')
+      return res.status(200).send(html)
+    } catch (e) {
+      return res.status(500).json({ error: 'server_error' })
+    }
+  })
+
+  app.get('/v1/qr', requireApiKey, async (req, res) => {
+    try {
+      const token = typeof req.query.token === 'string' ? req.query.token : ''
+      const sig = typeof req.query.sig === 'string' ? req.query.sig : ''
+      if (!token || !sig) return res.status(400).json({ error: 'missing_params' })
+
+      const expectedSig = signToken(token)
+      if (!safeEqual(sig, expectedSig)) return res.status(401).json({ error: 'invalid_signature' })
+
+      const db = await getDb()
+      const badge = await db.get(
+        `SELECT b.id as badge_id, b.issued_at, r.id as registration_id, r.prenom, r.nom, r.email
+         FROM badges b
+         JOIN registrations r ON r.id = b.registration_id
+         WHERE b.token = ?`,
+        [token],
+      )
+      if (!badge) return res.status(404).json({ error: 'not_found' })
+
+      const payment = await db.get(
+        `SELECT status, amount_cents, currency, method, reference, updated_at
+         FROM payments
+         WHERE registration_id = ?`,
+        [badge.registration_id],
+      )
+
+      return res.json({
+        badgeId: badge.badge_id,
+        issuedAt: badge.issued_at,
+        registration: {
+          id: badge.registration_id,
+          prenom: badge.prenom,
+          nom: badge.nom,
+          email: badge.email,
+        },
+        payment: payment || { status: 'unpaid' },
+      })
+    } catch (e) {
+      return res.status(500).json({ error: 'server_error' })
+    }
+  })
+
+  app.get('/v1/admin/registrations', requireApiKey, async (req, res) => {
+    try {
+      const db = await getDb()
+      const rows = await db.all(
+        `SELECT id, created_at, prenom, nom, email, pays_iso2, phone_country_iso2, phone_number
+         FROM registrations
+         ORDER BY created_at DESC
+         LIMIT 200`,
+      )
+      return res.json({ items: rows })
+    } catch (e) {
+      return res.status(500).json({ error: 'server_error' })
+    }
+  })
+
+  app.get('/v1/admin/registrations/:id', requireApiKey, async (req, res) => {
+    try {
+      const db = await getDb()
+      const r = await db.get(`SELECT * FROM registrations WHERE id = ?`, [req.params.id])
+      if (!r) return res.status(404).json({ error: 'not_found' })
+      const payment = await db.get(`SELECT * FROM payments WHERE registration_id = ?`, [req.params.id])
+      const badge = await db.get(`SELECT id, token, issued_at FROM badges WHERE registration_id = ?`, [req.params.id])
+      const baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${Number(process.env.PORT) || 4000}`
+      const badgeUrl = badge
+        ? `${baseUrl.replace(/\/$/, '')}/v1/badge?token=${encodeURIComponent(badge.token)}&sig=${encodeURIComponent(signToken(badge.token))}`
+        : null
+      const qrUrl = badge
+        ? `${baseUrl.replace(/\/$/, '')}/v1/qr?token=${encodeURIComponent(badge.token)}&sig=${encodeURIComponent(signToken(badge.token))}`
+        : null
+
+      return res.json({ registration: r, payment, badge: badge ? { id: badge.id, issuedAt: badge.issued_at, badgeUrl, qrUrl } : null })
+    } catch (e) {
+      return res.status(500).json({ error: 'server_error' })
+    }
+  })
+
+  app.post('/v1/admin/qr/resolve', requireApiKey, async (req, res) => {
+    try {
+      const body = req.body || {}
+      let token = body.token ? String(body.token) : ''
+      let sig = body.sig ? String(body.sig) : ''
+
+      if ((!token || !sig) && body.url) {
+        try {
+          const u = new URL(String(body.url))
+          token = u.searchParams.get('token') || ''
+          sig = u.searchParams.get('sig') || ''
+        } catch {
+          return res.status(400).json({ error: 'invalid_url' })
+        }
+      }
+
+      if (!token || !sig) return res.status(400).json({ error: 'missing_params' })
+
+      const expectedSig = signToken(token)
+      if (!safeEqual(sig, expectedSig)) return res.status(401).json({ error: 'invalid_signature' })
+
+      const db = await getDb()
+      const badge = await db.get(
+        `SELECT b.id as badge_id, b.issued_at, r.*
+         FROM badges b
+         JOIN registrations r ON r.id = b.registration_id
+         WHERE b.token = ?`,
+        [token],
+      )
+      if (!badge) return res.status(404).json({ error: 'not_found' })
+
+      const payment = await db.get(`SELECT * FROM payments WHERE registration_id = ?`, [badge.id])
+      return res.json({ badgeId: badge.badge_id, issuedAt: badge.issued_at, registration: badge, payment })
+    } catch (e) {
+      return res.status(500).json({ error: 'server_error' })
+    }
+  })
+
+  app.patch('/v1/admin/registrations/:id/payment', requireApiKey, async (req, res) => {
+    try {
+      const body = req.body || {}
+      const status = body.status ? String(body.status) : ''
+      const allowed = new Set(['unpaid', 'pending', 'paid', 'cancelled', 'refunded'])
+      if (!allowed.has(status)) return res.status(400).json({ error: 'invalid_status' })
+
+      const db = await getDb()
+      const exists = await db.get(`SELECT id FROM registrations WHERE id = ?`, [req.params.id])
+      if (!exists) return res.status(404).json({ error: 'not_found' })
+
+      const updatedAt = nowIso()
+      await db.run(
+        `UPDATE payments
+         SET status = ?,
+             amount_cents = ?,
+             currency = ?,
+             method = ?,
+             reference = ?,
+             updated_at = ?,
+             updated_by = ?
+         WHERE registration_id = ?`,
+        [
+          status,
+          typeof body.amountCents === 'number' ? body.amountCents : null,
+          body.currency ? String(body.currency) : null,
+          body.method ? String(body.method) : null,
+          body.reference ? String(body.reference) : null,
+          updatedAt,
+          'payments_api',
+          req.params.id,
+        ],
+      )
+
+      const payment = await db.get(`SELECT * FROM payments WHERE registration_id = ?`, [req.params.id])
+      return res.json({ payment })
+    } catch (e) {
+      return res.status(500).json({ error: 'server_error' })
+    }
+  })
+
+  return app
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+}
+
+async function createStartedApp() {
+  await initDb()
+  return createApp()
+}
+
+module.exports = { createApp, createStartedApp }
