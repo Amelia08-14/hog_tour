@@ -1,0 +1,86 @@
+@config "../../tailwind.config.js";
+@import "tailwindcss";
+
+/* ── Base ── */
+@layer base {
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background-color: #0A0A08;
+    color: #F0EBE0;
+    font-family: var(--font-body), sans-serif;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { text-decoration: none; color: inherit; }
+  input:-webkit-autofill,
+  textarea:-webkit-autofill,
+  select:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0px 1000px #0F0F0D inset;
+    -webkit-text-fill-color: #F0EBE0;
+    caret-color: #F0EBE0;
+  }
+}
+
+/* ── Section tag ── */
+@layer components {
+  .section-tag {
+    @apply flex items-center text-orange;
+    gap: 10px;
+    margin-bottom: 14px;
+    font-size: 10.5px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+  }
+  .section-tag::before {
+    content: '';
+    @apply block w-6 h-px bg-orange flex-shrink-0;
+  }
+}
+
+/* ── Scroll reveal ── */
+@layer utilities {
+  .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .reveal-d1 { transition-delay: 0.1s; }
+  .reveal-d2 { transition-delay: 0.2s; }
+}
+
+/* ── Hero animations ──
+   Définies ici (pas dans tailwind.config) = toujours générées
+── */
+@keyframes heroFadeUp {
+  from { opacity: 0; transform: translateY(22px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+.au1 { animation: heroFadeUp 0.9s 0.10s ease both; }
+.au2 { animation: heroFadeUp 1.0s 0.20s ease both; }
+.au3 { animation: heroFadeUp 0.9s 0.38s ease both; }
+.au4 { animation: heroFadeUp 0.9s 0.55s ease both; }
+.au5 { animation: heroFadeUp 0.9s 0.70s ease both; }
+.au6 { animation: heroFadeUp 1.0s 1.20s ease both; }
+
+/* ── Ticker ── */
+@keyframes ticker {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.ticker-track { animation: ticker 24s linear infinite; }
+.ticker-track:hover { animation-play-state: paused; }
+
+/* ── Scroll indicator ── */
+@keyframes scrollPulse {
+  0%   { transform: scaleY(0); transform-origin: top;    }
+  50%  { transform: scaleY(1); transform-origin: top;    }
+  51%  { transform: scaleY(1); transform-origin: bottom; }
+  100% { transform: scaleY(0); transform-origin: bottom; }
+}
+.scroll-pulse { animation: scrollPulse 2s infinite; }

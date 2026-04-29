@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>H.O.G Tour 2026 — Algiers Chapter Algeria</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@300;400;600;700&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   HOG ALGERIA 2026 — DESIGN SYSTEM
+   Dark Cinematic | Orange Fire | Road Typography
+   ============================================================ */
+
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --orange:#FF6B00;
+  --orange-dark:#CC4E00;
+  --orange-light:#FF8C33;
+  --orange-glow:rgba(255,107,0,0.18);
+  --bg:#0A0A08;
+  --bg2:#111109;
+  --bg3:#181814;
+  --bg4:#1E1E18;
+  --text:#F0EBE0;
+  --muted:#7A7568;
+  --muted2:#5A5550;
+  --border:rgba(255,107,0,0.12);
+  --border2:rgba(255,255,255,0.06);
+}
+
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+
+/* ---- UTILITIES ---- */
+.container{max-width:1160px;margin:0 auto;padding:0 40px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+a{color:inherit;text-decoration:none}
+
+/* ---- BUTTONS ---- */
+.btn{display:inline-flex;align-items:center;gap:8px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;transition:all .25s;cursor:pointer;border:none}
+.btn-primary{background:var(--orange);color:#000;padding:14px 36px;font-size:13px}
+.btn-primary:hover{background:#fff;transform:translateY(-2px)}
+.btn-ghost{border:1px solid rgba(255,255,255,.18);color:var(--text);padding:13px 34px;font-size:13px;background:transparent}
+.btn-ghost:hover{border-color:var(--orange);color:var(--orange)}
+.btn-sm{padding:9px 22px;font-size:11px;letter-spacing:2px}
+
+/* ---- SECTION LABELS ---- */
+.tag{font-size:10.5px;letter-spacing:4px;text-transform:uppercase;color:var(--orange);display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.tag::before{content:'';display:block;width:24px;height:1px;background:var(--orange);flex-shrink:0}
+.section-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(44px,6vw,72px);letter-spacing:1.5px;line-height:.93;margin-bottom:20px}
+.section-title .accent{color:var(--orange)}
+.section-body{font-size:15.5px;color:var(--muted);line-height:1.82;font-weight:300}
+
+/* ================================================
+   NAV
+   ================================================ */
+#nav{
+  position:fixed;top:0;left:0;right:0;z-index:200;
+  padding:0 40px;height:66px;
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(10,10,8,0);
+  border-bottom:1px solid transparent;
+  transition:background .4s,border-color .4s;
+}
+#nav.scrolled{background:rgba(10,10,8,0.94);backdrop-filter:blur(14px);border-color:var(--border)}
+.nav-logo{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:5px;color:var(--orange);flex-shrink:0}
+.nav-logo span{color:var(--muted2);font-size:10px;letter-spacing:3px;margin-left:8px;vertical-align:middle}
+.nav-links{display:flex;gap:36px;list-style:none}
+.nav-links a{color:var(--muted);font-size:12px;letter-spacing:2.5px;text-transform:uppercase;transition:color .2s;font-weight:400}
+.nav-links a:hover{color:var(--text)}
+.nav-right{display:flex;align-items:center;gap:20px}
+.nav-lang{display:flex;gap:6px;font-size:10px;letter-spacing:2px;text-transform:uppercase}
+.nav-lang a{color:var(--muted2);transition:color .2s}.nav-lang a:hover,.nav-lang a.active{color:var(--orange)}
+.nav-lang span{color:var(--muted2);opacity:.3}
+.nav-burger{display:none;flex-direction:column;gap:5px;cursor:pointer}
+.nav-burger span{display:block;width:22px;height:1px;background:var(--text);transition:all .3s}
+
+/* ================================================
+   HERO
+   ================================================ */
+.hero{
+  position:relative;min-height:100vh;
+  display:flex;flex-direction:column;justify-content:flex-end;
+  padding:0 0 80px;overflow:hidden;
+}
+.hero-bg{
+  position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse 55% 55% at 72% 45%, rgba(255,107,0,0.07) 0%, transparent 65%),
+    radial-gradient(ellipse 30% 40% at 20% 80%, rgba(255,107,0,0.04) 0%, transparent 60%),
+    linear-gradient(175deg, #0A0A08 0%, #0F0F0A 50%, #0A0A08 100%);
+}
+/* Grid texture */
+.hero-bg::before{
+  content:'';position:absolute;inset:0;
+  background-image:linear-gradient(var(--border2) 1px,transparent 1px),linear-gradient(90deg,var(--border2) 1px,transparent 1px);
+  background-size:80px 80px;
+  mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black 30%,transparent 70%);
+  opacity:.4;
+}
+/* Perspective road lines */
+.hero-road{position:absolute;bottom:0;left:0;right:0;height:55%;pointer-events:none}
+
+.hero-badge{
+  position:absolute;top:100px;right:40px;
+  border:1px solid rgba(255,107,0,.35);padding:18px 22px;text-align:center;
+  background:rgba(10,10,8,.5);backdrop-filter:blur(8px);
+}
+.hero-badge-sup{font-size:9px;letter-spacing:4px;text-transform:uppercase;color:var(--orange);margin-bottom:4px}
+.hero-badge-num{font-family:'Bebas Neue',sans-serif;font-size:52px;color:var(--text);line-height:1;display:block}
+.hero-badge-sub{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted)}
+
+.hero-content{position:relative;z-index:2;padding:0 40px;max-width:860px}
+.hero-eyebrow{font-size:10.5px;letter-spacing:5px;text-transform:uppercase;color:var(--orange);margin-bottom:18px;display:flex;align-items:center;gap:12px;opacity:0;animation:fadeUp .9s .1s ease both}
+.hero-eyebrow::before{content:'';display:block;width:36px;height:1px;background:var(--orange)}
+.hero-h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(80px,14vw,150px);line-height:.88;letter-spacing:3px;opacity:0;animation:fadeUp 1s .2s ease both}
+.hero-h1 .line-accent{color:var(--orange)}
+.hero-h1 .line-muted{color:var(--muted2);font-size:.55em;letter-spacing:10px;display:block;margin-top:4px}
+.hero-tagline{font-family:'Barlow Condensed',sans-serif;font-size:clamp(16px,2.5vw,22px);letter-spacing:6px;text-transform:uppercase;color:var(--muted);margin:20px 0 14px;font-weight:300;opacity:0;animation:fadeUp .9s .35s ease both}
+.hero-tagline strong{color:var(--text);font-weight:600}
+.hero-desc{font-size:15px;color:var(--muted);line-height:1.78;max-width:500px;font-weight:300;margin-bottom:40px;opacity:0;animation:fadeUp .9s .5s ease both}
+.hero-actions{display:flex;gap:14px;flex-wrap:wrap;opacity:0;animation:fadeUp .9s .65s ease both}
+.hero-scroll{position:absolute;bottom:36px;right:40px;display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--muted2);font-size:9px;letter-spacing:3px;text-transform:uppercase;z-index:2;animation:fadeUp 1s 1.2s ease both;opacity:0}
+.hero-scroll-line{width:1px;height:48px;background:linear-gradient(to bottom,var(--orange),transparent);animation:scrollLine 2s infinite}
+@keyframes scrollLine{0%{transform:scaleY(0);transform-origin:top}50%{transform:scaleY(1);transform-origin:top}51%{transform:scaleY(1);transform-origin:bottom}100%{transform:scaleY(0);transform-origin:bottom}}
+
+/* ================================================
+   TICKER
+   ================================================ */
+.ticker{background:var(--orange);overflow:hidden;padding:11px 0}
+.ticker-track{display:flex;white-space:nowrap;animation:ticker 22s linear infinite}
+.ticker-track:hover{animation-play-state:paused}
+@keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.tick{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:4px;color:#000;padding:0 28px}
+.tick-dot{opacity:.35}
+
+/* ================================================
+   STATS BAR
+   ================================================ */
+.stats-bar{
+  background:var(--bg2);
+  border-top:1px solid var(--border);
+  border-bottom:1px solid var(--border);
+  display:grid;grid-template-columns:repeat(4,1fr);
+}
+.stat{padding:32px 28px;border-right:1px solid var(--border);text-align:center;transition:background .2s}
+.stat:last-child{border-right:none}
+.stat:hover{background:var(--bg3)}
+.stat-val{font-family:'Bebas Neue',sans-serif;font-size:46px;color:var(--orange);line-height:1;display:block}
+.stat-lbl{font-size:10.5px;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);margin-top:6px}
+
+/* ================================================
+   ABOUT
+   ================================================ */
+.about{padding:110px 0}
+.about-grid{display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center}
+.about-visual{position:relative}
+.about-frame{
+  width:100%;aspect-ratio:4/5;
+  background:var(--bg3);
+  border:1px solid var(--border);
+  position:relative;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+}
+.about-frame::before{content:'';position:absolute;inset:14px;border:1px solid var(--border)}
+.about-frame-svg{opacity:.2;transition:opacity .4s}
+.about-frame:hover .about-frame-svg{opacity:.35}
+.about-corner{position:absolute;width:18px;height:18px}
+.about-corner.tl{top:8px;left:8px;border-top:1px solid var(--orange);border-left:1px solid var(--orange)}
+.about-corner.tr{top:8px;right:8px;border-top:1px solid var(--orange);border-right:1px solid var(--orange)}
+.about-corner.bl{bottom:8px;left:8px;border-bottom:1px solid var(--orange);border-left:1px solid var(--orange)}
+.about-corner.br{bottom:8px;right:8px;border-bottom:1px solid var(--orange);border-right:1px solid var(--orange)}
+.about-accent-box{position:absolute;bottom:-16px;right:-16px;width:140px;height:140px;border:1px solid rgba(255,107,0,.2)}
+.about-glow{position:absolute;top:-20px;left:-20px;width:100px;height:100px;background:var(--orange-glow);filter:blur(40px);pointer-events:none}
+.about-badge{
+  margin-top:32px;
+  display:inline-flex;align-items:center;gap:14px;
+  border:1px solid var(--border);padding:14px 18px;
+  background:var(--bg3);
+}
+.about-badge-icon{width:42px;height:42px;background:var(--orange);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.about-badge-label{font-size:9.5px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+.about-badge-val{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:600;color:var(--text);margin-top:2px}
+
+/* ================================================
+   ROUTE / PROGRAMME
+   ================================================ */
+.programme{padding:110px 0;background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.programme-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:56px}
+.programme-meta{text-align:right}
+.programme-meta-date{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:4px;color:var(--muted)}
+.programme-meta-route{font-size:12px;color:var(--muted2);margin-top:4px;letter-spacing:1px}
+
+/* Map strip */
+.route-map-strip{
+  display:flex;align-items:center;justify-content:space-between;
+  border:1px solid var(--border);padding:24px 32px;margin-bottom:4px;
+  background:var(--bg3);position:relative;overflow:hidden;
+}
+.route-map-strip::before{
+  content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(90deg,transparent,transparent 60px,var(--border2) 60px,var(--border2) 61px);
+  opacity:.5;
+}
+.route-city{position:relative;z-index:1;text-align:center}
+.route-city-name{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px}
+.route-city-sub{font-size:9.5px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+.route-arrow{position:relative;z-index:1;flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 20px}
+.route-line{flex:1;height:1px;background:linear-gradient(to right,var(--orange),rgba(255,107,0,.2))}
+.route-km{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--orange)}
+.route-km-sub{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);text-align:center}
+
+/* Day cards */
+.days-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border2);margin-top:4px}
+.day-card{
+  background:var(--bg2);padding:28px 24px;
+  cursor:pointer;transition:background .2s;position:relative;overflow:hidden;
+  border-bottom:2px solid transparent;
+}
+.day-card:hover{background:var(--bg3)}
+.day-card.active{background:var(--bg4);border-bottom-color:var(--orange)}
+.day-bg-num{
+  position:absolute;top:10px;right:12px;
+  font-family:'Bebas Neue',sans-serif;font-size:80px;
+  color:rgba(255,107,0,0.05);line-height:1;pointer-events:none;
+  transition:color .3s;
+}
+.day-card.active .day-bg-num{color:rgba(255,107,0,0.09)}
+.day-tag{font-size:9.5px;letter-spacing:3px;text-transform:uppercase;color:var(--orange);margin-bottom:8px}
+.day-route{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:600;letter-spacing:.5px;margin-bottom:6px;line-height:1.2}
+.day-dist{display:flex;gap:6px;align-items:baseline;margin-bottom:14px}
+.day-dist-num{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--orange)}
+.day-dist-unit{font-size:11px;color:var(--muted);letter-spacing:1px}
+.day-dist-type{font-size:10px;color:var(--muted2);letter-spacing:1px;margin-left:4px}
+.day-acts{display:flex;flex-direction:column;gap:7px}
+.day-act{font-size:12px;color:var(--muted);display:flex;align-items:flex-start;gap:8px;line-height:1.4}
+.day-act::before{content:'';display:block;width:4px;height:4px;min-width:4px;background:var(--orange);margin-top:5px}
+.day-card.active .day-act{color:var(--text)}
+
+/* ================================================
+   DESTINATION GHARDAIA
+   ================================================ */
+.destination{padding:110px 0}
+.dest-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:72px;align-items:start;margin-top:56px}
+.dest-main-card{
+  background:var(--bg3);border:1px solid var(--border);padding:40px;
+  position:relative;overflow:hidden;margin-bottom:4px;
+}
+.dest-main-card::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(to right,var(--orange),transparent);
+}
+.dest-card-icon-bg{
+  position:absolute;top:16px;right:20px;
+  font-family:'Bebas Neue',sans-serif;font-size:72px;
+  color:rgba(255,107,0,0.05);line-height:1;
+}
+.dest-card-label{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--orange);margin-bottom:10px}
+.dest-card-title{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:600;letter-spacing:1px;margin-bottom:12px}
+.dest-card-body{font-size:14px;color:var(--muted);line-height:1.75}
+.dest-mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.dest-mini{background:var(--bg3);border:1px solid var(--border);padding:22px;transition:border-color .2s}
+.dest-mini:hover{border-color:rgba(255,107,0,.3)}
+.dest-mini-label{font-size:9.5px;letter-spacing:2.5px;text-transform:uppercase;color:var(--orange);margin-bottom:6px}
+.dest-mini-val{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:600}
+.dest-mini-body{font-size:12.5px;color:var(--muted);line-height:1.6;margin-top:4px}
+
+.dest-sidebar{display:flex;flex-direction:column;gap:4px}
+.dest-stat-big{
+  background:var(--bg3);border:1px solid var(--border);padding:28px;text-align:center;
+}
+.dest-stat-big-num{font-family:'Bebas Neue',sans-serif;font-size:56px;color:var(--orange);line-height:1}
+.dest-stat-big-label{font-size:9.5px;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);margin-top:6px}
+.dest-sites-list{background:var(--bg3);border:1px solid var(--orange);padding:28px}
+.dest-sites-heading{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--orange);margin-bottom:18px}
+.dest-site-row{
+  display:flex;justify-content:space-between;align-items:center;
+  border-bottom:1px solid var(--border);padding:10px 0;font-size:13.5px;
+}
+.dest-site-row:last-child{border-bottom:none;padding-bottom:0}
+.dest-site-badge{font-size:10px;letter-spacing:1px;color:var(--orange);font-family:'Bebas Neue',sans-serif;font-size:14px}
+.dest-site-meta{font-size:11px;color:var(--muted2)}
+.dest-quote{border-left:2px solid var(--orange);padding:20px 24px;margin-top:4px;background:var(--bg3)}
+.dest-quote-text{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:500;line-height:1.4;color:var(--text)}
+.dest-quote-source{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--orange);margin-top:10px}
+
+/* ================================================
+   TICKET / INSCRIPTION
+   ================================================ */
+.inscription{
+  padding:110px 0;
+  background:var(--bg2);border-top:1px solid var(--border);
+  text-align:center;
+}
+.inscription-inner{max-width:680px;margin:0 auto}
+.ticket{
+  border:1px solid var(--border);padding:60px 56px;
+  position:relative;margin-top:52px;
+  background:var(--bg3);
+}
+/* Corner brackets */
+.ticket::before,.ticket::after{content:'';position:absolute;width:22px;height:22px}
+.ticket::before{top:14px;left:14px;border-top:1px solid var(--orange);border-left:1px solid var(--orange)}
+.ticket::after{bottom:14px;right:14px;border-bottom:1px solid var(--orange);border-right:1px solid var(--orange)}
+.ticket-br-tl{position:absolute;top:14px;right:14px;width:22px;height:22px;border-top:1px solid var(--orange);border-right:1px solid var(--orange)}
+.ticket-br-bl{position:absolute;bottom:14px;left:14px;width:22px;height:22px;border-bottom:1px solid var(--orange);border-left:1px solid var(--orange)}
+.ticket-event{font-family:'Bebas Neue',sans-serif;font-size:clamp(36px,5vw,58px);letter-spacing:5px;color:var(--orange)}
+.ticket-edition{font-size:10.5px;letter-spacing:4px;text-transform:uppercase;color:var(--muted);margin-top:6px;margin-bottom:40px}
+.ticket-row{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-bottom:32px}
+.ticket-field{text-align:center}
+.ticket-field-label{font-size:9.5px;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.ticket-field-val{font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:600;color:var(--text)}
+.ticket-divider{display:flex;align-items:center;gap:14px;margin:32px 0;color:var(--muted2)}
+.ticket-divider::before,.ticket-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.ticket-divider-label{font-size:9.5px;letter-spacing:3px;text-transform:uppercase;color:var(--orange);flex-shrink:0}
+.ticket-cond{font-size:11.5px;color:var(--muted2);margin-top:24px;line-height:1.6}
+
+/* ================================================
+   GALLERY
+   ================================================ */
+.gallery{padding:110px 0}
+.gallery-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:36px}
+.gallery-grid{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  grid-template-rows:180px 180px;
+  gap:3px;
+}
+.gal{
+  background:var(--bg3);border:1px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;position:relative;cursor:pointer;
+  transition:border-color .3s;
+}
+.gal:hover{border-color:rgba(255,107,0,.4)}
+.gal:hover .gal-ov{opacity:1}
+.gal:first-child{grid-column:span 2;grid-row:span 2}
+.gal:nth-child(4){grid-column:span 2}
+.gal-ov{position:absolute;inset:0;background:rgba(255,107,0,0.1);opacity:0;transition:opacity .3s;display:flex;align-items:center;justify-content:center}
+.gal-ov-icon{width:36px;height:36px;border:1px solid rgba(255,107,0,.6);display:flex;align-items:center;justify-content:center}
+.gal-ph{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted2);opacity:.4}
+
+/* ================================================
+   CONTACT
+   ================================================ */
+.contact{padding:110px 0;background:var(--bg2);border-top:1px solid var(--border)}
+.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:72px;margin-top:56px}
+.contact-info{display:flex;flex-direction:column;gap:4px}
+.contact-item{
+  display:flex;align-items:flex-start;gap:16px;
+  border:1px solid var(--border);padding:22px 24px;
+  background:var(--bg3);transition:border-color .2s;
+}
+.contact-item:hover{border-color:rgba(255,107,0,.3)}
+.contact-item-icon{
+  width:38px;height:38px;min-width:38px;
+  background:rgba(255,107,0,0.1);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+}
+.contact-item-label{font-size:9.5px;letter-spacing:2.5px;text-transform:uppercase;color:var(--orange);margin-bottom:5px}
+.contact-item-val{font-size:14px;color:var(--text)}
+.social-row{display:flex;gap:3px;margin-top:4px}
+.soc-btn{
+  flex:1;border:1px solid var(--border);padding:16px;
+  text-align:center;font-size:10.5px;letter-spacing:2px;text-transform:uppercase;
+  color:var(--muted);background:var(--bg3);transition:all .2s;
+  font-family:'Barlow Condensed',sans-serif;font-weight:600;
+}
+.soc-btn:hover{border-color:var(--orange);color:var(--orange);background:rgba(255,107,0,.05)}
+
+/* Contact form */
+.contact-form{display:flex;flex-direction:column;gap:3px}
+.form-group{display:flex;flex-direction:column}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:3px}
+label{font-size:9.5px;letter-spacing:2.5px;text-transform:uppercase;color:var(--orange);padding:10px 14px 4px;background:var(--bg3);border:1px solid var(--border);border-bottom:none}
+input,textarea,select{
+  background:var(--bg3);border:1px solid var(--border);
+  border-top:none;padding:12px 14px;
+  color:var(--text);font-family:'Barlow',sans-serif;font-size:14px;
+  outline:none;transition:border-color .2s;width:100%;
+}
+input:focus,textarea:focus{border-color:rgba(255,107,0,.5)}
+textarea{resize:none;height:110px;line-height:1.6}
+input::placeholder,textarea::placeholder{color:var(--muted2)}
+
+/* ================================================
+   FOOTER
+   ================================================ */
+footer{background:var(--bg);border-top:1px solid var(--border);padding:72px 0 32px}
+.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:56px;margin-bottom:56px}
+.footer-brand-logo{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:5px;color:var(--orange);margin-bottom:14px}
+.footer-brand-tag{font-size:12.5px;color:var(--muted);line-height:1.75;max-width:270px;font-weight:300}
+.footer-brand-soc{display:flex;gap:8px;margin-top:24px}
+.footer-soc{
+  width:34px;height:34px;border:1px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;color:var(--muted);transition:all .2s;
+  font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:0;
+}
+.footer-soc:hover{border-color:var(--orange);color:var(--orange)}
+.footer-col-title{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--text);margin-bottom:20px}
+.footer-col ul{list-style:none;display:flex;flex-direction:column;gap:10px}
+.footer-col ul a{font-size:13px;color:var(--muted);transition:color .2s}
+.footer-col ul a:hover{color:var(--orange)}
+.footer-bottom{
+  border-top:1px solid var(--border2);padding-top:24px;
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:11.5px;color:var(--muted2);
+}
+.footer-bottom a{color:var(--orange)}
+
+/* ================================================
+   ANIMATIONS
+   ================================================ */
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+.reveal-delay-1{transition-delay:.1s}
+.reveal-delay-2{transition-delay:.2s}
+.reveal-delay-3{transition-delay:.3s}
+
+/* ================================================
+   RESPONSIVE (basic)
+   ================================================ */
+@media(max-width:900px){
+  .nav-links{display:none}
+  .nav-burger{display:flex}
+  .about-grid,.contact-grid,.dest-grid{grid-template-columns:1fr}
+  .stats-bar{grid-template-columns:repeat(2,1fr)}
+  .stat:nth-child(2){border-right:none}
+  .stat:nth-child(3){border-top:1px solid var(--border)}
+  .days-grid{grid-template-columns:1fr 1fr}
+  .footer-grid{grid-template-columns:1fr 1fr}
+  .gallery-grid{grid-template-columns:repeat(3,1fr);grid-template-rows:160px 160px 160px}
+  .gal:first-child{grid-column:span 1;grid-row:span 1}
+  .gal:nth-child(4){grid-column:span 1}
+  .hero-h1{font-size:clamp(64px,18vw,120px)}
+}
+@media(max-width:600px){
+  .container{padding:0 20px}
+  #nav{padding:0 20px}
+  .hero-content{padding:0 20px}
+  .hero-badge{display:none}
+  .stats-bar{grid-template-columns:1fr 1fr}
+  .days-grid{grid-template-columns:1fr}
+  .ticket-row{grid-template-columns:1fr}
+  .footer-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ====================================================
+     NAV
+     ==================================================== -->
+<nav id="nav">
+  <div class="nav-logo">H.O.G Algeria <span>Algiers Chapter</span></div>
+  <ul class="nav-links">
+    <li><a href="#about">À Propos</a></li>
+    <li><a href="#programme">Programme</a></li>
+    <li><a href="#destination">Ghardaïa</a></li>
+    <li><a href="#galerie">Galerie</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+  <div class="nav-right">
+    <div class="nav-lang">
+      <a href="#" class="active">FR</a><span>|</span>
+      <a href="#">AR</a><span>|</span>
+      <a href="#">EN</a>
+    </div>
+    <a href="#inscription" class="btn btn-primary btn-sm">S'inscrire</a>
+  </div>
+</nav>
+
+<!-- ====================================================
+     HERO
+     ==================================================== -->
+<section class="hero">
+  <div class="hero-bg"></div>
+
+  <svg class="hero-road" viewBox="0 0 1440 400" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+    <path d="M720 400 L0 0" stroke="#FF6B00" stroke-width="0.8" stroke-dasharray="10 18" opacity=".25"/>
+    <path d="M720 400 L1440 0" stroke="#FF6B00" stroke-width="0.8" stroke-dasharray="10 18" opacity=".25"/>
+    <path d="M720 400 L300 0" stroke="#FF6B00" stroke-width="0.5" stroke-dasharray="6 20" opacity=".12"/>
+    <path d="M720 400 L1140 0" stroke="#FF6B00" stroke-width="0.5" stroke-dasharray="6 20" opacity=".12"/>
+    <path d="M720 400 L720 0" stroke="#FF6B00" stroke-width="1.5" stroke-dasharray="18 24" opacity=".3"/>
+    <path d="M720 400 L500 0" stroke="#FF6B00" stroke-width="0.4" stroke-dasharray="4 24" opacity=".08"/>
+    <path d="M720 400 L940 0" stroke="#FF6B00" stroke-width="0.4" stroke-dasharray="4 24" opacity=".08"/>
+  </svg>
+
+  <div class="hero-badge">
+    <div class="hero-badge-sup">Octobre</div>
+    <span class="hero-badge-num">2026</span>
+    <div class="hero-badge-sub">Première édition</div>
+  </div>
+
+  <div class="hero-content">
+    <div class="hero-eyebrow">H.O.G Algiers Chapter Algeria &nbsp;•&nbsp; Accréditation #8062</div>
+    <h1 class="hero-h1">
+      HOG<br>
+      <span class="line-accent">TOUR</span><br>
+      ALGERIA
+      <span class="line-muted">2026</span>
+    </h1>
+    <p class="hero-tagline"><strong>1 600 km</strong> &nbsp;•&nbsp; <strong>4 Jours</strong> &nbsp;•&nbsp; <strong>1 Légende</strong></p>
+    <p class="hero-desc">Pour la première fois en Algérie, le H.O.G Algiers Chapter vous invite à tracer la route jusqu'au cœur du Sahara. Alger → Ghardaïa, une aventure unique sur deux roues.</p>
+    <div class="hero-actions">
+      <a href="#inscription" class="btn btn-primary">Réserver ma place</a>
+      <a href="#programme" class="btn btn-ghost">Voir le programme</a>
+    </div>
+  </div>
+
+  <div class="hero-scroll">
+    <div class="hero-scroll-line"></div>
+    <span>Scroll</span>
+  </div>
+</section>
+
+<!-- ====================================================
+     TICKER
+     ==================================================== -->
+<div class="ticker">
+  <div class="ticker-track">
+    <span class="tick">HOG Tour 2026</span><span class="tick tick-dot">◆</span>
+    <span class="tick">Alger → Ghardaïa</span><span class="tick tick-dot">◆</span>
+    <span class="tick">1 600 Km</span><span class="tick tick-dot">◆</span>
+    <span class="tick">4 Jours d'Aventure</span><span class="tick tick-dot">◆</span>
+    <span class="tick">Première Fois en Algérie</span><span class="tick tick-dot">◆</span>
+    <span class="tick">Harley-Davidson</span><span class="tick tick-dot">◆</span>
+    <span class="tick">Algeria Bike Week</span><span class="tick tick-dot">◆</span>
+    <span class="tick">HOG Tour 2026</span><span class="tick tick-dot">◆</span>
+    <span class="tick">Alger → Ghardaïa</span><span class="tick tick-dot">◆</span>
+    <span class="tick">1 600 Km</span><span class="tick tick-dot">◆</span>
+    <span class="tick">4 Jours d'Aventure</span><span class="tick tick-dot">◆</span>
+    <span class="tick">Première Fois en Algérie</span><span class="tick tick-dot">◆</span>
+    <span class="tick">Harley-Davidson</span><span class="tick tick-dot">◆</span>
+    <span class="tick">Algeria Bike Week</span><span class="tick tick-dot">◆</span>
+  </div>
+</div>
+
+<!-- ====================================================
+     STATS
+     ==================================================== -->
+<div class="stats-bar">
+  <div class="stat reveal">
+    <span class="stat-val">1 600</span>
+    <div class="stat-lbl">Kilomètres de route</div>
+  </div>
+  <div class="stat reveal reveal-delay-1">
+    <span class="stat-val">4</span>
+    <div class="stat-lbl">Jours d'aventure</div>
+  </div>
+  <div class="stat reveal reveal-delay-2">
+    <span class="stat-val">13</span>
+    <div class="stat-lbl">Ans d'existence</div>
+  </div>
+  <div class="stat reveal reveal-delay-3">
+    <span class="stat-val">1 M+</span>
+    <div class="stat-lbl">Membres H.O.G monde</div>
+  </div>
+</div>
+
+<!-- ====================================================
+     ABOUT
+     ==================================================== -->
+<section class="about" id="about">
+  <div class="container">
+    <div class="about-grid">
+      <div class="reveal">
+        <div class="tag">À Propos</div>
+        <h2 class="section-title">La fraternité<br><span class="accent">sur deux roues</span></h2>
+        <p class="section-body">Le Harley Owners Group est le club créé par Harley-Davidson pour rassembler les propriétaires de motos de la marque. Chaque concessionnaire possède un Chapter. Il existe plus d'un million de membres dans le monde entier.</p>
+        <p class="section-body" style="margin-top:18px">Créé le <strong style="color:var(--text);font-weight:500">15 Mai 2013</strong>, le H.O.G Algiers Chapter Algeria est le club accrédité par Harley-Davidson en Algérie sous le numéro <strong style="color:var(--orange);font-weight:500">#8062</strong>.</p>
+        <p class="section-body" style="margin-top:18px">Le club contribue depuis sa création à la conduite responsable, à la sensibilisation à la sécurité routière. Depuis 2023, il est co-organisateur du plus grand événement motocycle en Algérie : <strong style="color:var(--text);font-weight:500">Algeria Bike Week</strong>.</p>
+        <div class="about-badge">
+          <div class="about-badge-icon">
+            <svg width="18" height="18" fill="none" stroke="#000" stroke-width="2.2" viewBox="0 0 24 24">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+          </div>
+          <div>
+            <div class="about-badge-label">Chapter Officiel Harley-Davidson</div>
+            <div class="about-badge-val">Accréditation internationale #8062 • Depuis 2013</div>
+          </div>
+        </div>
+      </div>
+      <div class="about-visual reveal reveal-delay-2">
+        <div class="about-glow"></div>
+        <div class="about-frame">
+          <div class="about-corner tl"></div>
+          <div class="about-corner tr"></div>
+          <div class="about-corner bl"></div>
+          <div class="about-corner br"></div>
+          <svg class="about-frame-svg" width="120" height="120" viewBox="0 0 120 120" fill="none">
+            <circle cx="60" cy="60" r="56" stroke="#FF6B00" stroke-width="1"/>
+            <circle cx="60" cy="60" r="40" stroke="#FF6B00" stroke-width=".5"/>
+            <circle cx="60" cy="60" r="8" fill="#FF6B00" opacity=".5"/>
+            <path d="M60 4 L60 20M60 100 L60 116M4 60 L20 60M100 60 L116 60" stroke="#FF6B00" stroke-width="1"/>
+            <path d="M28 28 L40 40M80 80 L92 92M92 28 L80 40M28 92 L40 80" stroke="#FF6B00" stroke-width=".5"/>
+            <circle cx="60" cy="60" r="24" stroke="#FF6B00" stroke-width=".5" stroke-dasharray="4 8"/>
+            <path d="M20 60 C20 38 100 38 100 60 C100 82 20 82 20 60Z" fill="rgba(255,107,0,0.06)" stroke="#FF6B00" stroke-width=".5"/>
+          </svg>
+          <div style="position:absolute;bottom:24px;left:0;right:0;text-align:center">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:4px;color:var(--orange);opacity:.6">HOG · Algeria</div>
+            <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted2);margin-top:2px">Since 2013</div>
+          </div>
+        </div>
+        <div class="about-accent-box"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====================================================
+     PROGRAMME
+     ==================================================== -->
+<section class="programme" id="programme">
+  <div class="container">
+    <div class="programme-header reveal">
+      <div>
+        <div class="tag">Le Programme</div>
+        <h2 class="section-title">La Route<br><span class="accent">4 jours</span></h2>
+      </div>
+      <div class="programme-meta">
+        <div class="programme-meta-date">Octobre 2026</div>
+        <div class="programme-meta-route">Départ : Alger &nbsp;→&nbsp; Ghardaïa &nbsp;→&nbsp; Alger</div>
+      </div>
+    </div>
+
+    <!-- Route overview strip -->
+    <div class="route-map-strip reveal">
+      <div class="route-city">
+        <div class="route-city-name">ALGER</div>
+        <div class="route-city-sub">Point de départ</div>
+      </div>
+      <div class="route-arrow">
+        <div class="route-line"></div>
+        <div>
+          <div class="route-km">600</div>
+          <div class="route-km-sub">km aller</div>
+        </div>
+        <div class="route-line" style="background:linear-gradient(to left,var(--orange),rgba(255,107,0,.2))"></div>
+      </div>
+      <div class="route-city">
+        <div class="route-city-name" style="color:var(--orange)">GHARDAÏA</div>
+        <div class="route-city-sub">Patrimoine UNESCO</div>
+      </div>
+      <div class="route-arrow">
+        <div class="route-line"></div>
+        <div>
+          <div class="route-km">380</div>
+          <div class="route-km-sub">km excursions</div>
+        </div>
+        <div class="route-line" style="background:linear-gradient(to left,var(--orange),rgba(255,107,0,.2))"></div>
+      </div>
+      <div class="route-city">
+        <div class="route-city-name">ALGER</div>
+        <div class="route-city-sub">Retour triomphal</div>
+      </div>
+    </div>
+
+    <!-- Days -->
+    <div class="days-grid reveal">
+      <div class="day-card active" onclick="selectDay(this)">
+        <div class="day-bg-num">01</div>
+        <div class="day-tag">Jour 01</div>
+        <div class="day-route">Alger → Ghardaïa</div>
+        <div class="day-dist">
+          <span class="day-dist-num">600</span>
+          <span class="day-dist-unit">KM</span>
+          <span class="day-dist-type">Aller simple</span>
+        </div>
+        <div class="day-acts">
+          <div class="day-act">Briefing général + départ convoi</div>
+          <div class="day-act">Pause brunch technique à 200 km</div>
+          <div class="day-act">Pause déjeuner à 400 km</div>
+          <div class="day-act">Check-in hôtel + remise des packs</div>
+          <div class="day-act">Dîner en groupe</div>
+        </div>
+      </div>
+      <div class="day-card" onclick="selectDay(this)">
+        <div class="day-bg-num">02</div>
+        <div class="day-tag">Jour 02</div>
+        <div class="day-route">Ghardaïa → El Guerrara</div>
+        <div class="day-dist">
+          <span class="day-dist-num">250</span>
+          <span class="day-dist-unit">KM</span>
+          <span class="day-dist-type">Aller / Retour</span>
+        </div>
+        <div class="day-acts">
+          <div class="day-act">Direction El Guerrara à 125 km</div>
+          <div class="day-act">Déjeuner en palmeraie</div>
+          <div class="day-act">Ballade à dos de chameaux</div>
+          <div class="day-act">Challenge + retour à Ghardaïa</div>
+          <div class="day-act">Dîner à l'hôtel</div>
+        </div>
+      </div>
+      <div class="day-card" onclick="selectDay(this)">
+        <div class="day-bg-num">03</div>
+        <div class="day-tag">Jour 03</div>
+        <div class="day-route">Ghardaïa → Sebseb</div>
+        <div class="day-dist">
+          <span class="day-dist-num">130</span>
+          <span class="day-dist-unit">KM</span>
+          <span class="day-dist-type">Aller / Retour</span>
+        </div>
+        <div class="day-acts">
+          <div class="day-act">Visite souk + place emblématique</div>
+          <div class="day-act">Déjeuner cité écologique Tafilalt</div>
+          <div class="day-act">Challenge Quad dans les dunes</div>
+          <div class="day-act">Concert sur les dunes</div>
+          <div class="day-act">Remise des trophées</div>
+        </div>
+      </div>
+      <div class="day-card" onclick="selectDay(this)">
+        <div class="day-bg-num">04</div>
+        <div class="day-tag">Jour 04</div>
+        <div class="day-route">Ghardaïa → Alger</div>
+        <div class="day-dist">
+          <span class="day-dist-num">600</span>
+          <span class="day-dist-unit">KM</span>
+          <span class="day-dist-type">Aller simple</span>
+        </div>
+        <div class="day-acts">
+          <div class="day-act">Ride fête nationale du 1er Novembre</div>
+          <div class="day-act">Pause technique à 200 km</div>
+          <div class="day-act">Pause déjeuner à 400 km</div>
+          <div class="day-act">Arrivée à Alger</div>
+          <div class="day-act">Cocktail dînatoire de clôture</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====================================================
+     DESTINATION GHARDAÏA
+     ==================================================== -->
+<section class="destination" id="destination">
+  <div class="container">
+    <div class="reveal">
+      <div class="tag">Destination</div>
+      <h2 class="section-title" style="max-width:700px">Pourquoi<br><span class="accent">Ghardaïa ?</span></h2>
+    </div>
+
+    <div class="dest-grid">
+      <div class="reveal">
+        <div class="dest-main-card">
+          <div class="dest-card-icon-bg">G</div>
+          <div class="dest-card-label">Site UNESCO</div>
+          <div class="dest-card-title">Vallée du M'Zab — Patrimoine Mondial</div>
+          <div class="dest-card-body">Fondée au XIe siècle dans la vallée du M'Zab, Ghardaïa est classée au patrimoine mondial de l'UNESCO. Son architecture Ksourienne unique en fait l'un des sites touristiques les plus importants d'Algérie, notamment en raison de sa maîtrise exemplaire de l'architecture en milieu désertique.</div>
+        </div>
+        <div class="dest-mini-grid">
+          <div class="dest-mini">
+            <div class="dest-mini-label">Porte du Sud</div>
+            <div class="dest-mini-val">Carrefour historique</div>
+            <div class="dest-mini-body">Entre le Tell algérien et le Grand Sahara, Ghardaïa a de tout temps été la porte d'entrée du désert.</div>
+          </div>
+          <div class="dest-mini">
+            <div class="dest-mini-label">Culture M'Zab</div>
+            <div class="dest-mini-val">Architecture millénaire</div>
+            <div class="dest-mini-body">Traditions culinaires, artisanat local et architecture organique à découvrir lors du séjour.</div>
+          </div>
+        </div>
+        <div class="dest-quote">
+          <div class="dest-quote-text">"De tout temps, Ghardaïa est considérée comme la porte du Sud algérien. Fondée au XIe siècle, elle est classée au patrimoine mondial de l'UNESCO."</div>
+          <div class="dest-quote-source">H.O.G Algiers Chapter — HOG Tour 2026</div>
+        </div>
+      </div>
+
+      <div class="dest-sidebar reveal reveal-delay-2">
+        <div class="dest-stat-big">
+          <div class="dest-stat-big-num">XIe</div>
+          <div class="dest-stat-big-label">Siècle de fondation</div>
+        </div>
+        <div class="dest-sites-list">
+          <div class="dest-sites-heading">Sites visités durant le tour</div>
+          <div class="dest-site-row">
+            <span>Ghardaïa</span>
+            <span class="dest-site-badge">BASE</span>
+          </div>
+          <div class="dest-site-row">
+            <div>
+              <div>El Guerrara</div>
+              <div class="dest-site-meta">Palmeraie + chameaux</div>
+            </div>
+            <span style="color:var(--muted);font-size:12px">125 km</span>
+          </div>
+          <div class="dest-site-row">
+            <div>
+              <div>Cité Tafilalt</div>
+              <div class="dest-site-meta">Cité écologique</div>
+            </div>
+            <span style="color:var(--muted);font-size:12px">Déjeuner</span>
+          </div>
+          <div class="dest-site-row">
+            <div>
+              <div>Sebseb</div>
+              <div class="dest-site-meta">Dunes + Quad + Concert</div>
+            </div>
+            <span style="color:var(--muted);font-size:12px">65 km</span>
+          </div>
+          <div class="dest-site-row">
+            <div>
+              <div>Souk local</div>
+              <div class="dest-site-meta">Marché traditionnel</div>
+            </div>
+            <span style="color:var(--muted);font-size:12px">Ghardaïa</span>
+          </div>
+        </div>
+        <div style="background:var(--bg3);border:1px solid var(--border);padding:24px">
+          <div style="font-size:10px;letter-spacing:2.5px;text-transform:uppercase;color:var(--orange);margin-bottom:12px">Activités incluses</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="font-size:13px;color:var(--muted);display:flex;gap:8px;align-items:flex-start"><span style="color:var(--orange);margin-top:2px">→</span>Rides guidés en convoi Harley</div>
+            <div style="font-size:13px;color:var(--muted);display:flex;gap:8px;align-items:flex-start"><span style="color:var(--orange);margin-top:2px">→</span>Ballade à dos de chameaux</div>
+            <div style="font-size:13px;color:var(--muted);display:flex;gap:8px;align-items:flex-start"><span style="color:var(--orange);margin-top:2px">→</span>Challenge Quad dans les dunes</div>
+            <div style="font-size:13px;color:var(--muted);display:flex;gap:8px;align-items:flex-start"><span style="color:var(--orange);margin-top:2px">→</span>Concert nocturne sur les dunes</div>
+            <div style="font-size:13px;color:var(--muted);display:flex;gap:8px;align-items:flex-start"><span style="color:var(--orange);margin-top:2px">→</span>Pack rallye + trophées</div>
+            <div style="font-size:13px;color:var(--muted);display:flex;gap:8px;align-items:flex-start"><span style="color:var(--orange);margin-top:2px">→</span>Cocktail dînatoire de clôture</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====================================================
+     INSCRIPTION / TICKET
+     ==================================================== -->
+<section class="inscription" id="inscription">
+  <div class="inscription-inner container reveal">
+    <div class="tag" style="justify-content:center">Inscription</div>
+    <h2 class="section-title">Réservez<br><span class="accent">votre place</span></h2>
+    <p class="section-body" style="margin:0 auto;text-align:center">Places limitées — Réservez dès maintenant votre participation au premier HOG Tour en Algérie.</p>
+
+    <div class="ticket">
+      <div class="ticket-br-tl"></div>
+      <div class="ticket-br-bl"></div>
+
+      <div class="ticket-event">HOG TOUR 2026 ®</div>
+      <div class="ticket-edition">Algiers Chapter Algeria · Première édition nationale · Accréditation #8062</div>
+
+      <div class="ticket-row">
+        <div class="ticket-field">
+          <div class="ticket-field-label">Départ</div>
+          <div class="ticket-field-val">Alger</div>
+        </div>
+        <div class="ticket-field">
+          <div class="ticket-field-label">Durée</div>
+          <div class="ticket-field-val">4 Jours</div>
+        </div>
+        <div class="ticket-field">
+          <div class="ticket-field-label">Date</div>
+          <div class="ticket-field-val">Octobre 2026</div>
+        </div>
+      </div>
+
+      <div class="ticket-divider">
+        <span class="ticket-divider-label">◆ Places Limitées ◆</span>
+      </div>
+
+      <a href="https://hogalgierschapteralgeria.com/index.php/inscription-hogtour-2026/" class="btn btn-primary" style="font-size:14px;padding:16px 52px">
+        Rejoindre le convoi &nbsp;→
+      </a>
+
+      <div class="ticket-cond">Pour rejoindre le H.O.G, il faut être propriétaire d'une moto Harley-Davidson.<br>Tous les ans, les membres participent aux événements de la marque en Europe et au Moyen Orient.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ====================================================
+     GALLERY
+     ==================================================== -->
+<section class="gallery" id="galerie">
+  <div class="container">
+    <div class="gallery-header reveal">
+      <div>
+        <div class="tag">Galerie</div>
+        <h2 class="section-title">Éditions<br><span class="accent">précédentes</span></h2>
+      </div>
+      <a href="#" class="btn btn-ghost btn-sm">Voir toutes les photos →</a>
+    </div>
+
+    <div class="gallery-grid reveal">
+      <div class="gal">
+        <div class="gal-ov"><div class="gal-ov-icon"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--orange)"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></div></div>
+        <span class="gal-ph">Photo ride</span>
+      </div>
+      <div class="gal"><div class="gal-ov"><div class="gal-ov-icon"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--orange)"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></div></div><span class="gal-ph">Convoi</span></div>
+      <div class="gal"><div class="gal-ov"><div class="gal-ov-icon"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--orange)"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></div></div><span class="gal-ph">Ghardaïa</span></div>
+      <div class="gal"><div class="gal-ov"><div class="gal-ov-icon"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--orange)"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></div></div><span class="gal-ph">Desert ride</span></div>
+      <div class="gal"><div class="gal-ov"><div class="gal-ov-icon"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--orange)"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></div></div><span class="gal-ph">El Guerrara</span></div>
+      <div class="gal"><div class="gal-ov"><div class="gal-ov-icon"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--orange)"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></div></div><span class="gal-ph">Harley</span></div>
+      <div class="gal"><div class="gal-ov"><div class="gal-ov-icon"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--orange)"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></div></div><span class="gal-ph">Dunes</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ====================================================
+     CONTACT
+     ==================================================== -->
+<section class="contact" id="contact">
+  <div class="container">
+    <div class="reveal">
+      <div class="tag">Contact</div>
+      <h2 class="section-title">Contactez<br><span class="accent">Nous</span></h2>
+    </div>
+
+    <div class="contact-grid">
+      <div>
+        <div class="contact-info reveal">
+          <div class="contact-item">
+            <div class="contact-item-icon">
+              <svg width="16" height="16" fill="none" stroke="var(--orange)" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            </div>
+            <div>
+              <div class="contact-item-label">Email</div>
+              <a href="mailto:contact@hogalgierschapteralgeria.com" class="contact-item-val">contact@hogalgierschapteralgeria.com</a>
+            </div>
+          </div>
+          <div class="contact-item">
+            <div class="contact-item-icon">
+              <svg width="16" height="16" fill="none" stroke="var(--orange)" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 11.5 19.79 19.79 0 01.04 2.82 2 2 0 012 .66h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+            </div>
+            <div>
+              <div class="contact-item-label">Téléphone</div>
+              <a href="tel:+213774318751" class="contact-item-val">+213 774 31 87 51</a>
+            </div>
+          </div>
+        </div>
+        <div class="social-row" style="margin-top:3px">
+          <a href="https://www.facebook.com/profile.php?id=61581997936557" class="soc-btn">Facebook</a>
+          <a href="https://www.instagram.com/hogalgierschapteralgeria/" class="soc-btn">Instagram</a>
+          <a href="https://www.youtube.com/@HOGAlgiersChapterAlgeria" class="soc-btn">YouTube</a>
+        </div>
+      </div>
+
+      <div class="reveal reveal-delay-2">
+        <form class="contact-form" onsubmit="return false">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="prenom">Prénom</label>
+              <input type="text" id="prenom" placeholder="Votre prénom">
+            </div>
+            <div class="form-group">
+              <label for="nom">Nom</label>
+              <input type="text" id="nom" placeholder="Votre nom">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" placeholder="votre@email.com">
+          </div>
+          <div class="form-group">
+            <label for="sujet">Sujet</label>
+            <input type="text" id="sujet" placeholder="HOG Tour 2026 — Renseignements">
+          </div>
+          <div class="form-group">
+            <label for="message">Message</label>
+            <textarea id="message" placeholder="Votre message…"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary" style="margin-top:3px;justify-content:center;width:100%">Envoyer le message →</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====================================================
+     FOOTER
+     ==================================================== -->
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand-logo">H.O.G Algeria</div>
+        <p class="footer-brand-tag">Le Harley Owners Group Algiers Chapter Algeria, club accrédité #8062 par Harley-Davidson en Algérie. Fondé le 15 Mai 2013, co-organisateur d'Algeria Bike Week depuis 2023.</p>
+        <div class="footer-brand-soc">
+          <a href="https://www.facebook.com/profile.php?id=61581997936557" class="footer-soc">Fb</a>
+          <a href="https://www.instagram.com/hogalgierschapteralgeria/" class="footer-soc">Ig</a>
+          <a href="https://www.youtube.com/@HOGAlgiersChapterAlgeria" class="footer-soc">Yt</a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <div class="footer-col-title">Navigation</div>
+        <ul>
+          <li><a href="#">Accueil</a></li>
+          <li><a href="#about">À Propos</a></li>
+          <li><a href="#programme">HOG Tour 2026</a></li>
+          <li><a href="#inscription">Inscription</a></li>
+          <li><a href="#contact">Contact</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <div class="footer-col-title">L'événement</div>
+        <ul>
+          <li><a href="#programme">Programme complet</a></li>
+          <li><a href="#destination">Ghardaïa</a></li>
+          <li><a href="#galerie">Galerie photos</a></li>
+          <li><a href="#">Algeria Bike Week</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <div class="footer-col-title">Contact</div>
+        <ul>
+          <li><a href="mailto:contact@hogalgierschapteralgeria.com">Email</a></li>
+          <li><a href="tel:+213774318751">+213 774 31 87 51</a></li>
+          <li><a href="#">Facebook</a></li>
+          <li><a href="#">Instagram</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 H.O.G Algiers Chapter Algeria — Tous droits réservés</span>
+      <span>Développé par <a href="https://linkedin.com/in/amel-benelhadj">Amélia Benelhadj</a></span>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ---- Nav scroll ---- */
+const nav = document.getElementById('nav');
+window.addEventListener('scroll', () => {
+  nav.classList.toggle('scrolled', window.scrollY > 60);
+});
+
+/* ---- Day selector ---- */
+function selectDay(el) {
+  document.querySelectorAll('.day-card').forEach(d => d.classList.remove('active'));
+  el.classList.add('active');
+}
+
+/* ---- Scroll reveal ---- */
+const reveals = document.querySelectorAll('.reveal');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      observer.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.12 });
+reveals.forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
