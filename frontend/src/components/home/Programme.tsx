@@ -21,7 +21,7 @@ export default function Programme() {
       <div className="max-w-container mx-auto px-6 md:px-10">
 
         {/* Header */}
-        <div className="reveal flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6 mb-14">
+        <div className="reveal reveal-streak flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6 mb-14">
           <div>
             <div className="section-tag">Le Programme</div>
             <h2 className="font-display leading-[.93] tracking-wide"
@@ -40,7 +40,7 @@ export default function Programme() {
         </div>
 
         {/* Route strip */}
-        <div className="reveal relative flex items-center justify-between bg-bg3 border border-orange/12 px-8 py-6 mb-1 overflow-hidden">
+        <div className="reveal reveal-streak relative flex items-center justify-between bg-bg3 border border-orange/12 px-8 py-6 mb-1 overflow-hidden">
           <div className="absolute inset-0 opacity-50 pointer-events-none"
             style={{ backgroundImage: 'repeating-linear-gradient(90deg,transparent,transparent 60px,rgba(255,255,255,.03) 60px,rgba(255,255,255,.03) 61px)' }}/>
           <RouteCity name="ALGER"    sub="Point de départ" />
@@ -51,7 +51,7 @@ export default function Programme() {
         </div>
 
         {/* Pourquoi Ghardaïa */}
-        <div className="reveal relative bg-bg3 border border-orange/12 mb-1 overflow-hidden">
+        <div className="reveal reveal-streak relative bg-bg3 border border-orange/12 mb-1 overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: 'linear-gradient(to right, #FF6B00, transparent)' }}/>
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px]">
             <div className="p-9">
@@ -89,7 +89,7 @@ export default function Programme() {
         </div>
 
         {/* 4 Day cards */}
-        <div className="reveal grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-px bg-white/5">
+        <div className="reveal reveal-streak grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-px bg-white/5">
           {DAYS.map((d, i) => (
             <div
               key={i}

@@ -3,7 +3,7 @@ export default function Ticket() {
   return (
     <section className="py-16 bg-bg2 border-t border-orange/10">
       <div className="max-w-container mx-auto px-6 md:px-10">
-        <div className="reveal relative bg-bg3 border border-orange/12 px-10 md:px-16 py-14 overflow-hidden">
+        <div className="reveal reveal-streak relative bg-bg3 border border-orange/12 px-10 md:px-16 py-14 overflow-hidden">
           {/* Damier déco */}
           <div className="absolute top-0 right-0 bottom-0 w-[40%] pointer-events-none opacity-60"
             style={{ maskImage: 'linear-gradient(to left, rgba(0,0,0,1) 0%, transparent 100%)' }}>

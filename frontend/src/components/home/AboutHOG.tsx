@@ -8,7 +8,7 @@ export default function AboutHOG() {
       <div className="max-w-container mx-auto px-6 md:px-10">
 
         {/* Bloc 1 — LE H.O.G */}
-        <div className="reveal grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+        <div className="reveal reveal-streak grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           {/* Photo placeholder */}
           <div className="relative aspect-[4/3] bg-bg3 border border-orange/10 flex flex-col items-center justify-center gap-3 overflow-hidden">
             <Image
@@ -48,7 +48,7 @@ export default function AboutHOG() {
         <div className="my-16 h-px bg-orange/10"/>
 
         {/* Bloc 2 — LE H.O.G ALGIERS CHAPTER ALGERIA */}
-        <div className="reveal reveal-d1 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+        <div className="reveal reveal-d1 reveal-streak grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <div className="order-2 lg:order-1">
             <div className="section-tag">Notre Chapter</div>
             <h2 className="font-display leading-[.93] tracking-wide mb-5"

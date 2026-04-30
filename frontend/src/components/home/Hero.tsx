@@ -8,7 +8,7 @@ export default function Hero() {
 
       {/* ── Photo de fond ── */}
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 hog-parallax-bg"
         style={{
           backgroundImage: "url('/images/hero-bg.png')",
           backgroundSize: 'cover',
@@ -28,7 +28,7 @@ export default function Hero() {
       }}/>
 
       {/* ── Road lines SVG ── */}
-      <svg className="absolute bottom-14 left-0 right-0 w-full pointer-events-none"
+      <svg className="absolute bottom-14 left-0 right-0 w-full pointer-events-none hog-parallax-lines"
         style={{ height: '45%', zIndex: 3 }}
         viewBox="0 0 1440 400" fill="none" preserveAspectRatio="none">
         <path d="M720 400 L0 50"    stroke="#FF6B00" strokeWidth="1"   strokeDasharray="12 20" opacity=".2"/>

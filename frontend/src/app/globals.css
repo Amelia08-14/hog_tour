@@ -41,16 +41,58 @@
 /* ── Scroll reveal ── */
 @layer utilities {
   .reveal {
+    --hog-reveal-delay: 0s;
     opacity: 0;
-    transform: translateY(24px);
-    transition: opacity 0.7s ease, transform 0.7s ease;
+    transform: translateY(20px);
+    will-change: transform, opacity;
   }
   .reveal.visible {
-    opacity: 1;
-    transform: translateY(0);
+    animation: hogReveal 1.35s cubic-bezier(.2,.9,.2,1) both;
+    animation-delay: var(--hog-reveal-delay);
   }
-  .reveal-d1 { transition-delay: 0.1s; }
-  .reveal-d2 { transition-delay: 0.2s; }
+  .reveal-d1 { --hog-reveal-delay: 0.12s; }
+  .reveal-d2 { --hog-reveal-delay: 0.24s; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; }
+  .reveal.visible { animation: none; }
+}
+
+@keyframes hogReveal {
+  0% { opacity: 0; transform: translateY(20px); }
+  65% { opacity: 1; transform: translateY(-2px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.reveal-streak {
+  position: relative;
+  overflow: hidden;
+}
+.reveal-streak.visible::after {
+  content: '';
+  position: absolute;
+  inset: -40% -60%;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,107,0,.22) 50%, transparent 100%);
+  transform: translateX(-120%) skewX(-18deg);
+  animation: hogStreak 1.8s cubic-bezier(.2,.9,.2,1) both;
+  animation-delay: var(--hog-reveal-delay);
+  pointer-events: none;
+}
+
+@keyframes hogStreak {
+  0% { transform: translateX(-120%) skewX(-18deg); opacity: 0; }
+  28% { opacity: 1; }
+  100% { transform: translateX(120%) skewX(-18deg); opacity: 0; }
+}
+
+.hog-parallax-bg {
+  transform: translate3d(0, calc(var(--hog-scroll, 0) * -0.06px), 0);
+  will-change: transform;
+}
+.hog-parallax-lines {
+  transform: translate3d(0, calc(var(--hog-scroll, 0) * 0.02px), 0);
+  opacity: calc(0.16 + min(0.12, max(-0.12, var(--hog-vel, 0) * 2)));
 }
 
 /* ── Hero animations ──
@@ -84,3 +126,20 @@
   100% { transform: scaleY(0); transform-origin: bottom; }
 }
 .scroll-pulse { animation: scrollPulse 2s infinite; }
+
+.hog-masonry {
+  column-count: 1;
+  column-gap: 3px;
+}
+.hog-masonry-item {
+  break-inside: avoid;
+  margin-bottom: 3px;
+}
+.hog-masonry-item img { display: block; }
+
+@media (min-width: 640px) {
+  .hog-masonry { column-count: 2; }
+}
+@media (min-width: 1024px) {
+  .hog-masonry { column-count: 3; }
+}

@@ -5,6 +5,7 @@ import './globals.css'
 import Nav          from '@/components/Nav'
 import Footer       from '@/components/Footer'
 import ScrollReveal from '@/components/ScrollReveal'
+import ScrollFX     from '@/components/ScrollFX'
 import type { ReactNode } from 'react'
 
 const bebasNeue = Bebas_Neue({
@@ -41,6 +42,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <main>{children}</main>
         <Footer />
         <ScrollReveal />
+        <ScrollFX />
       </body>
     </html>
   )
