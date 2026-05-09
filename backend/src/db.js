@@ -1,7 +1,5 @@
 const fs = require('fs')
 const path = require('path')
-const sqlite3 = require('sqlite3')
-const { open } = require('sqlite')
 
 let sqliteDbPromise
 let mysqlPoolPromise
@@ -19,6 +17,8 @@ function getDbPath() {
 
 async function getSqliteDb() {
   if (!sqliteDbPromise) {
+    const sqlite3 = require('sqlite3')
+    const { open } = require('sqlite')
     sqliteDbPromise = open({ filename: getDbPath(), driver: sqlite3.Database })
   }
   return sqliteDbPromise
