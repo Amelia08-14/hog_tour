@@ -10,6 +10,7 @@ export default function InscriptionPage() {
   const [sexe,        setSexe]        = useState('')
   const [nationalite, setNationalite] = useState('')
   const [nationaliteAutre, setNationaliteAutre] = useState('')
+  const [residenceZone, setResidenceZone] = useState('')
   const [profil,      setProfil]      = useState('')
   const [profilGroupe, setProfilGroupe] = useState('')
   const [hebergement, setHebergement] = useState('')
@@ -23,6 +24,18 @@ export default function InscriptionPage() {
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  useEffect(() => {
+    if (residenceZone === 'Algérie') {
+      setPaiement('on_site')
+      return
+    }
+    if (residenceZone === 'Ailleurs') {
+      setPaiement('online_yassir')
+      return
+    }
+    setPaiement('')
+  }, [residenceZone])
 
   const countryOptions = useMemo(() => {
     if (!mounted) return []
@@ -50,10 +63,10 @@ export default function InscriptionPage() {
     const missingState: string[] = []
     if (!sexe) missingState.push('Sexe')
     if (!nationalite) missingState.push('Nationalité')
+    if (!residenceZone) missingState.push('Lieu de résidence')
     if (!profil) missingState.push('Vous êtes')
     if (!hebergement) missingState.push("Option d'hébergement")
     if (!taille) missingState.push('Taille T-shirt')
-    if (!paiement) missingState.push('Modalités de paiement')
     if (!pays) missingState.push('Pays')
 
     if (missingState.length) {
@@ -86,13 +99,15 @@ export default function InscriptionPage() {
       email: String(fd.get('email') || '').trim(),
       nationalite,
       nationaliteAutre: nationalite === 'Autre' ? nationaliteAutre.trim() : '',
+      residenceZone,
       profil,
       profilGroupe: profil === "Membre d'un groupe de Motards" ? profilGroupe.trim() : '',
       hebergement,
       tailleTshirt: taille,
-      paiementMode: paiement,
+      paiementMode: paiement || (residenceZone === 'Algérie' ? 'on_site' : residenceZone ? 'online_yassir' : ''),
       permisNum: String(fd.get('permis') || '').trim(),
       immatriculation: String(fd.get('immat') || '').trim(),
+      passportNum: String(fd.get('passport') || '').trim(),
     }
 
     const requiredText = [
@@ -104,6 +119,7 @@ export default function InscriptionPage() {
       ['email', payload.email],
       ['permisNum', payload.permisNum],
       ['immatriculation', payload.immatriculation],
+      ['passportNum', payload.passportNum],
     ] as const
 
     const missingText = requiredText.filter(([, v]) => !v).map(([k]) => k)
@@ -178,7 +194,7 @@ export default function InscriptionPage() {
       </div>
 
       <section className="py-20 bg-bg">
-        <div className="max-w-[900px] mx-auto px-6 md:px-10">
+        <div className="max-w-[1040px] mx-auto px-6 md:px-10">
 
           {/* Cadre principal */}
           <div className="relative bg-bg3 border border-orange/12">
@@ -239,7 +255,7 @@ export default function InscriptionPage() {
               {/* Téléphone / Email */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <G label="Téléphone *">
-                  <div className="grid grid-cols-[210px_minmax(0,1fr)] border border-white/8 bg-bg2 focus-within:border-orange/50 transition-colors">
+                  <div className="grid grid-cols-[170px_minmax(0,1fr)] border border-white/8 bg-bg2 focus-within:border-orange/50 transition-colors">
                     <div className="relative border-r border-white/8 min-w-0">
                       <select
                         value={phoneCountry}
@@ -277,29 +293,43 @@ export default function InscriptionPage() {
                 <F id="email" label="Email *" type="email" ph="Entrez votre email" />
               </div>
 
-              {/* Nationalité */}
-              <G label="Nationalité *">
-                <div className="flex gap-5 flex-wrap">
-                  <CB v="Algérienne" state={nationalite} set={setNationalite} />
-                  <CB v="Autre"      state={nationalite} set={setNationalite} />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10">
+                <div>
+                  <G label="Nationalité *">
+                    <div className="flex gap-5 flex-wrap">
+                      <CB v="Algérienne" state={nationalite} set={setNationalite} />
+                      <CB v="Autre"      state={nationalite} set={setNationalite} />
+                    </div>
+                  </G>
+                  {nationalite === 'Autre' && (
+                    <div className="mt-4">
+                      <F
+                        id="nationalite-autre"
+                        label="Veuillez précisez svp"
+                        type="text"
+                        ph="Votre nationalité"
+                        value={nationaliteAutre}
+                        onChange={e => setNationaliteAutre(e.target.value)}
+                      />
+                    </div>
+                  )}
                 </div>
-              </G>
-              {nationalite === 'Autre' && (
-                <F
-                  id="nationalite-autre"
-                  label="Veuillez précisez svp"
-                  type="text"
-                  ph="Votre nationalité"
-                  value={nationaliteAutre}
-                  onChange={e => setNationaliteAutre(e.target.value)}
-                />
-              )}
+                <G label="Vous vivez en Algérie ou ailleurs ? *">
+                  <div className="flex gap-5 flex-wrap">
+                    <CB v="Algérie"  state={residenceZone} set={setResidenceZone} />
+                    <CB v="Ailleurs" state={residenceZone} set={setResidenceZone} />
+                  </div>
+                </G>
+              </div>
 
               {/* Permis + upload */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <F id="permis" label="Numéro de Permis de Conduire *" type="text" ph="Entrez votre Numéro de Permis svp" />
                 <UF id="up-permis" label="Télécharger une image de votre permis svp" />
               </div>
+
+              {/* Passeport */}
+              <F id="passport" label="Numéro de Passeport *" type="text" ph="Entrez votre numéro de passeport" />
 
               {/* Immatriculation + carte grise */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -343,9 +373,12 @@ export default function InscriptionPage() {
 
               {/* Modalités paiement */}
               <G label="Modalités de paiement *">
-                <div className="flex gap-5 flex-wrap">
-                  <CB v="Par virement"             state={paiement} set={setPaiement} />
-                  <CB v="En espèces (à l'arrivée)" state={paiement} set={setPaiement} />
+                <div className="border border-white/8 bg-bg2 px-5 py-4 text-[13px] text-htext leading-relaxed">
+                  {residenceZone === 'Algérie'
+                    ? 'Résidence en Algérie : paiement sur place.'
+                    : residenceZone === 'Ailleurs'
+                      ? 'Résidence à l’étranger : paiement en ligne (Yassir).'
+                      : 'Choisissez votre lieu de résidence pour voir les modalités de paiement.'}
                 </div>
               </G>
 

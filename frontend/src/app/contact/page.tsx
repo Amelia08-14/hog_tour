@@ -5,11 +5,52 @@ import { useState, type FormEvent } from 'react'
 export default function ContactPage() {
   const [sent,   setSent]   = useState(false)
   const [msgLen, setMsgLen] = useState(0)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    await new Promise(r => setTimeout(r, 800))
-    setSent(true)
+    setError(null)
+
+    const form = e.currentTarget as HTMLFormElement
+    const fd = new FormData(form)
+    const name = String(fd.get('nom') || '').trim()
+    const email = String(fd.get('email') || '').trim()
+    const dial = String(fd.get('dial') || '').trim()
+    const phone = String(fd.get('phone') || '').trim()
+    const message = String(fd.get('message') || '').trim()
+
+    if (!name || !email || !phone || !message) {
+      setError('Veuillez remplir tous les champs obligatoires.')
+      return
+    }
+
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL?.trim()
+    const base = apiBase || (process.env.NODE_ENV === 'development' ? 'http://localhost:4000' : '')
+    const url = base ? `${base.replace(/\/$/, '')}/v1/contact` : '/v1/contact'
+
+    try {
+      setLoading(true)
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          email,
+          phone: `${dial} ${phone}`.trim(),
+          message,
+        }),
+      })
+      if (!res.ok) {
+        setError("Une erreur est survenue. Merci de réessayer.")
+        return
+      }
+      setSent(true)
+    } catch {
+      setError("Impossible de contacter le serveur. Merci de réessayer.")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -22,7 +63,7 @@ export default function ContactPage() {
             <h1 className="font-display leading-[.88] tracking-wide" style={{ fontSize:'clamp(44px,6vw,76px)' }}>
               Besoin<br />d'informations ?
             </h1>
-            <p className="text-muted text-[15px] mt-3 mb-10">nous sommes à votre disposition</p>
+            <p className="text-muted text-[18px] mt-3 mb-10">nous sommes à votre disposition</p>
 
             <div className="flex flex-col gap-3">
               {[
@@ -71,8 +112,8 @@ export default function ContactPage() {
                 ].map(f => (
                   <div key={f.id}>
                     <label htmlFor={f.id} className="block text-htext text-[14px] pb-2">{f.label}</label>
-                    <input id={f.id} type={f.type} required placeholder={f.ph}
-                      className="w-full bg-transparent border-b border-white/15 pb-3 pt-1 text-htext text-[15px] outline-none placeholder:text-muted focus:border-orange transition-colors duration-200"/>
+                    <input id={f.id} name={f.id} type={f.type} required placeholder={f.ph}
+                      className="w-full bg-transparent border-b border-white/15 pb-3 pt-1 text-htext text-[18px] outline-none placeholder:text-muted focus:border-orange transition-colors duration-200"/>
                   </div>
                 ))}
 
@@ -80,11 +121,11 @@ export default function ContactPage() {
                 <div>
                   <label className="block text-htext text-[14px] pb-2">Numéro de Mobile *</label>
                   <div className="flex border-b border-white/15 focus-within:border-orange transition-colors duration-200">
-                    <select className="bg-transparent border-none outline-none text-htext text-[14px] pr-2 cursor-pointer">
+                    <select name="dial" className="bg-transparent border-none outline-none text-htext text-[14px] pr-2 cursor-pointer">
                       {['🇩🇿 +213','🇫🇷 +33','🇲🇦 +212','🇧🇪 +32','🇺🇸 +1','🇬🇧 +44'].map(c => <option key={c}>{c}</option>)}
                     </select>
-                    <input type="tel" required placeholder="Numéro de Mobile *"
-                      className="flex-1 bg-transparent border-none pb-3 pt-1 text-htext text-[15px] outline-none placeholder:text-muted"/>
+                    <input name="phone" type="tel" required placeholder="Numéro de Mobile *"
+                      className="flex-1 bg-transparent border-none pb-3 pt-1 text-htext text-[18px] outline-none placeholder:text-muted"/>
                   </div>
                 </div>
 
@@ -93,13 +134,23 @@ export default function ContactPage() {
                   <div className="absolute top-0 right-0 text-muted text-[11px] tracking-wide">{msgLen} / 180</div>
                   <label className="block text-htext text-[14px] pb-2">Message *</label>
                   <textarea required rows={5} maxLength={180} placeholder="Votre message…"
-                    className="w-full bg-transparent border-b border-white/15 pb-3 pt-1 text-htext text-[15px] outline-none placeholder:text-muted focus:border-orange transition-colors duration-200 resize-none leading-relaxed"
+                    name="message"
+                    className="w-full bg-transparent border-b border-white/15 pb-3 pt-1 text-htext text-[18px] outline-none placeholder:text-muted focus:border-orange transition-colors duration-200 resize-none leading-relaxed"
                     onChange={e => setMsgLen(e.target.value.length)}/>
                 </div>
 
-                <button type="submit"
-                  className="self-start mt-5 bg-orange text-black font-condensed font-extrabold text-[13px] tracking-[0.3em] uppercase px-12 py-4 hover:bg-white hover:-translate-y-0.5 transition-all duration-200">
-                  ENVOYER
+                {error && (
+                  <div className="mt-5 border border-orange/20 bg-bg2 px-5 py-4 text-[13px] text-htext leading-relaxed">
+                    {error}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="self-start mt-5 bg-orange text-black font-condensed font-extrabold text-[13px] tracking-[0.3em] uppercase px-12 py-4 hover:bg-white hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed hover:disabled:translate-y-0 transition-all duration-200"
+                >
+                  {loading ? 'ENVOI…' : 'ENVOYER'}
                 </button>
               </form>
             )}

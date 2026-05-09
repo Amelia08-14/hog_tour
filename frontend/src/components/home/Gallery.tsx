@@ -96,13 +96,19 @@ export default function Gallery() {
                 key={p.src}
                 className="group relative bg-bg3 border border-white/[.04] overflow-hidden cursor-pointer hover:border-orange/30 transition-colors duration-300"
               >
-                <img src={p.src} alt={p.alt} loading="lazy" decoding="async" className="w-full h-auto" />
+                <img
+                  src={p.src}
+                  alt={p.alt}
+                  loading="lazy"
+                  decoding="async"
+                  className="w-full h-auto transition-transform duration-700 ease-out group-hover:scale-[1.035]"
+                />
                 <div className="absolute inset-0 bg-orange/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10" />
                 <div
                   className="absolute inset-0 opacity-[.02]"
                   style={{ backgroundImage: 'repeating-linear-gradient(45deg,transparent,transparent 10px,rgba(255,107,0,1) 10px,rgba(255,107,0,1) 11px)' }}
                 />
-                <div className="absolute left-4 bottom-4 text-muted2 text-[10px] tracking-[0.15em] uppercase opacity-0 group-hover:opacity-80 transition-opacity duration-300 z-10">
+                <div className="absolute left-4 bottom-4 text-muted2 text-[11px] tracking-[0.15em] uppercase opacity-0 group-hover:opacity-80 transition-opacity duration-300 z-10">
                   {p.alt}
                 </div>
               </div>
@@ -127,7 +133,7 @@ export default function Gallery() {
           <button
             type="button"
             onClick={() => setVisibleCount(PHOTO_COUNT)}
-            className="bg-orange text-black font-condensed font-extrabold text-[12px] tracking-[0.22em] uppercase px-8 py-3.5 hover:bg-white transition-colors"
+            className="bg-orange text-black font-condensed font-extrabold text-[13px] tracking-[0.22em] uppercase px-8 py-3.5 hover:bg-white transition-colors"
           >
             Voir plus de photos
           </button>
@@ -135,7 +141,7 @@ export default function Gallery() {
           <button
             type="button"
             onClick={() => setVisibleCount(INITIAL_VISIBLE)}
-            className="bg-white/10 text-htext font-condensed font-extrabold text-[12px] tracking-[0.22em] uppercase px-8 py-3.5 hover:bg-white/15 transition-colors"
+            className="bg-white/10 text-htext font-condensed font-extrabold text-[13px] tracking-[0.22em] uppercase px-8 py-3.5 hover:bg-white/15 transition-colors"
           >
             Réduire la galerie
           </button>

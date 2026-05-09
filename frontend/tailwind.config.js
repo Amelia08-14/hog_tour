@@ -11,8 +11,8 @@ module.exports = {
         bg3: "#181814",
         bg4: "#1E1E18",
         htext: "#F0EBE0",
-        muted: "#7A7568",
-        muted2: "#5A5550",
+        muted: "#9A9487",
+        muted2: "#7A746D",
       },
       fontFamily: {
         display: ["var(--font-display)", "cursive"],

@@ -32,14 +32,24 @@ export default function HOGTourPage() {
       <section className="py-20 bg-bg">
         <div className="max-w-container mx-auto px-6 md:px-10 flex flex-col gap-1">
 
-          {/* Vidéo placeholder */}
-          <div className="relative w-full bg-bg3 border border-orange/10 flex flex-col items-center justify-center gap-4" style={{ aspectRatio:'16/9' }}>
-            <div className="absolute inset-0 opacity-[.02]" style={{ backgroundImage:'repeating-linear-gradient(45deg,transparent,transparent 10px,rgba(255,107,0,1) 10px,rgba(255,107,0,1) 11px)' }}/>
-            <div className="w-[72px] h-[72px] rounded-full bg-orange flex items-center justify-center cursor-pointer hover:scale-110 hover:bg-white transition-all duration-200 z-10">
-              <svg width="32" height="32" fill="#000" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-            </div>
-            <p className="font-condensed font-semibold text-[18px] tracking-wide z-10">Teaser Algeria H.O.G Tour 2026</p>
-            <p className="text-muted text-[11px] tracking-[0.2em] uppercase z-10">Remplacer par votre embed YouTube</p>
+          {/* Vidéo teaser */}
+          <div className="relative w-full bg-bg3 border border-orange/10 overflow-hidden" style={{ aspectRatio: '16/9' }}>
+            <video
+              className="absolute inset-0 w-full h-full object-cover"
+              src="/videos/hog_teaser.mp4"
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+            />
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background:
+                  'linear-gradient(to top, rgba(0,0,0,.55), rgba(0,0,0,0) 62%), radial-gradient(900px 420px at 20% 15%, rgba(255,107,0,.14) 0%, rgba(255,107,0,0) 62%)',
+              }}
+            />
           </div>
 
           {/* Description + date badge */}
@@ -71,7 +81,7 @@ export default function HOGTourPage() {
             <h3 className="font-display leading-[.92] tracking-wide mb-5" style={{ fontSize:'clamp(28px, 3.5vw, 48px)' }}>
               Une aventure entre culture,<br />route et passion
             </h3>
-            <p className="text-muted text-[15px] leading-relaxed font-light mb-6">
+            <p className="text-muted text-[18px] leading-relaxed font-light mb-6">
               Le 2026 Algeria H.O.G Tour proposera un parcours unique mêlant montagne, désert, patrimoine et modernité.
             </p>
             <div className="flex flex-col gap-0 border border-orange/10">
@@ -95,7 +105,7 @@ export default function HOGTourPage() {
                 <h3 className="font-display text-orange tracking-wide mb-4" style={{ fontSize:'clamp(28px,3.5vw,44px)' }}>
                   Rejoignez l'histoire
                 </h3>
-                <p className="text-muted text-[15px] leading-relaxed font-light mb-2">
+                <p className="text-muted text-[18px] leading-relaxed font-light mb-2">
                   Que vous soyez rider confirmé, membre H.O.G ou passionné de la marque, ce rendez-vous est une invitation à écrire ensemble une nouvelle page de l'histoire Harley-Davidson.
                 </p>
                 <p className="font-condensed font-semibold text-[20px] text-htext italic mt-4">Let's roar the rock.</p>

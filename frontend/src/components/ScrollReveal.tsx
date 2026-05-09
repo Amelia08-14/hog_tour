@@ -34,7 +34,7 @@ export default function ScrollReveal() {
           io.unobserve(e.target)
         })
       },
-      { threshold: 0.08, rootMargin: '0px 0px -18% 0px' },
+      { threshold: 0.08, rootMargin: '0px 0px -10% 0px' },
     )
 
     scan(io)

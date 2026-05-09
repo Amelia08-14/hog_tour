@@ -2,9 +2,10 @@ const express = require('express')
 const cors = require('cors')
 require('dotenv').config()
 
-const { initDb, getDb } = require('./db')
+const { initDb, getDb, withTransaction } = require('./db')
 const { newToken, signToken, safeEqual } = require('./security')
 const QRCode = require('qrcode')
+const { sendMail } = require('./mailer')
 
 function nowIso() {
   return new Date().toISOString()
@@ -41,12 +42,13 @@ function createApp() {
         'phoneNumber',
         'email',
         'nationalite',
+        'residenceZone',
         'profil',
         'hebergement',
         'tailleTshirt',
-        'paiementMode',
         'permisNum',
         'immatriculation',
+        'passportNum',
       ]
 
       const missing = required.filter(k => !body[k] || String(body[k]).trim() === '')
@@ -59,7 +61,13 @@ function createApp() {
         return res.status(400).json({ error: 'missing_fields', fields: ['profilGroupe'] })
       }
 
-      const db = await getDb()
+      const rz = String(body.residenceZone).trim()
+      if (!['Algérie', 'Ailleurs'].includes(rz)) {
+        return res.status(400).json({ error: 'invalid_fields', fields: ['residenceZone'] })
+      }
+
+      const derivedPaymentMode = rz === 'Algérie' ? 'on_site' : 'online_yassir'
+
       const registrationId = require('uuid').v4()
       const paymentId = require('uuid').v4()
       const badgeId = require('uuid').v4()
@@ -67,25 +75,26 @@ function createApp() {
 
       const createdAt = nowIso()
 
-      await db.exec('BEGIN')
-      try {
+      await withTransaction(async (db) => {
         await db.run(
           `INSERT INTO registrations (
             id, created_at, updated_at,
             prenom, nom, sexe, adresse, ville,
             pays_iso2, phone_country_iso2, phone_number,
             email, nationalite, nationalite_autre,
+            residence_zone,
             profil, profil_groupe,
             hebergement, taille_tshirt, paiement_mode,
-            permis_num, immatriculation
+            permis_num, immatriculation, passport_num
           ) VALUES (
             ?, ?, ?,
             ?, ?, ?, ?, ?,
             ?, ?, ?,
             ?, ?, ?,
+            ?,
             ?, ?,
             ?, ?, ?,
-            ?, ?
+            ?, ?, ?
           );`,
           [
             registrationId,
@@ -102,13 +111,15 @@ function createApp() {
             String(body.email).trim(),
             String(body.nationalite).trim(),
             body.nationaliteAutre ? String(body.nationaliteAutre).trim() : null,
+            rz,
             String(body.profil).trim(),
             body.profilGroupe ? String(body.profilGroupe).trim() : null,
             String(body.hebergement).trim(),
             String(body.tailleTshirt).trim(),
-            String(body.paiementMode).trim(),
+            derivedPaymentMode,
             String(body.permisNum).trim(),
             String(body.immatriculation).trim(),
+            String(body.passportNum).trim(),
           ],
         )
 
@@ -123,21 +134,62 @@ function createApp() {
           `INSERT INTO badges (id, registration_id, token, issued_at) VALUES (?, ?, ?, ?);`,
           [badgeId, registrationId, token, createdAt],
         )
-
-        await db.exec('COMMIT')
-      } catch (e) {
-        await db.exec('ROLLBACK')
-        throw e
-      }
+      })
 
       const baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${Number(process.env.PORT) || 4000}`
       const sig = signToken(token)
       const badgeUrl = `${baseUrl.replace(/\/$/, '')}/v1/badge?token=${encodeURIComponent(token)}&sig=${encodeURIComponent(sig)}`
 
+      try {
+        await sendMail({
+          subject: `Nouvelle inscription — ${String(body.prenom).trim()} ${String(body.nom).trim()}`,
+          replyTo: String(body.email).trim(),
+          text:
+            `Nouvelle inscription H.O.G Tour 2026\n\n` +
+            `Nom: ${String(body.nom).trim()}\n` +
+            `Prénom: ${String(body.prenom).trim()}\n` +
+            `Email: ${String(body.email).trim()}\n` +
+            `Téléphone: ${String(body.phoneCountryIso2).trim().toUpperCase()} ${String(body.phoneNumber).trim()}\n` +
+            `Pays: ${String(body.paysIso2).trim().toUpperCase()}\n` +
+            `Nationalité: ${String(body.nationalite).trim()}${body.nationalite === 'Autre' ? ` (${String(body.nationaliteAutre || '').trim()})` : ''}\n` +
+            `Résidence: ${rz}\n` +
+            `Paiement: ${derivedPaymentMode}\n` +
+            `Passeport: ${String(body.passportNum).trim()}\n` +
+            `Badge: ${badgeUrl}\n\n` +
+            `ID: ${registrationId}\n`,
+        })
+      } catch {}
+
       return res.status(201).json({
         id: registrationId,
         badge: { url: badgeUrl },
       })
+    } catch (e) {
+      return res.status(500).json({ error: 'server_error' })
+    }
+  })
+
+  app.post('/v1/contact', async (req, res) => {
+    try {
+      const body = req.body || {}
+      const name = body.name ? String(body.name).trim() : ''
+      const email = body.email ? String(body.email).trim() : ''
+      const phone = body.phone ? String(body.phone).trim() : ''
+      const message = body.message ? String(body.message).trim() : ''
+      if (!name || !email || !message) return res.status(400).json({ error: 'missing_fields' })
+
+      await sendMail({
+        subject: `Contact — ${name}`,
+        replyTo: email,
+        text:
+          `Nouveau message de contact\n\n` +
+          `Nom: ${name}\n` +
+          `Email: ${email}\n` +
+          `Téléphone: ${phone}\n\n` +
+          `${message}\n`,
+      })
+
+      return res.json({ ok: true })
     } catch (e) {
       return res.status(500).json({ error: 'server_error' })
     }
@@ -154,7 +206,7 @@ function createApp() {
 
       const db = await getDb()
       const badge = await db.get(
-        `SELECT b.id as badge_id, b.issued_at, r.id as registration_id, r.prenom, r.nom, r.email
+        `SELECT b.id as badge_id, b.issued_at, r.id as registration_id, r.prenom, r.nom, r.email, r.passport_num, r.residence_zone
          FROM badges b
          JOIN registrations r ON r.id = b.registration_id
          WHERE b.token = ?`,
@@ -164,7 +216,15 @@ function createApp() {
 
       const baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${Number(process.env.PORT) || 4000}`
       const badgeUrl = `${baseUrl.replace(/\/$/, '')}/v1/badge?token=${encodeURIComponent(token)}&sig=${encodeURIComponent(sig)}`
-      const svg = await QRCode.toString(badgeUrl, { type: 'svg', margin: 1, width: 260 })
+      const qrPayload = JSON.stringify({
+        type: 'hogtour2026',
+        nom: String(badge.nom || ''),
+        prenom: String(badge.prenom || ''),
+        passportNum: String(badge.passport_num || ''),
+        token,
+        sig,
+      })
+      const svg = await QRCode.toString(qrPayload, { type: 'svg', margin: 1, width: 260 })
 
       const html = `<!doctype html>
 <html lang="fr">
@@ -194,10 +254,11 @@ function createApp() {
         <div class="meta">
           <div><strong>${escapeHtml(String(badge.prenom || ''))} ${escapeHtml(String(badge.nom || ''))}</strong></div>
           <div>${escapeHtml(String(badge.email || ''))}</div>
+          <div>${escapeHtml(String(badge.passport_num || ''))}</div>
         </div>
         <div class="qr">${svg}</div>
         <div class="hint">
-          Gardez ce badge. Pour vérification/paiement, le QR code contient votre lien badge (token + signature).
+          Gardez ce badge. Le QR code contient vos informations (nom, prénom, passeport) ainsi que le token/signature pour vérification.
         </div>
         <div class="link">${escapeHtml(badgeUrl)}</div>
       </div>
@@ -223,7 +284,7 @@ function createApp() {
 
       const db = await getDb()
       const badge = await db.get(
-        `SELECT b.id as badge_id, b.issued_at, r.id as registration_id, r.prenom, r.nom, r.email
+        `SELECT b.id as badge_id, b.issued_at, r.id as registration_id, r.prenom, r.nom, r.email, r.passport_num, r.residence_zone
          FROM badges b
          JOIN registrations r ON r.id = b.registration_id
          WHERE b.token = ?`,
@@ -246,6 +307,8 @@ function createApp() {
           prenom: badge.prenom,
           nom: badge.nom,
           email: badge.email,
+          passportNum: badge.passport_num,
+          residenceZone: badge.residence_zone,
         },
         payment: payment || { status: 'unpaid' },
       })

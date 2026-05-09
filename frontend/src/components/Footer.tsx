@@ -1,5 +1,6 @@
 // src/components/Footer.tsx
 import Link from 'next/link'
+import Image from 'next/image'
 
 const ITEMS = ['HOG TOUR 2026','ALGIERS CHAPTER ALGERIA','PREMIÈRE FOIS EN ALGÉRIE','29 OCT — 1ER NOV','HARLEY-DAVIDSON','ALGERIA BIKE WEEK']
 
@@ -13,7 +14,18 @@ export default function Footer() {
           {[...ITEMS, ...ITEMS].map((item, i) => (
             <span key={i} className="font-display text-orange/15 px-8 inline-block tracking-[0.25em]"
               style={{ fontSize: 'clamp(40px, 7vw, 90px)' }}>
-              {i > 0 && <span className="text-orange/8 mr-8">◆</span>}
+              {i > 0 && (
+                <span className="inline-flex items-center mr-8 opacity-[0.12] mix-blend-screen">
+                  <Image
+                    src="/images/hog-logo.png"
+                    alt=""
+                    width={44}
+                    height={44}
+                    className="object-contain"
+                    priority={false}
+                  />
+                </span>
+              )}
               {item}
             </span>
           ))}

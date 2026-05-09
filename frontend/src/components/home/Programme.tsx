@@ -28,19 +28,19 @@ export default function Programme() {
               style={{ fontSize: 'clamp(44px, 6vw, 72px)' }}>
               Il s'étale sur <span className="text-orange">4 jours</span>
             </h2>
-            <p className="text-muted text-[15px] leading-relaxed font-light max-w-[520px] mt-3">
+            <p className="text-muted text-[18px] leading-relaxed font-light max-w-[560px] mt-3">
               Au départ d'Alger, avec un programme riche en rides, découvertes culinaires,
               culture des régions et les fabuleux paysages de Ghardaïa.
             </p>
           </div>
           <div className="text-right flex-shrink-0">
             <p className="font-display text-muted text-xl tracking-[0.25em]">29 Oct — 1er Nov 2026</p>
-            <p className="text-muted2 text-[12px] mt-1">Alger → Ghardaïa → Alger</p>
+            <p className="text-muted2 text-[15px] mt-1">Alger → Ghardaïa → Alger</p>
           </div>
         </div>
 
         {/* Route strip */}
-        <div className="reveal reveal-streak relative flex items-center justify-between bg-bg3 border border-orange/12 px-8 py-6 mb-1 overflow-hidden">
+        <div className="reveal reveal-streak hog-glow relative flex items-center justify-between bg-bg3 border border-orange/12 px-8 py-6 mb-1 overflow-hidden">
           <div className="absolute inset-0 opacity-50 pointer-events-none"
             style={{ backgroundImage: 'repeating-linear-gradient(90deg,transparent,transparent 60px,rgba(255,255,255,.03) 60px,rgba(255,255,255,.03) 61px)' }}/>
           <RouteCity name="ALGER"    sub="Point de départ" />
@@ -51,7 +51,7 @@ export default function Programme() {
         </div>
 
         {/* Pourquoi Ghardaïa */}
-        <div className="reveal reveal-streak relative bg-bg3 border border-orange/12 mb-1 overflow-hidden">
+        <div className="reveal reveal-streak hog-glow relative bg-bg3 border border-orange/12 mb-1 overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: 'linear-gradient(to right, #FF6B00, transparent)' }}/>
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px]">
             <div className="p-9">
@@ -59,12 +59,12 @@ export default function Programme() {
                 style={{ fontSize: 'clamp(28px, 3.5vw, 44px)' }}>
                 Pourquoi <span className="text-orange">Ghardaïa ?</span>
               </h3>
-              <p className="text-muted text-[15px] leading-[1.82] font-light">
+              <p className="text-muted text-[18px] leading-[1.82] font-light">
                 De tout temps, Ghardaïa est considérée comme la porte du Sud algérien.
                 Située dans la vallée du M'Zab, fondée au XI<sup>e</sup> siècle, elle est classée
                 au patrimoine mondial de l'UNESCO, notamment en raison de son architecture Ksourienne.
               </p>
-              <p className="text-muted text-[15px] leading-[1.82] font-light mt-3">
+              <p className="text-muted text-[18px] leading-[1.82] font-light mt-3">
                 La région du M'Zab offre un choix multiple de sites touristiques pour découvrir
                 l'architecture, la culture locale et les traditions culinaires de la région.
               </p>
@@ -81,7 +81,7 @@ export default function Programme() {
                     style={{ fontSize: st.v === 'UNESCO' ? '22px' : '34px', letterSpacing: '1px' }}>
                     {st.v}
                   </span>
-                  <p className="text-muted text-[9px] tracking-[0.2em] uppercase mt-1.5">{st.l}</p>
+                  <p className="text-muted text-[11px] tracking-[0.2em] uppercase mt-1.5">{st.l}</p>
                 </div>
               ))}
             </div>
@@ -89,7 +89,7 @@ export default function Programme() {
         </div>
 
         {/* 4 Day cards */}
-        <div className="reveal reveal-streak grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-px bg-white/5">
+        <div className="reveal reveal-streak hog-glow grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-px bg-white/5">
           {DAYS.map((d, i) => (
             <div
               key={i}
@@ -105,18 +105,18 @@ export default function Programme() {
                 {d.num}
               </span>
 
-              <p className="text-orange text-[9.5px] tracking-[0.25em] uppercase mb-2">{d.label}</p>
-              <p className="font-condensed font-semibold text-[17px] leading-snug mb-1.5">{d.route}</p>
+              <p className="text-orange text-[11px] tracking-[0.25em] uppercase mb-2">{d.label}</p>
+              <p className="font-condensed font-semibold text-[18px] leading-snug mb-1.5">{d.route}</p>
               <div className="flex items-baseline gap-1.5 mb-3.5">
                 <span className="font-display text-orange text-[22px] leading-none">{d.km}</span>
-                <span className="text-muted text-[11px] tracking-wide">KMS</span>
-                <span className="text-muted2 text-[10px] tracking-wide ml-1">{d.type}</span>
+                <span className="text-muted text-[12px] tracking-wide">KMS</span>
+                <span className="text-muted2 text-[12px] tracking-wide ml-1">{d.type}</span>
               </div>
               <div className="flex flex-col gap-1.5">
                 {d.acts.map((a, j) => (
                   <div key={j} className="flex items-start gap-2">
                     <span className="block w-1 h-1 min-w-[4px] bg-orange mt-[5px] flex-shrink-0"/>
-                    <span className={`text-[12px] leading-snug transition-colors duration-200
+                    <span className={`text-[14px] leading-snug transition-colors duration-200
                       ${active === i ? 'text-htext' : 'text-muted'}`}>
                       {a}
                     </span>
@@ -135,8 +135,8 @@ export default function Programme() {
 function RouteCity({ name, sub, highlight = false }: { name: string; sub: string; highlight?: boolean }) {
   return (
     <div className="relative z-10 text-center flex-shrink-0">
-      <p className={`font-display text-[22px] tracking-[0.18em] ${highlight ? 'text-orange' : 'text-htext'}`}>{name}</p>
-      <p className="text-muted text-[9.5px] tracking-[0.18em] uppercase">{sub}</p>
+      <p className={`font-display text-[24px] tracking-[0.18em] ${highlight ? 'text-orange' : 'text-htext'}`}>{name}</p>
+      <p className="text-muted text-[11px] tracking-[0.18em] uppercase">{sub}</p>
     </div>
   )
 }
@@ -147,7 +147,7 @@ function RouteArrow({ km, label }: { km: number; label: string }) {
       <div className="flex-1 h-px" style={{ background: 'linear-gradient(to right, #FF6B00, rgba(255,107,0,.2))' }}/>
       <div className="text-center flex-shrink-0">
         <p className="font-display text-orange text-[28px] leading-none">{km}</p>
-        <p className="text-muted text-[9px] tracking-[0.18em] uppercase">{label}</p>
+        <p className="text-muted text-[11px] tracking-[0.18em] uppercase">{label}</p>
       </div>
       <div className="flex-1 h-px" style={{ background: 'linear-gradient(to left, #FF6B00, rgba(255,107,0,.2))' }}/>
     </div>

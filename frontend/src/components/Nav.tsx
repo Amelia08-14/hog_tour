@@ -51,7 +51,7 @@ export default function Nav() {
         </div>
         <div className="flex flex-col gap-0.5">
           <span className="font-display text-orange text-[17px] tracking-[0.3em] leading-none">H.O.G Algeria</span>
-          <span className="text-muted2 text-[9px] tracking-[0.2em] uppercase">Algiers Chapter</span>
+          <span className="text-muted2 text-[10px] tracking-[0.2em] uppercase">Algiers Chapter</span>
         </div>
       </Link>
 
@@ -61,7 +61,7 @@ export default function Nav() {
           <li key={l.href}>
             <Link
               href={l.href}
-              className={`text-[11.5px] tracking-[0.22em] uppercase transition-colors duration-200
+              className={`text-[12.5px] tracking-[0.22em] uppercase transition-colors duration-200
                 ${pathname === l.href ? 'text-orange' : 'text-white/60 hover:text-white'}`}
             >
               {l.label}
@@ -74,25 +74,32 @@ export default function Nav() {
       <div className="flex items-center gap-4">
 
         {/* Lang */}
-        <div className="hidden sm:flex items-center gap-1.5 text-[10px] tracking-widest uppercase">
-          <a href="#" className="text-orange">🇫🇷 FR</a>
-          <span className="text-white/20">|</span>
-          <a href="#" className="text-muted2 hover:text-orange transition-colors">AR</a>
-          <span className="text-white/20">|</span>
-          <a href="#" className="text-muted2 hover:text-orange transition-colors">EN</a>
+        <div className="hidden sm:flex items-center gap-2 px-2 py-1 rounded-full border border-white/15 bg-bg/40 backdrop-blur-md">
+          <a
+            href="#"
+            aria-current="true"
+            className="px-2.5 py-1 rounded-full bg-orange text-black text-[11px] tracking-widest uppercase font-bold"
+          >
+            FR
+          </a>
+          <a
+            href="#"
+            className="px-2.5 py-1 rounded-full text-[11px] tracking-widest uppercase text-white/85 hover:text-orange hover:bg-white/5 transition-colors"
+          >
+            AR
+          </a>
+          <a
+            href="#"
+            className="px-2.5 py-1 rounded-full text-[11px] tracking-widest uppercase text-white/85 hover:text-orange hover:bg-white/5 transition-colors"
+          >
+            EN
+          </a>
         </div>
-
-        {/* Search */}
-        <button className="hidden sm:flex w-9 h-9 items-center justify-center border border-white/10 text-white/50 hover:border-orange hover:text-orange transition-all duration-200">
-          <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-          </svg>
-        </button>
 
         {/* CTA */}
         <Link
           href="/inscription"
-          className="bg-orange text-black font-condensed font-bold text-[11px] tracking-[0.22em] uppercase px-5 py-2.5 hover:bg-white hover:-translate-y-0.5 transition-all duration-200 whitespace-nowrap"
+          className="bg-orange text-black font-condensed font-bold text-[12px] tracking-[0.22em] uppercase px-5 py-2.5 hover:bg-white hover:-translate-y-0.5 transition-all duration-200 whitespace-nowrap"
         >
           Inscrivez Vous
         </Link>
@@ -117,15 +124,38 @@ export default function Nav() {
               key={l.href}
               href={l.href}
               onClick={() => setOpen(false)}
-              className="block px-6 py-4 text-muted text-[11px] tracking-[0.22em] uppercase border-b border-white/5 hover:text-orange hover:bg-bg3 transition-all duration-200"
+              className="block px-6 py-4 text-muted text-[12px] tracking-[0.22em] uppercase border-b border-white/5 hover:text-orange hover:bg-bg3 transition-all duration-200"
             >
               {l.label}
             </Link>
           ))}
+          <div className="px-6 py-4 border-b border-white/5">
+            <div className="inline-flex items-center gap-2 px-2 py-1 rounded-full border border-white/15 bg-bg/40 backdrop-blur-md">
+              <a
+                href="#"
+                aria-current="true"
+                className="px-3 py-1 rounded-full bg-orange text-black text-[12px] tracking-widest uppercase font-bold"
+              >
+                FR
+              </a>
+              <a
+                href="#"
+                className="px-3 py-1 rounded-full text-[12px] tracking-widest uppercase text-white/85 hover:text-orange hover:bg-white/5 transition-colors"
+              >
+                AR
+              </a>
+              <a
+                href="#"
+                className="px-3 py-1 rounded-full text-[12px] tracking-widest uppercase text-white/85 hover:text-orange hover:bg-white/5 transition-colors"
+              >
+                EN
+              </a>
+            </div>
+          </div>
           <Link
             href="/inscription"
             onClick={() => setOpen(false)}
-            className="mx-6 my-4 bg-orange text-black font-condensed font-bold text-[12px] tracking-[0.2em] uppercase py-3 text-center hover:bg-white transition-colors"
+            className="mx-6 my-4 bg-orange text-black font-condensed font-bold text-[13px] tracking-[0.2em] uppercase py-3 text-center hover:bg-white transition-colors"
           >
             Inscrivez Vous
           </Link>
