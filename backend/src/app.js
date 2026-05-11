@@ -6,6 +6,22 @@ const { initDb, getDb, withTransaction } = require('./db')
 const { newToken, signToken, safeEqual, signAdminSession, verifyAdminSession } = require('./security')
 const QRCode = require('qrcode')
 const { sendMail } = require('./mailer')
+const { writeRegistrationFiles, deleteStoredFiles, resolveStoragePath } = require('./uploads')
+
+const multer = (() => {
+  try { return require('multer') } catch { return null }
+})()
+
+function createUploadMiddleware() {
+  if (!multer) return (req, res, next) => next()
+  const m = multer({
+    storage: multer.memoryStorage(),
+    limits: { files: 10, fileSize: 10 * 1024 * 1024 },
+  })
+  return m.array('files', 10)
+}
+
+const uploadForRegistration = createUploadMiddleware()
 
 function nowIso() {
   return new Date().toISOString()
@@ -65,6 +81,10 @@ function createApp() {
 
   app.post('/v1/registrations', async (req, res) => {
     try {
+      await new Promise((resolve, reject) => {
+        uploadForRegistration(req, res, (err) => (err ? reject(err) : resolve()))
+      })
+
       const body = req.body || {}
 
       const required = [
@@ -111,7 +131,15 @@ function createApp() {
 
       const createdAt = nowIso()
 
-      await withTransaction(async (db) => {
+      const incomingFiles = Array.isArray(req.files) ? req.files : []
+      let storedFiles = []
+      if (incomingFiles.length) {
+        if (!multer) return res.status(500).json({ error: 'uploads_not_available' })
+        storedFiles = await writeRegistrationFiles(registrationId, incomingFiles)
+      }
+
+      try {
+        await withTransaction(async (db) => {
         await db.run(
           `INSERT INTO registrations (
             id, created_at, updated_at,
@@ -170,7 +198,19 @@ function createApp() {
           `INSERT INTO badges (id, registration_id, token, issued_at) VALUES (?, ?, ?, ?);`,
           [badgeId, registrationId, token, createdAt],
         )
-      })
+          for (const f of storedFiles) {
+            await db.run(
+              `INSERT INTO registration_files (
+                id, registration_id, original_name, mime, size_bytes, storage_path, created_at
+              ) VALUES (?, ?, ?, ?, ?, ?, ?);`,
+              [f.id, registrationId, f.originalName, f.mime || null, f.size, f.storagePath, createdAt],
+            )
+          }
+        })
+      } catch (e) {
+        if (storedFiles.length) await deleteStoredFiles(storedFiles.map(f => f.storagePath))
+        throw e
+      }
 
       const baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${Number(process.env.PORT) || 4000}`
       const sig = signToken(token)
@@ -230,6 +270,7 @@ function createApp() {
         id: registrationId,
         badge: { url: badgeUrl },
         mail: { sent: userMailSent },
+        files: { count: storedFiles.length },
       })
     } catch (e) {
       return res.status(500).json({ error: 'server_error' })
@@ -436,15 +477,39 @@ function createApp() {
     return res.json({ ok: true, user: u })
   })
 
+  app.get('/v1/admin/files/:id', requireAdmin, async (req, res) => {
+    try {
+      const db = await getDb()
+      const f = await db.get(
+        `SELECT id, original_name, mime, storage_path FROM registration_files WHERE id = ?`,
+        [req.params.id],
+      )
+      if (!f) return res.status(404).json({ error: 'not_found' })
+      const abs = resolveStoragePath(f.storage_path)
+      if (!abs) return res.status(404).json({ error: 'not_found' })
+      return res.download(abs, String(f.original_name || 'file'))
+    } catch (e) {
+      return res.status(500).json({ error: 'server_error' })
+    }
+  })
+
   app.get('/v1/admin/registrations', requireAdmin, async (req, res) => {
     try {
       const db = await getDb()
       const rawLimit = typeof req.query.limit === 'string' ? Number(req.query.limit) : undefined
       const limit = Math.max(1, Math.min(5000, Number.isFinite(rawLimit) ? rawLimit : 500))
       const rows = await db.all(
-        `SELECT id, created_at, prenom, nom, email, pays_iso2, phone_country_iso2, phone_number, residence_zone, paiement_mode
-         FROM registrations
-         ORDER BY created_at DESC
+        `SELECT r.*,
+                p.status     as payment_status,
+                p.amount_cents as payment_amount_cents,
+                p.currency   as payment_currency,
+                p.method     as payment_method,
+                p.reference  as payment_reference,
+                p.updated_at as payment_updated_at,
+                (SELECT COUNT(1) FROM registration_files rf WHERE rf.registration_id = r.id) as files_count
+         FROM registrations r
+         LEFT JOIN payments p ON p.registration_id = r.id
+         ORDER BY r.created_at DESC
          LIMIT ?`,
         [limit],
       )
@@ -461,6 +526,13 @@ function createApp() {
       if (!r) return res.status(404).json({ error: 'not_found' })
       const payment = await db.get(`SELECT * FROM payments WHERE registration_id = ?`, [req.params.id])
       const badge = await db.get(`SELECT id, token, issued_at FROM badges WHERE registration_id = ?`, [req.params.id])
+      const files = await db.all(
+        `SELECT id, original_name, mime, size_bytes, created_at
+         FROM registration_files
+         WHERE registration_id = ?
+         ORDER BY created_at DESC`,
+        [req.params.id],
+      )
       const baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${Number(process.env.PORT) || 4000}`
       const badgeUrl = badge
         ? `${baseUrl.replace(/\/$/, '')}/v1/badge?token=${encodeURIComponent(badge.token)}&sig=${encodeURIComponent(signToken(badge.token))}`
@@ -469,7 +541,19 @@ function createApp() {
         ? `${baseUrl.replace(/\/$/, '')}/v1/qr?token=${encodeURIComponent(badge.token)}&sig=${encodeURIComponent(signToken(badge.token))}`
         : null
 
-      return res.json({ registration: r, payment, badge: badge ? { id: badge.id, issuedAt: badge.issued_at, badgeUrl, qrUrl } : null })
+      return res.json({
+        registration: r,
+        payment,
+        badge: badge ? { id: badge.id, issuedAt: badge.issued_at, badgeUrl, qrUrl } : null,
+        files: (files || []).map(x => ({
+          id: x.id,
+          originalName: x.original_name,
+          mime: x.mime,
+          sizeBytes: x.size_bytes,
+          createdAt: x.created_at,
+          downloadUrl: `/v1/admin/files/${encodeURIComponent(x.id)}`,
+        })),
+      })
     } catch (e) {
       return res.status(500).json({ error: 'server_error' })
     }

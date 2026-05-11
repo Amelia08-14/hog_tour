@@ -1,17 +1,66 @@
 'use client'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 
-type RegistrationListItem = {
-  id: string
-  created_at: string
-  prenom: string
-  nom: string
-  email: string
-  pays_iso2: string
-  phone_country_iso2: string
-  phone_number: string
-  residence_zone?: string | null
-  paiement_mode?: string | null
+type RegistrationRow = Record<string, any> & { id: string; created_at: string }
+
+type RegistrationDetails = {
+  registration: Record<string, any>
+  payment: Record<string, any> | null
+  badge: { id: string; issuedAt: string; badgeUrl: string | null; qrUrl: string | null } | null
+  files: Array<{ id: string; originalName: string; mime: string; sizeBytes: number; createdAt: string; downloadUrl: string }>
+}
+
+const COLUMNS: Array<{ key: string; label: string }> = [
+  { key: 'created_at', label: 'Date création' },
+  { key: 'updated_at', label: 'Dernière mise à jour' },
+  { key: 'prenom', label: 'Prénom' },
+  { key: 'nom', label: 'Nom' },
+  { key: 'sexe', label: 'Sexe' },
+  { key: 'adresse', label: 'Adresse' },
+  { key: 'ville', label: 'Ville' },
+  { key: 'pays_iso2', label: 'Pays' },
+  { key: 'phone_country_iso2', label: 'Indicatif' },
+  { key: 'phone_number', label: 'Téléphone' },
+  { key: 'email', label: 'Email' },
+  { key: 'nationalite', label: 'Nationalité' },
+  { key: 'nationalite_autre', label: 'Nationalité (autre)' },
+  { key: 'residence_zone', label: 'Résidence' },
+  { key: 'profil', label: 'Profil' },
+  { key: 'profil_groupe', label: 'Groupe' },
+  { key: 'hebergement', label: 'Hébergement' },
+  { key: 'taille_tshirt', label: 'T-shirt' },
+  { key: 'paiement_mode', label: 'Paiement (mode)' },
+  { key: 'permis_num', label: 'Permis' },
+  { key: 'immatriculation', label: 'Immatriculation' },
+  { key: 'passport_num', label: 'Passeport' },
+  { key: 'payment_status', label: 'Paiement (statut)' },
+  { key: 'payment_amount_cents', label: 'Paiement (montant cents)' },
+  { key: 'payment_currency', label: 'Paiement (devise)' },
+  { key: 'payment_method', label: 'Paiement (méthode)' },
+  { key: 'payment_reference', label: 'Paiement (référence)' },
+  { key: 'payment_updated_at', label: 'Paiement (date)' },
+  { key: 'files_count', label: 'Fichiers' },
+]
+
+function fmtDate(v: any) {
+  const s = String(v || '')
+  if (!s) return ''
+  const d = new Date(s)
+  if (!Number.isFinite(d.getTime())) return s
+  return d.toLocaleString('fr-FR')
+}
+
+function fmtCell(key: string, value: any) {
+  if (value == null) return ''
+  if (key === 'created_at' || key === 'updated_at' || key === 'payment_updated_at') return fmtDate(value)
+  return String(value)
+}
+
+function toCsv(rows: RegistrationRow[]) {
+  const esc = (s: string) => `"${s.replace(/"/g, '""')}"`
+  const header = COLUMNS.map(c => esc(c.label)).join(',')
+  const lines = rows.map(r => COLUMNS.map(c => esc(fmtCell(c.key, (r as any)[c.key]))).join(','))
+  return [header, ...lines].join('\n')
 }
 
 export default function AdminPage() {
@@ -19,10 +68,11 @@ export default function AdminPage() {
   const [authed, setAuthed] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [q, setQ] = useState('')
 
-  const [items, setItems] = useState<RegistrationListItem[]>([])
+  const [items, setItems] = useState<RegistrationRow[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [details, setDetails] = useState<any | null>(null)
+  const [details, setDetails] = useState<RegistrationDetails | null>(null)
 
   const apiBase = useMemo(() => {
     const v = process.env.NEXT_PUBLIC_API_BASE_URL?.trim()
@@ -33,6 +83,13 @@ export default function AdminPage() {
   function apiUrl(path: string) {
     return apiBase ? `${apiBase}${path}` : path
   }
+
+  const filtered = useMemo(() => {
+    const s = q.trim().toLowerCase()
+    if (!s) return items
+    const keys = ['prenom', 'nom', 'email', 'phone_number', 'passport_num', 'immatriculation', 'permis_num']
+    return items.filter(r => keys.some(k => String((r as any)[k] || '').toLowerCase().includes(s)))
+  }, [items, q])
 
   async function checkSession() {
     try {
@@ -74,10 +131,23 @@ export default function AdminPage() {
         setError("Impossible de récupérer le détail.")
         return
       }
-      setDetails(data)
+      setDetails(data as RegistrationDetails)
     } catch {
       setError("Impossible de contacter le serveur.")
     }
+  }
+
+  function downloadCsv() {
+    const content = toCsv(filtered)
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `inscriptions-${new Date().toISOString().slice(0, 10)}.csv`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
   }
 
   useEffect(() => {
@@ -147,7 +217,7 @@ export default function AdminPage() {
 
   if (checking) {
     return (
-      <section className="min-h-screen flex items-center pt-[120px] pb-20 bg-bg">
+      <section className="min-h-screen flex items-center pt-[60px] pb-20 bg-bg">
         <div className="max-w-container mx-auto px-6 md:px-10 w-full">
           <p className="text-muted text-[14px]">Chargement…</p>
         </div>
@@ -156,7 +226,7 @@ export default function AdminPage() {
   }
 
   return (
-    <section className="min-h-screen pt-[120px] pb-20 bg-bg">
+    <section className="min-h-screen pt-[60px] pb-20 bg-bg">
       <div className="max-w-container mx-auto px-6 md:px-10 w-full">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
@@ -217,54 +287,60 @@ export default function AdminPage() {
         ) : (
           <div className="mt-10">
             <div className="flex items-center justify-between gap-4 flex-wrap">
-              <p className="text-muted text-[13px] tracking-[0.18em] uppercase">{items.length} inscription(s)</p>
-              <button
-                onClick={loadList}
-                disabled={loading}
-                className="bg-bg3 border border-orange/10 text-htext font-condensed font-bold text-[12px] tracking-[0.2em] uppercase px-6 py-3 hover:border-orange/30 transition-colors disabled:opacity-60"
-              >
-                {loading ? 'Actualisation…' : 'Actualiser'}
-              </button>
+              <p className="text-muted text-[13px] tracking-[0.18em] uppercase">{filtered.length} inscription(s)</p>
+              <div className="flex items-center gap-3 flex-wrap">
+                <input
+                  value={q}
+                  onChange={e => setQ(e.target.value)}
+                  placeholder="Recherche (nom, email, téléphone…)…"
+                  className="bg-bg3 border border-orange/10 text-htext text-[13px] px-4 py-3 outline-none focus:border-orange/30 w-[280px]"
+                />
+                <button
+                  onClick={downloadCsv}
+                  disabled={loading || !filtered.length}
+                  className="bg-bg3 border border-orange/10 text-htext font-condensed font-bold text-[12px] tracking-[0.2em] uppercase px-6 py-3 hover:border-orange/30 transition-colors disabled:opacity-60"
+                >
+                  Export CSV
+                </button>
+                <button
+                  onClick={loadList}
+                  disabled={loading}
+                  className="bg-bg3 border border-orange/10 text-htext font-condensed font-bold text-[12px] tracking-[0.2em] uppercase px-6 py-3 hover:border-orange/30 transition-colors disabled:opacity-60"
+                >
+                  {loading ? 'Actualisation…' : 'Actualiser'}
+                </button>
+              </div>
             </div>
 
             <div className="mt-6 border border-orange/12 overflow-hidden">
               <div className="overflow-auto">
-                <table className="min-w-[980px] w-full text-left">
+                <table className="min-w-[1700px] w-full text-left">
                   <thead className="bg-bg3 border-b border-orange/10">
                     <tr className="text-muted text-[11px] tracking-[0.18em] uppercase">
-                      <th className="px-4 py-3">Date</th>
-                      <th className="px-4 py-3">Nom</th>
-                      <th className="px-4 py-3">Email</th>
-                      <th className="px-4 py-3">Téléphone</th>
-                      <th className="px-4 py-3">Pays</th>
-                      <th className="px-4 py-3">Résidence</th>
-                      <th className="px-4 py-3">Paiement</th>
-                      <th className="px-4 py-3">Action</th>
+                      {COLUMNS.map(c => (
+                        <th key={c.key} className="px-4 py-3 whitespace-nowrap">{c.label}</th>
+                      ))}
+                      <th className="px-4 py-3 whitespace-nowrap">Détail</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/10">
-                    {items.map((r) => (
+                    {filtered.map((r) => (
                       <tr key={r.id} className="text-htext text-[13px]">
-                        <td className="px-4 py-3 whitespace-nowrap text-muted">{new Date(r.created_at).toLocaleString('fr-FR')}</td>
-                        <td className="px-4 py-3 whitespace-nowrap">{r.prenom} {r.nom}</td>
-                        <td className="px-4 py-3">{r.email}</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-muted">{r.phone_country_iso2} {r.phone_number}</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-muted">{r.pays_iso2}</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-muted">{r.residence_zone ?? ''}</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-muted">{r.paiement_mode ?? ''}</td>
-                        <td className="px-4 py-3">
-                          <button
-                            onClick={() => loadDetails(r.id)}
-                            className="text-orange underline"
-                          >
-                            Voir
+                        {COLUMNS.map(c => (
+                          <td key={c.key} className="px-4 py-3 whitespace-nowrap text-muted">
+                            {fmtCell(c.key, (r as any)[c.key])}
+                          </td>
+                        ))}
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <button onClick={() => loadDetails(r.id)} className="text-orange underline">
+                            Ouvrir
                           </button>
                         </td>
                       </tr>
                     ))}
-                    {!items.length && (
+                    {!filtered.length && (
                       <tr>
-                        <td colSpan={8} className="px-4 py-8 text-muted text-[13px]">
+                        <td colSpan={COLUMNS.length + 1} className="px-4 py-8 text-muted text-[13px]">
                           Aucune inscription trouvée.
                         </td>
                       </tr>
@@ -277,14 +353,49 @@ export default function AdminPage() {
             {selectedId && details && (
               <div className="mt-8 border border-orange/12 bg-bg3 p-6">
                 <div className="flex items-center justify-between gap-4 flex-wrap">
-                  <p className="text-muted text-[11px] tracking-[0.18em] uppercase">Détail</p>
+                  <p className="text-muted text-[11px] tracking-[0.18em] uppercase">Détail inscription</p>
                   <button onClick={() => { setSelectedId(null); setDetails(null) }} className="text-orange underline">
                     Fermer
                   </button>
                 </div>
-                <pre className="mt-4 whitespace-pre-wrap break-words text-[12px] text-htext">
-                  {JSON.stringify(details, null, 2)}
-                </pre>
+
+                <div className="mt-5 grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  <div className="border border-orange/10 p-4">
+                    <p className="text-muted text-[11px] tracking-[0.18em] uppercase">Badge</p>
+                    <div className="mt-3 flex flex-col gap-2 text-[13px]">
+                      <div className="text-muted">ID: <span className="text-htext">{String(details.registration?.id || '')}</span></div>
+                      {details.badge?.badgeUrl && (
+                        <a className="text-orange underline break-all" href={details.badge.badgeUrl} target="_blank" rel="noreferrer">
+                          Ouvrir badge
+                        </a>
+                      )}
+                      {details.badge?.qrUrl && (
+                        <a className="text-orange underline break-all" href={details.badge.qrUrl} target="_blank" rel="noreferrer">
+                          Ouvrir QR (admin)
+                        </a>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="border border-orange/10 p-4">
+                    <p className="text-muted text-[11px] tracking-[0.18em] uppercase">Fichiers</p>
+                    <div className="mt-3 flex flex-col gap-2 text-[13px]">
+                      {details.files?.length ? details.files.map(f => (
+                        <div key={f.id} className="flex items-center justify-between gap-4 border-b border-white/10 pb-2">
+                          <div className="min-w-0">
+                            <div className="text-htext break-all">{f.originalName}</div>
+                            <div className="text-muted2 text-[12px]">{fmtDate(f.createdAt)} · {f.sizeBytes ? `${Math.round(f.sizeBytes / 1024)} KB` : ''}</div>
+                          </div>
+                          <a className="text-orange underline whitespace-nowrap" href={f.downloadUrl}>
+                            Télécharger
+                          </a>
+                        </div>
+                      )) : (
+                        <div className="text-muted">Aucun fichier.</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -293,4 +404,3 @@ export default function AdminPage() {
     </section>
   )
 }
-

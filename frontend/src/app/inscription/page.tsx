@@ -135,11 +135,35 @@ export default function InscriptionPage() {
 
     try {
       setLoading(true)
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
+      const out = new FormData()
+      out.set('prenom', payload.prenom)
+      out.set('nom', payload.nom)
+      out.set('sexe', payload.sexe)
+      out.set('adresse', payload.adresse)
+      out.set('ville', payload.ville)
+      out.set('paysIso2', payload.paysIso2)
+      out.set('phoneCountryIso2', payload.phoneCountryIso2)
+      out.set('phoneNumber', payload.phoneNumber)
+      out.set('email', payload.email)
+      out.set('nationalite', payload.nationalite)
+      if (payload.nationaliteAutre) out.set('nationaliteAutre', payload.nationaliteAutre)
+      out.set('residenceZone', payload.residenceZone)
+      out.set('profil', payload.profil)
+      if (payload.profilGroupe) out.set('profilGroupe', payload.profilGroupe)
+      out.set('hebergement', payload.hebergement)
+      out.set('tailleTshirt', payload.tailleTshirt)
+      out.set('paiementMode', payload.paiementMode)
+      out.set('permisNum', payload.permisNum)
+      out.set('immatriculation', payload.immatriculation)
+      out.set('passportNum', payload.passportNum)
+
+      for (const v of fd.getAll('files')) {
+        if (typeof File !== 'undefined' && v instanceof File && v.size > 0) {
+          out.append('files', v, v.name)
+        }
+      }
+
+      const res = await fetch(url, { method: 'POST', body: out })
 
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
@@ -478,7 +502,7 @@ function UF({ id, label }: { id: string; label: string }) {
         </label>
         <span className="text-muted text-[13px]">{name}</span>
       </div>
-      <input id={id} type="file" accept=".jpg,.jpeg,.png,.pdf,.webp" className="hidden"
+      <input id={id} name="files" type="file" accept=".jpg,.jpeg,.png,.pdf,.webp" className="hidden"
         onChange={e => setName(e.target.files?.[0]?.name ?? 'No file chosen')}/>
     </div>
   )

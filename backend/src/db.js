@@ -162,6 +162,22 @@ async function initDb() {
       );
     `)
 
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS registration_files (
+        id CHAR(36) PRIMARY KEY,
+        registration_id CHAR(36) NOT NULL,
+        original_name VARCHAR(255) NOT NULL,
+        mime VARCHAR(120),
+        size_bytes INT,
+        storage_path VARCHAR(255) NOT NULL,
+        created_at VARCHAR(40) NOT NULL,
+        INDEX idx_registration_files_registration_id (registration_id),
+        CONSTRAINT fk_registration_files_registration
+          FOREIGN KEY (registration_id) REFERENCES registrations(id)
+          ON DELETE CASCADE
+      );
+    `)
+
     const dbName = String(process.env.MYSQL_DATABASE)
     const cols = await db.all(
       `SELECT COLUMN_NAME as name
@@ -230,8 +246,20 @@ async function initDb() {
         FOREIGN KEY(registration_id) REFERENCES registrations(id) ON DELETE CASCADE
       );
 
+      CREATE TABLE IF NOT EXISTS registration_files (
+        id TEXT PRIMARY KEY,
+        registration_id TEXT NOT NULL,
+        original_name TEXT NOT NULL,
+        mime TEXT,
+        size_bytes INTEGER,
+        storage_path TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY(registration_id) REFERENCES registrations(id) ON DELETE CASCADE
+      );
+
       CREATE INDEX IF NOT EXISTS idx_payments_registration_id ON payments(registration_id);
       CREATE INDEX IF NOT EXISTS idx_badges_token ON badges(token);
+      CREATE INDEX IF NOT EXISTS idx_registration_files_registration_id ON registration_files(registration_id);
   `)
 
   const cols = await db.all(`PRAGMA table_info(registrations);`)
