@@ -60,6 +60,26 @@ function normalizePhoneE164(v) {
   return digits ? `+${digits}` : ''
 }
 
+function normalizeCustomerResponse(v) {
+  if (!v || typeof v !== 'object') return v
+  if (v.id) return v
+  if (v.customer && typeof v.customer === 'object') {
+    if (v.customer.id) return v.customer
+    if (v.customer.customerId) return { ...v.customer, id: v.customer.customerId }
+  }
+  if (v.data && typeof v.data === 'object') {
+    if (v.data.id) return v.data
+    if (v.data.customerId) return { ...v.data, id: v.data.customerId }
+  }
+  if (v.result && typeof v.result === 'object') {
+    if (v.result.id) return v.result
+    if (v.result.customerId) return { ...v.result, id: v.result.customerId }
+  }
+  if (v.customerId) return { ...v, id: v.customerId }
+  if (v.customer_id) return { ...v, id: v.customer_id }
+  return v
+}
+
 async function ensureCustomer({ phoneE164, email, firstName, lastName }) {
   const phone = normalizePhoneE164(phoneE164)
   if (!phone) throw new Error('phoneE164 is required')
@@ -77,9 +97,7 @@ async function ensureCustomer({ phoneE164, email, firstName, lastName }) {
 
   try {
     const found = await yassirRequest('GET', `/api/v1/customers/search/${encodeURIComponent(phone)}`)
-    if (found && found.id) return found
-    if (found && found.customer && found.customer.id) return found.customer
-    return found
+    return normalizeCustomerResponse(found)
   } catch (e) {
     if (isNotFound(e)) {
       const name = `${String(firstName || '').trim()} ${String(lastName || '').trim()}`.trim()
@@ -92,9 +110,7 @@ async function ensureCustomer({ phoneE164, email, firstName, lastName }) {
           lastName: lastName || undefined,
         },
       })
-      if (created && created.id) return created
-      if (created && created.customer && created.customer.id) return created.customer
-      return created
+      return normalizeCustomerResponse(created)
     }
     throw e
   }

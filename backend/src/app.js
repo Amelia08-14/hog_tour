@@ -485,7 +485,13 @@ function createApp() {
         lastName: String(row.nom || ''),
       })
       const customerId = firstString(customer, ['id', 'customerId', 'customer_id']) || firstString(customer && customer.customer, ['id'])
-      if (!customerId) return res.status(500).json({ error: 'yassir_customer_failed' })
+      if (!customerId) {
+        const debug = isTrue(process.env.YASSIR_DEBUG)
+        return res.status(500).json({
+          error: 'yassir_customer_failed',
+          details: debug ? { customer } : undefined,
+        })
+      }
 
       let resolvedPaymentMethodId = null
       let resolvedPaymentMethodCode = paymentMethodCode || null
