@@ -1,5 +1,8 @@
 // src/components/home/Ticket.tsx
-export default function Ticket() {
+import type { Lang } from '@/i18n/shared'
+import { t } from '@/i18n/messages'
+
+export default function Ticket({ lang }: { lang: Lang }) {
   return (
     <section className="py-16 bg-bg2 border-t border-orange/10">
       <div className="max-w-container mx-auto px-6 md:px-10">
@@ -21,23 +24,23 @@ export default function Ticket() {
           <div className="relative z-10">
             <h2 className="font-display tracking-wide text-htext mb-7"
               style={{ fontSize: 'clamp(32px, 4.5vw, 56px)' }}>
-              Réservez votre ticket
+              {t(lang, 'home.ticketTitle')}
             </h2>
             <div className="h-px bg-white/10 mb-7"/>
             <div className="flex items-center gap-12 flex-wrap">
-              <span className="text-muted text-[15px]">Octobre, 2026</span>
+              <span className="text-muted text-[15px]">{lang === 'en' ? 'October, 2026' : lang === 'ar' ? 'أكتوبر 2026' : 'Octobre, 2026'}</span>
               <div className="flex-1 min-w-[180px]">
                 <p className="font-condensed font-bold text-[20px] tracking-[0.12em]">HOG TOUR 2026 ®</p>
                 <p className="flex items-center gap-1.5 text-muted text-[14px] mt-1">
                   <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
                   </svg>
-                  Alger
+                  {lang === 'en' ? 'Algiers' : lang === 'ar' ? 'الجزائر' : 'Alger'}
                 </p>
               </div>
               <a href="/inscription"
                 className="bg-orange text-black font-condensed font-extrabold text-[14px] tracking-[0.22em] uppercase px-9 py-3.5 hover:bg-white hover:-translate-y-0.5 transition-all duration-200 flex-shrink-0">
-                INSCRIPTION
+                {t(lang, 'home.ticketCta')}
               </a>
             </div>
             <div className="h-px bg-white/10 mt-7"/>

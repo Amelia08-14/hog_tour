@@ -110,6 +110,19 @@
     -webkit-text-fill-color: #F0EBE0;
     caret-color: #F0EBE0;
   }
+
+  html[lang="ar"] body {
+    font-family: var(--font-ar-body), var(--font-body), sans-serif;
+    letter-spacing: normal;
+  }
+  html[lang="ar"] .font-display {
+    font-family: var(--font-ar-display), var(--font-ar-body), sans-serif;
+    letter-spacing: normal !important;
+  }
+  html[lang="ar"] .font-condensed {
+    font-family: var(--font-ar-body), var(--font-body), sans-serif;
+    letter-spacing: normal;
+  }
 }
 
 /* ── Section tag ── */

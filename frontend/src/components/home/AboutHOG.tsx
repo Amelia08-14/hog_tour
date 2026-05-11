@@ -1,8 +1,10 @@
 // src/components/home/AboutHOG.tsx
 import Image from 'next/image'
 import Link from 'next/link'
+import type { Lang } from '@/i18n/shared'
+import { t } from '@/i18n/messages'
 
-export default function AboutHOG() {
+export default function AboutHOG({ lang }: { lang: Lang }) {
   return (
     <section id="about" className="py-28 bg-bg">
       <div className="max-w-container mx-auto px-6 md:px-10">
@@ -25,21 +27,18 @@ export default function AboutHOG() {
           </div>
 
           <div>
-            <div className="section-tag">À Propos</div>
+            <div className="section-tag">{t(lang, 'home.hog.tag1')}</div>
             <h2 className="font-display leading-[.93] tracking-wide mb-5"
               style={{ fontSize: 'clamp(36px, 4.5vw, 60px)' }}>
-              Le H.O.G<br />
-              <span className="text-orange">(Harley Owners Group)</span>
+              {t(lang, 'home.hog.title1a')}<br />
+              <span className="text-orange">{t(lang, 'home.hog.title1b')}</span>
             </h2>
             <p className="text-muted text-[18px] leading-[1.82] font-light">
-              Le Harley Owners Group ou H.O.G est un club créé par la firme Harley-Davidson
-              pour rassembler les propriétaires de motos de la marque. Chaque concessionnaire
-              possède un Chapter, subdivision du Harley Owners Group. Il existe plus d'un
-              million de membres dans le monde entier.
+              {t(lang, 'home.hog.p1')}
             </p>
             <Link href="/about"
               className="inline-flex items-center gap-2 font-condensed text-[14px] tracking-[0.18em] uppercase text-orange border-b border-orange/30 pb-1 mt-6 hover:border-orange hover:gap-3 transition-all duration-200">
-              En savoir plus <span>→</span>
+              {t(lang, 'home.hog.link1')} <span>→</span>
             </Link>
           </div>
         </div>
@@ -50,23 +49,17 @@ export default function AboutHOG() {
         {/* Bloc 2 — LE H.O.G ALGIERS CHAPTER ALGERIA */}
         <div className="reveal reveal-d1 reveal-streak hog-glow grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <div className="order-2 lg:order-1">
-            <div className="section-tag">Notre Chapter</div>
+            <div className="section-tag">{t(lang, 'home.hog.tag2')}</div>
             <h2 className="font-display leading-[.93] tracking-wide mb-5"
               style={{ fontSize: 'clamp(36px, 4.5vw, 60px)' }}>
-              Le H.O.G Algiers<br />
-              <span className="text-orange">Chapter Algeria</span>
+              {t(lang, 'home.hog.title2a')}<br />
+              <span className="text-orange">{t(lang, 'home.hog.title2b')}</span>
             </h2>
             <p className="text-muted text-[18px] leading-[1.82] font-light mb-4">
-              Créé le <strong className="text-htext font-medium">15 Mai 2013</strong>, le H.O.G Algiers
-              Chapter Algeria est le club accrédité par Harley-Davidson en Algérie sous le numéro{' '}
-              <strong className="text-orange font-medium">#8062</strong>. Le club réunit les
-              propriétaires de motos Harley-Davidson passionnés, organisés autour de balades,
-              stages de conduite, évènements et actions caritatives.
+              {t(lang, 'home.hog.p2a')}
             </p>
             <p className="text-muted text-[18px] leading-[1.82] font-light">
-              Depuis <strong className="text-htext font-medium">2023</strong>, co-organisateur
-              du plus grand événement motocycle en Algérie :{' '}
-              <strong className="text-orange font-medium">Algeria Bike Week</strong>.
+              {t(lang, 'home.hog.p2b')}
             </p>
             {/* Badge accréditation */}
             <div className="mt-8 inline-flex items-center gap-3.5 border border-orange/12 bg-bg3 p-3.5">
@@ -76,8 +69,8 @@ export default function AboutHOG() {
                 </svg>
               </div>
               <div>
-                <p className="text-muted text-[11px] tracking-[0.18em] uppercase">Chapter Officiel Harley-Davidson</p>
-                <p className="font-condensed font-semibold text-[15px] mt-0.5">Accréditation internationale #8062 · Depuis 2013</p>
+                <p className={`text-muted text-[11px] ${lang === 'ar' ? '' : 'tracking-[0.18em] uppercase'}`}>{t(lang, 'home.hog.badgeTitle')}</p>
+                <p className="font-condensed font-semibold text-[15px] mt-0.5">{t(lang, 'home.hog.badgeSub')}</p>
               </div>
             </div>
           </div>

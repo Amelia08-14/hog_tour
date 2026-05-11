@@ -132,9 +132,12 @@ async function listPaymentMethods({ country, amountCents }) {
   })
 }
 
-async function createPaymentIntent({ customerId, amountCents, currency, merchantTransactionId, description, callbackUrl, successRedirectUrl, failRedirectUrl }) {
+async function createPaymentIntent({ customerId, country, amountCents, currency, merchantTransactionId, description, callbackUrl, successRedirectUrl, failRedirectUrl }) {
+  const countryCode = iso2ToIso3(country)
+  if (!countryCode) throw new Error('countryCode is required')
   const body = {
     customerId,
+    countryCode,
     amount: Number(amountCents),
     currency,
     merchantTransactionId,

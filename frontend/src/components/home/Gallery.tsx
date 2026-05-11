@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import type { Lang } from '@/i18n/shared'
+import { t } from '@/i18n/messages'
 
 const PHOTO_COUNT = 30
 const INITIAL_VISIBLE = 12
@@ -8,15 +10,16 @@ const DEFAULT_RATIO = 0.66
 
 type Photo = { src: string; alt: string }
 
-export default function Gallery() {
+export default function Gallery({ lang }: { lang: Lang }) {
   const photos: Photo[] = useMemo(
     () =>
       Array.from({ length: PHOTO_COUNT }, (_, idx) => {
         const n = idx + 1
         const rawSrc = `/images/galeries/hogtour (${n}).jpeg`
-        return { src: encodeURI(rawSrc), alt: `HOG Tour – Photo ${n}` }
+        const label = lang === 'en' ? `HOG Tour – Photo ${n}` : lang === 'ar' ? `HOG Tour – صورة ${n}` : `HOG Tour – Photo ${n}`
+        return { src: encodeURI(rawSrc), alt: label }
       }),
-    [],
+    [lang],
   )
 
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE)
@@ -133,17 +136,17 @@ export default function Gallery() {
           <button
             type="button"
             onClick={() => setVisibleCount(PHOTO_COUNT)}
-            className="bg-orange text-black font-condensed font-extrabold text-[13px] tracking-[0.22em] uppercase px-8 py-3.5 hover:bg-white transition-colors"
+            className={`bg-orange text-black font-condensed font-extrabold text-[13px] px-8 py-3.5 hover:bg-white transition-colors ${lang === 'ar' ? '' : 'tracking-[0.22em] uppercase'}`}
           >
-            Voir plus de photos
+            {t(lang, 'home.galleryMore')}
           </button>
         ) : (
           <button
             type="button"
             onClick={() => setVisibleCount(INITIAL_VISIBLE)}
-            className="bg-white/10 text-htext font-condensed font-extrabold text-[13px] tracking-[0.22em] uppercase px-8 py-3.5 hover:bg-white/15 transition-colors"
+            className={`bg-white/10 text-htext font-condensed font-extrabold text-[13px] px-8 py-3.5 hover:bg-white/15 transition-colors ${lang === 'ar' ? '' : 'tracking-[0.22em] uppercase'}`}
           >
-            Réduire la galerie
+            {t(lang, 'home.galleryLess')}
           </button>
         )}
       </div>

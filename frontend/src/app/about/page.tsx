@@ -1,9 +1,11 @@
 // src/app/about/page.tsx
 import type { Metadata } from 'next'
 import Image from 'next/image'
+import { getLang } from '@/i18n/server'
 export const metadata: Metadata = { title: 'À Propos' }
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const lang = await getLang()
   const photosMain = [
     { src: '/images/galeries/hogtour (18).jpeg', alt: 'H.O.G Algeria — sur la route' },
     { src: '/images/galeries/hogtour (14).jpeg', alt: 'H.O.G Algeria — rassemblement' },
@@ -14,6 +16,40 @@ export default function AboutPage() {
     { src: '/images/galeries/hogtour (3).jpeg', alt: 'H.O.G Algeria — groupe' },
     { src: '/images/galeries/hogtour (24).jpeg', alt: 'H.O.G Algeria — paysage' },
   ]
+
+  const headerTag = lang === 'en' ? 'About' : lang === 'ar' ? 'من نحن' : 'À Propos'
+  const headerTitleA = lang === 'en' ? 'More than a club.' : lang === 'ar' ? 'أكثر من نادٍ.' : "Plus qu'un club."
+  const headerTitleB = lang === 'en' ? 'A passion.' : lang === 'ar' ? 'شغف.' : 'Une passion !'
+  const directorLabel = lang === 'en' ? 'Director — H.O.G Algiers Chapter Algeria' : lang === 'ar' ? 'المدير — H.O.G فرع الجزائر' : 'Directeur — H.O.G Algiers Chapter Algeria'
+  const motto = lang === 'en' ? 'More than a club. A passion.' : lang === 'ar' ? 'أكثر من نادٍ. شغف.' : "Plus qu'un club. une passion !!"
+  const paragraphs =
+    lang === 'en'
+      ? [
+          "My name is Abdelghani Mecheti, Director of H.O.G Algiers Chapter Algeria. I warmly welcome our members and new visitors to our website.",
+          "I would like to sincerely thank our Staff for their commitment and loyalty. Thank you to everyone who continues the journey with us, and welcome to all newcomers.",
+          "Founded on May 15, 2013, our Chapter brings together men and women, younger and older riders, beginners and experienced road captains. This diversity is our strength: experience and new energy side by side.",
+          "Our activity leaders are preparing upcoming programs to offer rides suited to all levels, along with charity initiatives and family-friendly activities.",
+        ]
+      : lang === 'ar'
+        ? [
+            'اسمي عبد الغني مشاتي، مدير فرع H.O.G الجزائر. أرحب بحرارة بأعضائنا وبزوار الموقع الجدد.',
+            'أغتنم الفرصة لأشكر طاقمنا على التزامهم ووفائهم. شكرًا لكل من واصل معنا هذه الرحلة، ومرحبًا بالمنضمين الجدد.',
+            'تأسس فرعنا في 15 مايو 2013، ويجمع رجالًا ونساءً، شبابًا وكهولًا، مبتدئين ومحترفين. هذا التنوع مصدر قوة: خبرة الكبار وحماس الجدد.',
+            'يعمل مسؤولو الأنشطة على برامج قادمة لتقديم خرجات مناسبة لكل مستويات القيادة، إضافةً إلى المبادرات الخيرية والأنشطة العائلية.',
+          ]
+        : [
+            "Je m'appelle Abdelghani Mecheti, directeur du H.O.G Algiers Chapter Algeria. Je souhaite la bienvenue à tous nos membres et nouveaux visiteurs sur notre site.",
+            "Je profite de cette occasion pour remercier sincèrement les membres de notre Staff pour leur engagement et la fidélité dont ils ont fait preuve. Je remercie toutes celles et ceux qui ont décidé de poursuivre l'aventure, de nous faire confiance et bienvenue aux nouveaux.",
+            "Créé le 15 Mai 2013, notre Chapter est composé d'hommes, de femmes, de jeunes et moins jeunes, novices et rouleurs confirmés. Il faut se réjouir de cette mixité, d'une part, l'expérience des anciens et la jeunesse des nouveaux.",
+            "Les responsables des activités travaillent sur les prochains programmes afin de vous proposer des sorties adaptées à tous les niveaux de conduite. Des virées plus ou moins longues, mais aussi, des actions caritatives et des activités en famille.",
+          ]
+
+  const quote =
+    lang === 'en'
+      ? "To anyone still hesitating to join us: riding your Harley-Davidson is pure joy—now imagine sharing that passion with us."
+      : lang === 'ar'
+        ? 'إلى كل من ما يزال مترددًا في الانضمام إلينا: إن قيادة Harley-Davidson متعة خالصة—تخيل أن تشارك هذه المتعة والشغف معنا.'
+        : "À toutes celles et ceux qui hésiteraient encore à nous rejoindre, je peux vous assurer que si rouler avec votre Harley-Davidson est un pur bonheur, imaginez une seule seconde si vous partagiez cette passion avec nous…!"
 
   return (
     <>
@@ -27,9 +63,9 @@ export default function AboutPage() {
           }}/>
         <div className="absolute inset-0 pointer-events-none about-header-sweep" />
         <div className="max-w-container 2xl:max-w-[1400px] mx-auto px-6 md:px-10 relative z-10">
-          <div className="section-tag au1">À Propos</div>
+          <div className="section-tag au1">{headerTag}</div>
           <h1 className="au2 font-display leading-[.88] tracking-wide mt-3" style={{ fontSize: 'clamp(44px, 6vw, 80px)' }}>
-            Plus qu'un club.<br /><span className="text-orange">Une passion !</span>
+            {headerTitleA}<br /><span className="text-orange">{headerTitleB}</span>
           </h1>
         </div>
       </div>
@@ -72,36 +108,29 @@ export default function AboutPage() {
                   </div>
                   <div>
                     <p className="font-condensed font-semibold text-[18px]">Abdelghani Mecheti</p>
-                    <p className="text-orange text-[10.5px] tracking-[0.15em] uppercase mt-0.5">Directeur — H.O.G Algiers Chapter Algeria</p>
+                    <p className={`text-orange text-[10.5px] mt-0.5 ${lang === 'ar' ? '' : 'tracking-[0.15em] uppercase'}`}>{directorLabel}</p>
                   </div>
                 </div>
               </div>
 
-              <p className="au4 font-condensed font-bold text-[20px] tracking-wide text-orange uppercase mb-6">
-                Plus qu'un club. une passion !!
+              <p className={`au4 font-condensed font-bold text-[20px] text-orange mb-6 ${lang === 'ar' ? '' : 'tracking-wide uppercase'}`}>
+                {motto}
               </p>
 
-              {[
-                "Je m'appelle Abdelghani Mecheti, directeur du H.O.G Algiers Chapter Algeria. Je souhaite la bienvenue à tous nos membres et nouveaux visiteurs sur notre site.",
-                "Je profite de cette occasion pour remercier sincèrement les membres de notre Staff pour leur engagement et la fidélité dont ils ont fait preuve. Je remercie toutes celles et ceux qui ont décidé de poursuivre l'aventure, de nous faire confiance et bienvenue aux nouveaux.",
-                "Créé le 15 Mai 2013, notre Chapter est composé d'hommes, de femmes, de jeunes et moins jeunes, novices et rouleurs confirmés. Il faut se réjouir de cette mixité, d'une part, l'expérience des anciens et la jeunesse des nouveaux.",
-                "Les responsables des activités travaillent sur les prochains programmes afin de vous proposer des sorties adaptées à tous les niveaux de conduite. Des virées plus ou moins longues, mais aussi, des actions caritatives et des activités en famille.",
-              ].map((p, i) => (
+              {paragraphs.map((p, i) => (
                 <p key={i} className="text-muted text-[18px] leading-[1.85] font-light mb-4">{p}</p>
               ))}
 
-              <blockquote className="border-l-2 border-orange pl-6 py-4 bg-bg3 my-6">
+              <blockquote className={`border-orange py-4 bg-bg3 my-6 ${lang === 'ar' ? 'border-r-2 pr-6' : 'border-l-2 pl-6'}`}>
                 <p className="font-condensed font-medium text-[17px] leading-snug italic text-htext">
-                  "À toutes celles et ceux qui hésiteraient encore à nous rejoindre, je peux vous
-                  assurer que si rouler avec votre Harley-Davidson est un pur bonheur, imaginez une
-                  seule seconde si vous partagiez cette passion avec nous…!"
+                  “{quote}”
                 </p>
               </blockquote>
 
               <div className="flex flex-col gap-1 mt-6">
                 <div className="w-12 h-px bg-orange"/>
                 <p className="font-condensed font-semibold text-[16px] mt-2">Abdelghani Mecheti</p>
-                <p className="text-orange text-[10.5px] tracking-[0.15em] uppercase">Directeur, H.O.G Algiers Chapter Algeria</p>
+                <p className={`text-orange text-[10.5px] ${lang === 'ar' ? '' : 'tracking-[0.15em] uppercase'}`}>{directorLabel}</p>
               </div>
             </div>
           </div>

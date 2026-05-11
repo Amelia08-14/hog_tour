@@ -1,20 +1,139 @@
 'use client'
 // src/components/home/Programme.tsx
 import { useState } from 'react'
+import type { Lang } from '@/i18n/shared'
 
-const DAYS = [
-  { num:'01', label:'Jour 01', route:'Alger → Ghardaïa',       km:600, type:'Aller simple',
-    acts:['Briefing général','Départ du convoi','Pause technique et brunch à 200 kms','Pause déjeuner à 400 kms','Arrivée à l\'hôtel après 600 kms','Remise des packs rallye','Check-in et installation','Dîner en groupe'] },
-  { num:'02', label:'Jour 02', route:'Ghardaïa → El Guerrara',  km:250, type:'Aller / Retour',
-    acts:['Briefing d\'avant départ','Direction El Guerrara à 125 kms','Déjeuner en palmeraie','Ballade à dos de chameaux','Challenge','Retour à Ghardaïa','Dîner à l\'hôtel'] },
-  { num:'03', label:'Jour 03', route:'Ghardaïa → Sebseb',       km:130, type:'Aller / Retour',
-    acts:['Visite du Souk local et place emblématique','Déjeuner cité écologique Tafilalt','Départ vers Sebseb','Challenge Quad dans les dunes','Concert sur les dunes','Remise des trophées','Retour à l\'hôtel à Ghardaïa'] },
-  { num:'04', label:'Jour 04', route:'Ghardaïa → Alger',        km:600, type:'Aller simple',
-    acts:['Briefing général d\'avant départ','Ride fête nationale du 1er Novembre','Pause technique à 200 kms','Pause déjeuner à 400 kms','Arrivée à Alger','Cocktail dînatoire de clôture'] },
-]
+type Day = { num: string; label: string; route: string; km: number; type: string; acts: string[] }
 
-export default function Programme() {
+function programmeCopy(lang: Lang): {
+  tag: string
+  titleA: string
+  titleB: string
+  subtitle: string
+  dates: string
+  route: string
+  routeStops: { a: { name: string; sub: string }; b: { name: string; sub: string }; c: { name: string; sub: string }; aToB: { km: number; label: string }; bToC: { km: number; label: string } }
+  whyTitle: string
+  whyP1: string
+  whyP2: string
+  whyStats: Array<{ v: string; l: string }>
+  days: Day[]
+} {
+  if (lang === 'en') {
+    return {
+      tag: 'Schedule',
+      titleA: 'A',
+      titleB: 'day journey',
+      subtitle: 'Starting from Algiers, a rich program of rides, discoveries, local culture, and the stunning landscapes of Ghardaïa.',
+      dates: 'Oct 29 — Nov 1, 2026',
+      route: 'Algiers → Ghardaïa → Algiers',
+      routeStops: {
+        a: { name: 'ALGIERS', sub: 'Departure point' },
+        b: { name: 'GHARDAÏA', sub: 'UNESCO Heritage' },
+        c: { name: 'ALGIERS', sub: 'Nov 1 · Return' },
+        aToB: { km: 600, label: 'km outbound' },
+        bToC: { km: 380, label: 'km excursions' },
+      },
+      whyTitle: 'Why Ghardaïa?',
+      whyP1:
+        'Ghardaïa has long been considered the gateway to the Algerian South. Located in the M’Zab Valley and founded in the 11th century, it is listed as a UNESCO World Heritage site for its unique ksour architecture.',
+      whyP2:
+        'The M’Zab region offers many sites to discover local architecture, culture, and culinary traditions.',
+      whyStats: [
+        { v: '11th', l: 'Century founded' },
+        { v: 'UNESCO', l: 'World Heritage' },
+        { v: "M’Zab", l: 'Iconic valley' },
+      ],
+      days: [
+        { num: '01', label: 'Day 01', route: 'Algiers → Ghardaïa', km: 600, type: 'One‑way',
+          acts: ['General briefing', 'Convoy departure', 'Technical stop & brunch at 200 km', 'Lunch break at 400 km', 'Hotel arrival after 600 km', 'Rally packs hand‑out', 'Check‑in & setup', 'Group dinner'] },
+        { num: '02', label: 'Day 02', route: 'Ghardaïa → El Guerrara', km: 250, type: 'Round trip',
+          acts: ['Pre‑departure briefing', 'Ride to El Guerrara (125 km)', 'Lunch in the palm grove', 'Camel ride', 'Challenge', 'Return to Ghardaïa', 'Dinner at the hotel'] },
+        { num: '03', label: 'Day 03', route: 'Ghardaïa → Sebseb', km: 130, type: 'Round trip',
+          acts: ['Visit the local souk & main square', 'Lunch at the eco‑city of Tafilelt', 'Departure to Sebseb', 'Quad challenge in the dunes', 'Concert on the dunes', 'Awards ceremony', 'Return to the hotel in Ghardaïa'] },
+        { num: '04', label: 'Day 04', route: 'Ghardaïa → Algiers', km: 600, type: 'One‑way',
+          acts: ['General pre‑departure briefing', 'National Day ride (Nov 1)', 'Technical stop at 200 km', 'Lunch break at 400 km', 'Arrival in Algiers', 'Closing dinner cocktail'] },
+      ],
+    }
+  }
+  if (lang === 'ar') {
+    return {
+      tag: 'البرنامج',
+      titleA: 'رحلة تمتد',
+      titleB: 'أيام',
+      subtitle: 'انطلاقًا من الجزائر العاصمة، برنامج غني بالقيادة والاكتشافات والثقافة المحلية ومناظر غرداية الساحرة.',
+      dates: '29 أكتوبر — 1 نوفمبر 2026',
+      route: 'الجزائر → غرداية → الجزائر',
+      routeStops: {
+        a: { name: 'الجزائر', sub: 'نقطة الانطلاق' },
+        b: { name: 'غرداية', sub: 'تراث اليونسكو' },
+        c: { name: 'الجزائر', sub: '1 نوفمبر · العودة' },
+        aToB: { km: 600, label: 'كم ذهاب' },
+        bToC: { km: 380, label: 'كم رحلات' },
+      },
+      whyTitle: 'لماذا غرداية؟',
+      whyP1:
+        'تُعد غرداية منذ زمن بعيد بوابة الجنوب الجزائري. تقع في وادي مزاب وتأسست في القرن الحادي عشر، وهي مُدرجة ضمن قائمة التراث العالمي لليونسكو لما تتميز به من عمارة قصورية فريدة.',
+      whyP2:
+        'تقدم منطقة مزاب العديد من المواقع لاكتشاف العمارة والثقافة المحلية والتقاليد الغذائية للمنطقة.',
+      whyStats: [
+        { v: 'القرن 11', l: 'سنة التأسيس' },
+        { v: 'UNESCO', l: 'تراث عالمي' },
+        { v: 'مزاب', l: 'وادي أسطوري' },
+      ],
+      days: [
+        { num: '01', label: 'اليوم 01', route: 'الجزائر → غرداية', km: 600, type: 'ذهاب',
+          acts: ['إحاطة عامة', 'انطلاق القافلة', 'توقف تقني وفطور عند 200 كم', 'استراحة غداء عند 400 كم', 'الوصول إلى الفندق بعد 600 كم', 'تسليم حزم الرالي', 'تسجيل الدخول والاستقرار', 'عشاء جماعي'] },
+        { num: '02', label: 'اليوم 02', route: 'غرداية → القرارة', km: 250, type: 'ذهاب وعودة',
+          acts: ['إحاطة قبل الانطلاق', 'التوجه إلى القرارة (125 كم)', 'غداء في واحة النخيل', 'جولة على ظهر الجمال', 'تحدٍ', 'العودة إلى غرداية', 'عشاء في الفندق'] },
+        { num: '03', label: 'اليوم 03', route: 'غرداية → سبسب', km: 130, type: 'ذهاب وعودة',
+          acts: ['زيارة السوق المحلي والساحة الرمزية', 'غداء في المدينة البيئية تافيلالت', 'الانطلاق نحو سبسب', 'تحدي رباعيات في الكثبان', 'حفل موسيقي على الرمال', 'تسليم الجوائز', 'العودة إلى الفندق في غرداية'] },
+        { num: '04', label: 'اليوم 04', route: 'غرداية → الجزائر', km: 600, type: 'ذهاب',
+          acts: ['إحاطة عامة قبل الانطلاق', 'جولة عيد 1 نوفمبر', 'توقف تقني عند 200 كم', 'استراحة غداء عند 400 كم', 'الوصول إلى الجزائر', 'كوكتيل عشاء الختام'] },
+      ],
+    }
+  }
+  return {
+    tag: 'Le Programme',
+    titleA: "Il s'étale sur",
+    titleB: 'jours',
+    subtitle: "Au départ d'Alger, avec un programme riche en rides, découvertes culinaires, culture des régions et les fabuleux paysages de Ghardaïa.",
+    dates: '29 Oct — 1er Nov 2026',
+    route: 'Alger → Ghardaïa → Alger',
+    routeStops: {
+      a: { name: 'ALGER', sub: 'Point de départ' },
+      b: { name: 'GHARDAÏA', sub: 'Patrimoine UNESCO' },
+      c: { name: 'ALGER', sub: '1er Nov · Retour' },
+      aToB: { km: 600, label: 'km aller' },
+      bToC: { km: 380, label: 'km excursions' },
+    },
+    whyTitle: 'Pourquoi Ghardaïa ?',
+    whyP1:
+      "De tout temps, Ghardaïa est considérée comme la porte du Sud algérien. Située dans la vallée du M'Zab, fondée au XIe siècle, elle est classée au patrimoine mondial de l'UNESCO, notamment en raison de son architecture Ksourienne.",
+    whyP2:
+      "La région du M'Zab offre un choix multiple de sites touristiques pour découvrir l'architecture, la culture locale et les traditions culinaires de la région.",
+    whyStats: [
+      { v: 'XIe', l: 'Siècle de fondation' },
+      { v: 'UNESCO', l: 'Patrimoine mondial' },
+      { v: "M'Zab", l: 'Vallée mythique' },
+    ],
+    days: [
+      { num:'01', label:'Jour 01', route:'Alger → Ghardaïa', km:600, type:'Aller simple',
+        acts:['Briefing général','Départ du convoi','Pause technique et brunch à 200 kms','Pause déjeuner à 400 kms',"Arrivée à l'hôtel après 600 kms",'Remise des packs rallye','Check-in et installation','Dîner en groupe'] },
+      { num:'02', label:'Jour 02', route:'Ghardaïa → El Guerrara', km:250, type:'Aller / Retour',
+        acts:["Briefing d'avant départ",'Direction El Guerrara à 125 kms','Déjeuner en palmeraie','Ballade à dos de chameaux','Challenge','Retour à Ghardaïa',"Dîner à l'hôtel"] },
+      { num:'03', label:'Jour 03', route:'Ghardaïa → Sebseb', km:130, type:'Aller / Retour',
+        acts:['Visite du Souk local et place emblématique','Déjeuner cité écologique Tafilalt','Départ vers Sebseb','Challenge Quad dans les dunes','Concert sur les dunes','Remise des trophées',"Retour à l'hôtel à Ghardaïa"] },
+      { num:'04', label:'Jour 04', route:'Ghardaïa → Alger', km:600, type:'Aller simple',
+        acts:["Briefing général d'avant départ",'Ride fête nationale du 1er Novembre','Pause technique à 200 kms','Pause déjeuner à 400 kms','Arrivée à Alger','Cocktail dînatoire de clôture'] },
+    ],
+  }
+}
+
+export default function Programme({ lang }: { lang: Lang }) {
   const [active, setActive] = useState(0)
+  const copy = programmeCopy(lang)
+  const days = copy.days
 
   return (
     <section id="programme" className="py-28 bg-bg2 border-t border-b border-orange/10">
@@ -23,19 +142,18 @@ export default function Programme() {
         {/* Header */}
         <div className="reveal reveal-streak flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6 mb-14">
           <div>
-            <div className="section-tag">Le Programme</div>
+            <div className="section-tag">{copy.tag}</div>
             <h2 className="font-display leading-[.93] tracking-wide"
               style={{ fontSize: 'clamp(44px, 6vw, 72px)' }}>
-              Il s'étale sur <span className="text-orange">4 jours</span>
+              {copy.titleA} <span className="text-orange">4</span> {copy.titleB}
             </h2>
             <p className="text-muted text-[18px] leading-relaxed font-light max-w-[560px] mt-3">
-              Au départ d'Alger, avec un programme riche en rides, découvertes culinaires,
-              culture des régions et les fabuleux paysages de Ghardaïa.
+              {copy.subtitle}
             </p>
           </div>
           <div className="text-right flex-shrink-0">
-            <p className="font-display text-muted text-xl tracking-[0.25em]">29 Oct — 1er Nov 2026</p>
-            <p className="text-muted2 text-[15px] mt-1">Alger → Ghardaïa → Alger</p>
+            <p className={`font-display text-muted text-xl ${lang === 'ar' ? 'tracking-normal' : 'tracking-[0.25em]'}`}>{copy.dates}</p>
+            <p className="text-muted2 text-[15px] mt-1">{copy.route}</p>
           </div>
         </div>
 
@@ -43,11 +161,11 @@ export default function Programme() {
         <div className="reveal reveal-streak hog-glow relative flex items-center justify-between bg-bg3 border border-orange/12 px-8 py-6 mb-1 overflow-hidden">
           <div className="absolute inset-0 opacity-50 pointer-events-none"
             style={{ backgroundImage: 'repeating-linear-gradient(90deg,transparent,transparent 60px,rgba(255,255,255,.03) 60px,rgba(255,255,255,.03) 61px)' }}/>
-          <RouteCity name="ALGER"    sub="Point de départ" />
-          <RouteArrow km={600} label="km aller" />
-          <RouteCity name="GHARDAÏA" sub="Patrimoine UNESCO" highlight />
-          <RouteArrow km={380} label="km excursions" />
-          <RouteCity name="ALGER"    sub="1er Nov · Retour" />
+          <RouteCity name={copy.routeStops.a.name} sub={copy.routeStops.a.sub} />
+          <RouteArrow km={copy.routeStops.aToB.km} label={copy.routeStops.aToB.label} />
+          <RouteCity name={copy.routeStops.b.name} sub={copy.routeStops.b.sub} highlight />
+          <RouteArrow km={copy.routeStops.bToC.km} label={copy.routeStops.bToC.label} />
+          <RouteCity name={copy.routeStops.c.name} sub={copy.routeStops.c.sub} />
         </div>
 
         {/* Pourquoi Ghardaïa */}
@@ -57,31 +175,24 @@ export default function Programme() {
             <div className="p-9">
               <h3 className="font-display tracking-wide mb-4"
                 style={{ fontSize: 'clamp(28px, 3.5vw, 44px)' }}>
-                Pourquoi <span className="text-orange">Ghardaïa ?</span>
+                {copy.whyTitle.split(' ').slice(0, -1).join(' ')} <span className="text-orange">{copy.whyTitle.split(' ').slice(-1)[0]}</span>
               </h3>
               <p className="text-muted text-[18px] leading-[1.82] font-light">
-                De tout temps, Ghardaïa est considérée comme la porte du Sud algérien.
-                Située dans la vallée du M'Zab, fondée au XI<sup>e</sup> siècle, elle est classée
-                au patrimoine mondial de l'UNESCO, notamment en raison de son architecture Ksourienne.
+                {copy.whyP1}
               </p>
               <p className="text-muted text-[18px] leading-[1.82] font-light mt-3">
-                La région du M'Zab offre un choix multiple de sites touristiques pour découvrir
-                l'architecture, la culture locale et les traditions culinaires de la région.
+                {copy.whyP2}
               </p>
             </div>
             <div className="border-t lg:border-t-0 lg:border-l border-orange/10 flex flex-row lg:flex-col">
-              {[
-                { v: 'XIe',   l: 'Siècle de fondation' },
-                { v: 'UNESCO',l: 'Patrimoine mondial'  },
-                { v: "M'Zab", l: 'Vallée mythique'     },
-              ].map((st, i) => (
+              {copy.whyStats.map((st, i) => (
                 <div key={i} className={`flex-1 flex flex-col items-center justify-center text-center py-5 px-4 hover:bg-orange/5 transition-colors duration-200
                   ${i < 2 ? 'border-r lg:border-r-0 lg:border-b border-orange/10' : ''}`}>
                   <span className="font-display text-orange leading-none block"
                     style={{ fontSize: st.v === 'UNESCO' ? '22px' : '34px', letterSpacing: '1px' }}>
                     {st.v}
                   </span>
-                  <p className="text-muted text-[11px] tracking-[0.2em] uppercase mt-1.5">{st.l}</p>
+                  <p className={`text-muted text-[11px] mt-1.5 ${lang === 'ar' ? '' : 'tracking-[0.2em] uppercase'}`}>{st.l}</p>
                 </div>
               ))}
             </div>
@@ -90,7 +201,7 @@ export default function Programme() {
 
         {/* 4 Day cards */}
         <div className="reveal reveal-streak hog-glow grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-px bg-white/5">
-          {DAYS.map((d, i) => (
+          {days.map((d, i) => (
             <div
               key={i}
               onClick={() => setActive(i)}
@@ -105,7 +216,7 @@ export default function Programme() {
                 {d.num}
               </span>
 
-              <p className="text-orange text-[11px] tracking-[0.25em] uppercase mb-2">{d.label}</p>
+              <p className={`text-orange text-[11px] mb-2 ${lang === 'ar' ? '' : 'tracking-[0.25em] uppercase'}`}>{d.label}</p>
               <p className="font-condensed font-semibold text-[18px] leading-snug mb-1.5">{d.route}</p>
               <div className="flex items-baseline gap-1.5 mb-3.5">
                 <span className="font-display text-orange text-[22px] leading-none">{d.km}</span>

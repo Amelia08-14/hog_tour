@@ -5,8 +5,9 @@ import Nav from '@/components/Nav'
 import Footer from '@/components/Footer'
 import ScrollReveal from '@/components/ScrollReveal'
 import ScrollFX from '@/components/ScrollFX'
+import type { Lang } from '@/i18n/shared'
 
-export default function Shell({ children }: { children: ReactNode }) {
+export default function Shell({ children, lang }: { children: ReactNode; lang: Lang }) {
   const pathname = usePathname() || ''
   const isAdmin = pathname === '/admin' || pathname.startsWith('/admin/')
 
@@ -84,12 +85,11 @@ export default function Shell({ children }: { children: ReactNode }) {
           </g>
         </svg>
       </div>
-      <Nav />
+      <Nav lang={lang} />
       <main>{children}</main>
-      <Footer />
+      <Footer lang={lang} />
       <ScrollReveal />
       <ScrollFX />
     </>
   )
 }
-

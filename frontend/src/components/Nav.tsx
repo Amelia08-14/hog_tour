@@ -4,15 +4,10 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import type { Lang } from '@/i18n/shared'
+import { t } from '@/i18n/messages'
 
-const LINKS = [
-  { href: '/',           label: 'Accueil'         },
-  { href: '/about',      label: 'A Propos'         },
-  { href: '/hogtour',    label: 'H.O.G Tour 2026'  },
-  { href: '/contact',    label: 'Contactez Nous'   },
-]
-
-export default function Nav() {
+export default function Nav({ lang }: { lang: Lang }) {
   const [scrolled, setScrolled] = useState(false)
   const [open,     setOpen]     = useState(false)
   const pathname = usePathname()
@@ -25,6 +20,19 @@ export default function Nav() {
   }, [])
 
   const solid = !isHome || scrolled
+  const links = [
+    { href: '/', label: t(lang, 'nav.home') as string },
+    { href: '/about', label: t(lang, 'nav.about') as string },
+    { href: '/hogtour', label: t(lang, 'nav.event') as string },
+    { href: '/contact', label: t(lang, 'nav.contact') as string },
+    { href: '/inscription', label: t(lang, 'nav.register') as string },
+  ]
+
+  function setLang(next: Lang) {
+    document.cookie = `hog_lang=${next}; Path=/; Max-Age=31536000; SameSite=Lax`
+    setOpen(false)
+    window.location.reload()
+  }
 
   return (
     <nav className={`
@@ -51,13 +59,13 @@ export default function Nav() {
         </div>
         <div className="flex flex-col gap-0.5">
           <span className="font-display text-orange text-[17px] tracking-[0.3em] leading-none">H.O.G Algeria</span>
-          <span className="text-muted2 text-[10px] tracking-[0.2em] uppercase">Algiers Chapter</span>
+          <span className="text-muted2 text-[10px] tracking-[0.2em] uppercase">{t(lang, 'nav.chapter')}</span>
         </div>
       </Link>
 
       {/* Desktop links */}
       <ul className="hidden lg:flex gap-8 list-none">
-        {LINKS.map(l => (
+        {links.slice(0, 4).map(l => (
           <li key={l.href}>
             <Link
               href={l.href}
@@ -74,34 +82,30 @@ export default function Nav() {
       <div className="flex items-center gap-4">
 
         {/* Lang */}
-        <div className="hidden sm:flex items-center gap-2 px-2 py-1 rounded-full border border-white/15 bg-bg/40 backdrop-blur-md">
-          <a
-            href="#"
-            aria-current="true"
-            className="px-2.5 py-1 rounded-full bg-orange text-black text-[11px] tracking-widest uppercase font-bold"
-          >
-            FR
-          </a>
-          <a
-            href="#"
-            className="px-2.5 py-1 rounded-full text-[11px] tracking-widest uppercase text-white/85 hover:text-orange hover:bg-white/5 transition-colors"
-          >
-            AR
-          </a>
-          <a
-            href="#"
-            className="px-2.5 py-1 rounded-full text-[11px] tracking-widest uppercase text-white/85 hover:text-orange hover:bg-white/5 transition-colors"
-          >
-            EN
-          </a>
+        <div className="hidden lg:flex items-center gap-2 px-2 py-1 rounded-full border border-white/15 bg-bg/40 backdrop-blur-md">
+          {(['fr', 'ar', 'en'] as const).map(code => (
+            <button
+              key={code}
+              type="button"
+              onClick={() => setLang(code)}
+              aria-current={lang === code ? 'true' : undefined}
+              className={
+                lang === code
+                  ? "px-2.5 py-1 rounded-full bg-orange text-black text-[11px] tracking-widest uppercase font-bold"
+                  : "px-2.5 py-1 rounded-full text-[11px] tracking-widest uppercase text-white/85 hover:text-orange hover:bg-white/5 transition-colors"
+              }
+            >
+              {code.toUpperCase()}
+            </button>
+          ))}
         </div>
 
         {/* CTA */}
         <Link
           href="/inscription"
-          className="bg-orange text-black font-condensed font-bold text-[12px] tracking-[0.22em] uppercase px-5 py-2.5 hover:bg-white hover:-translate-y-0.5 transition-all duration-200 whitespace-nowrap"
+          className="hidden lg:inline-flex bg-orange text-black font-condensed font-bold text-[12px] tracking-[0.22em] uppercase px-5 py-2.5 hover:bg-white hover:-translate-y-0.5 transition-all duration-200 whitespace-nowrap"
         >
-          Inscrivez Vous
+          {t(lang, 'nav.registerCta')}
         </Link>
 
         {/* Burger */}
@@ -119,7 +123,7 @@ export default function Nav() {
       {/* Mobile menu */}
       {open && (
         <div className="absolute top-[72px] left-0 right-0 bg-bg/97 backdrop-blur-lg border-b border-orange/10 flex flex-col lg:hidden">
-          {LINKS.map(l => (
+          {links.map(l => (
             <Link
               key={l.href}
               href={l.href}
@@ -131,34 +135,23 @@ export default function Nav() {
           ))}
           <div className="px-6 py-4 border-b border-white/5">
             <div className="inline-flex items-center gap-2 px-2 py-1 rounded-full border border-white/15 bg-bg/40 backdrop-blur-md">
-              <a
-                href="#"
-                aria-current="true"
-                className="px-3 py-1 rounded-full bg-orange text-black text-[12px] tracking-widest uppercase font-bold"
-              >
-                FR
-              </a>
-              <a
-                href="#"
-                className="px-3 py-1 rounded-full text-[12px] tracking-widest uppercase text-white/85 hover:text-orange hover:bg-white/5 transition-colors"
-              >
-                AR
-              </a>
-              <a
-                href="#"
-                className="px-3 py-1 rounded-full text-[12px] tracking-widest uppercase text-white/85 hover:text-orange hover:bg-white/5 transition-colors"
-              >
-                EN
-              </a>
+              {(['fr', 'ar', 'en'] as const).map(code => (
+                <button
+                  key={code}
+                  type="button"
+                  onClick={() => setLang(code)}
+                  aria-current={lang === code ? 'true' : undefined}
+                  className={
+                    lang === code
+                      ? "px-3 py-1 rounded-full bg-orange text-black text-[12px] tracking-widest uppercase font-bold"
+                      : "px-3 py-1 rounded-full text-[12px] tracking-widest uppercase text-white/85 hover:text-orange hover:bg-white/5 transition-colors"
+                  }
+                >
+                  {code.toUpperCase()}
+                </button>
+              ))}
             </div>
           </div>
-          <Link
-            href="/inscription"
-            onClick={() => setOpen(false)}
-            className="mx-6 my-4 bg-orange text-black font-condensed font-bold text-[13px] tracking-[0.2em] uppercase py-3 text-center hover:bg-white transition-colors"
-          >
-            Inscrivez Vous
-          </Link>
         </div>
       )}
     </nav>

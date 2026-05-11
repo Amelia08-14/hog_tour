@@ -1,18 +1,19 @@
 // src/components/Footer.tsx
 import Link from 'next/link'
 import Image from 'next/image'
+import type { Lang } from '@/i18n/shared'
+import { t } from '@/i18n/messages'
 
-const ITEMS = ['HOG TOUR 2026','ALGIERS CHAPTER ALGERIA','PREMIÈRE FOIS EN ALGÉRIE','29 OCT — 1ER NOV','HARLEY-DAVIDSON','ALGERIA BIKE WEEK']
-
-export default function Footer() {
+export default function Footer({ lang }: { lang: Lang }) {
+  const items = (t(lang, 'footer.ticker') as string[]) || []
   return (
     <footer className="bg-bg2 border-t border-orange/10 overflow-hidden">
 
       {/* Ticker géant */}
       <div className="overflow-hidden py-5 border-b border-orange/10">
         <div className="flex whitespace-nowrap ticker-track">
-          {[...ITEMS, ...ITEMS].map((item, i) => (
-            <span key={i} className="font-display text-orange/15 px-8 inline-block tracking-[0.25em]"
+          {[...items, ...items].map((item, i) => (
+            <span key={i} className={`font-display text-orange/15 px-8 inline-block ${lang === 'ar' ? 'tracking-normal' : 'tracking-[0.25em]'}`}
               style={{ fontSize: 'clamp(40px, 7vw, 90px)' }}>
               {i > 0 && (
                 <span className="inline-flex items-center mr-8 opacity-[0.12] mix-blend-screen">
@@ -64,11 +65,11 @@ export default function Footer() {
 
       {/* Copyright */}
       <div className="px-6 md:px-10 py-4 text-center text-muted2 text-[12px]">
-        H.O.G ALGIERS CHAPTER ALGERIA © Développé par{' '}
+        H.O.G ALGIERS CHAPTER ALGERIA © {t(lang, 'footer.developedBy')}{' '}
         <a href="https://linkedin.com/in/amel-benelhadj" className="text-orange hover:text-white transition-colors duration-200 font-medium">
           Amélia Benelhadj
         </a>{' '}
-        2026. Tous Droits Réservés
+        2026. {t(lang, 'footer.rights')}
       </div>
     </footer>
   )

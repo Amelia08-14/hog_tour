@@ -529,9 +529,12 @@ function createApp() {
       const callbackUrl = String(process.env.YASSIR_CALLBACK_URL || '').trim() || undefined
       const successRedirectUrl = String(process.env.YASSIR_SUCCESS_REDIRECT_URL || '').trim() || undefined
       const failRedirectUrl = String(process.env.YASSIR_FAIL_REDIRECT_URL || '').trim() || undefined
+      const countryIso2 = String(row.pays_iso2 || '').trim()
+      if (!countryIso2) return res.status(400).json({ error: 'missing_fields' })
 
       const intent = await createPaymentIntent({
         customerId,
+        country: countryIso2,
         amountCents: Number(row.amount_cents),
         currency: String(row.currency),
         merchantTransactionId: String(row.payment_id),
