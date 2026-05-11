@@ -25,9 +25,16 @@ async function yassirRequest(method, path, { query, body } = {}) {
     }
   }
 
+  const platform = String(process.env.YASSIR_PLATFORM || 'API').trim().toUpperCase() || 'API'
+  const sdkVersion = String(process.env.YASSIR_SDK_VERSION || '').trim()
+
   const headers = {
     accept: 'application/json',
     authorization: getAuthHeader(),
+    'x-platform': platform,
+  }
+  if (platform !== 'API' && sdkVersion) {
+    headers['x-sdk-version'] = sdkVersion
   }
   let payload
   if (body !== undefined) {
