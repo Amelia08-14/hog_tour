@@ -7,6 +7,12 @@ function bool(v) {
   return s === '1' || s === 'true' || s === 'yes'
 }
 
+function boolOr(v, fallback) {
+  const s = String(v || '').trim()
+  if (!s) return fallback
+  return bool(s)
+}
+
 async function getTransporter() {
   if (transporterPromise) return transporterPromise
 
@@ -16,6 +22,8 @@ async function getTransporter() {
     const secure = bool(process.env.SMTP_SECURE)
     const user = String(process.env.SMTP_USER || '')
     const pass = String(process.env.SMTP_PASS || '')
+    const servername = String(process.env.SMTP_TLS_SERVERNAME || '').trim()
+    const rejectUnauthorized = boolOr(process.env.SMTP_TLS_REJECT_UNAUTHORIZED, true)
 
     if (!host || !user || !pass) throw new Error('SMTP is not configured (SMTP_HOST/SMTP_USER/SMTP_PASS)')
 
@@ -24,6 +32,7 @@ async function getTransporter() {
       port,
       secure,
       auth: { user, pass },
+      tls: servername || rejectUnauthorized !== true ? { ...(servername ? { servername } : {}), rejectUnauthorized } : undefined,
     })
   })().catch((e) => {
     transporterPromise = undefined
