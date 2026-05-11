@@ -138,6 +138,8 @@ async function createPaymentIntent({ customerId, country, amountCents, currency,
   const body = {
     customerId,
     countryCode,
+    country: countryCode,
+    country_code: countryCode,
     amount: Number(amountCents),
     currency,
     merchantTransactionId,
@@ -146,7 +148,7 @@ async function createPaymentIntent({ customerId, country, amountCents, currency,
     successRedirectUrl,
     failRedirectUrl,
   }
-  return yassirRequest('POST', `/api/v1/payments/intents`, { body })
+  return yassirRequest('POST', `/api/v1/payments/intents`, { query: { countryCode }, body })
 }
 
 async function proceedIntent({ intentId, paymentMethodCode, paymentMethodId, msisdn, otp }) {

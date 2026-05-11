@@ -7,6 +7,7 @@ import { t } from '@/i18n/messages'
 export default function Hero({ lang }: { lang: Lang }) {
   const titleLines = t(lang, 'hero.titleLines') as string[]
   const stats = t(lang, 'hero.stats') as Array<{ v: string; l: string }>
+  const isAr = lang === 'ar'
   return (
     <section className="hero-future relative w-full min-h-screen flex flex-col justify-end overflow-hidden">
 
@@ -40,7 +41,10 @@ export default function Hero({ lang }: { lang: Lang }) {
       </svg>
 
       {/* ── Badge HOG top-right ── */}
-      <div className="absolute top-[76px] right-5 sm:right-8 md:top-[92px] md:right-10 hero-tour-logo" style={{ zIndex: 10 }}>
+      <div
+        className={`absolute top-[76px] ${isAr ? 'left-5 sm:left-8 md:left-10' : 'right-5 sm:right-8 md:right-10'} md:top-[92px] hero-tour-logo`}
+        style={{ zIndex: 10 }}
+      >
         <div className="hero-logo-wrap">
           <Image
             src="/images/logo-hogtour.png"
@@ -54,12 +58,15 @@ export default function Hero({ lang }: { lang: Lang }) {
       </div>
 
       {/* ── Contenu principal ── */}
-      <div className="relative px-6 md:px-12 pb-6 max-w-4xl" style={{ zIndex: 5 }}>
+      <div className={`relative px-6 md:px-12 pb-6 max-w-4xl ${isAr ? 'text-right' : ''}`} style={{ zIndex: 5 }}>
 
         {/* Eyebrow */}
         <div className="au1 hero-eyebrow inline-flex items-center gap-2.5 mb-5">
           <span className="block w-5 h-px bg-orange flex-shrink-0"/>
-          <span className={`text-orange text-[11px] ${lang === 'ar' ? '' : 'uppercase'}`} style={{ letterSpacing: lang === 'ar' ? '0px' : '0.4em', fontFamily: 'Barlow, sans-serif' }}>
+          <span
+            className={`text-orange text-[11px] ${isAr ? '' : 'uppercase'}`}
+            style={{ letterSpacing: isAr ? '0px' : '0.4em', fontFamily: isAr ? undefined : 'Barlow, sans-serif' }}
+          >
             {t(lang, 'hero.eyebrow')}
           </span>
         </div>
@@ -109,7 +116,14 @@ export default function Hero({ lang }: { lang: Lang }) {
 
       {/* ── Scroll indicator ── */}
       <div className="au6 hero-scroll-indicator absolute hidden md:flex flex-col items-center gap-2 text-muted2"
-        style={{ bottom: '80px', right: '52px', zIndex: 6, fontSize: '8.5px', letterSpacing: '0.25em', textTransform: 'uppercase' }}>
+        style={{
+          bottom: '80px',
+          ...(isAr ? { left: '52px' } : { right: '52px' }),
+          zIndex: 6,
+          fontSize: '8.5px',
+          letterSpacing: isAr ? '0px' : '0.25em',
+          textTransform: isAr ? 'none' : 'uppercase',
+        }}>
         <div className="w-px h-11 scroll-pulse"
           style={{ background: 'linear-gradient(to bottom, #FF6B00, transparent)' }}/>
         <span className="hero-scroll-label">{t(lang, 'hero.scroll')}</span>
