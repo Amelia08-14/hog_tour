@@ -64,13 +64,24 @@ async function ensureCustomer({ phoneE164, email, firstName, lastName }) {
   const phone = normalizePhoneE164(phoneE164)
   if (!phone) throw new Error('phoneE164 is required')
 
+  const isNotFound = (e) => {
+    const status = e && e.status
+    const body = e && e.body
+    const msg =
+      (body && typeof body === 'object' && body.message ? String(body.message) : '') ||
+      (e && e.message ? String(e.message) : '')
+    if (status === 404) return true
+    if (status === 400 && /not found/i.test(msg)) return true
+    return false
+  }
+
   try {
     const found = await yassirRequest('GET', `/api/v1/customers/search/${encodeURIComponent(phone)}`)
     if (found && found.id) return found
     if (found && found.customer && found.customer.id) return found.customer
     return found
   } catch (e) {
-    if (e && e.status === 404) {
+    if (isNotFound(e)) {
       const created = await yassirRequest('POST', `/api/v1/customers`, {
         body: {
           phone,
