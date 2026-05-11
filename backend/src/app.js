@@ -590,7 +590,14 @@ function createApp() {
         yassir: { intent, proceed },
       })
     } catch (e) {
-      return res.status(500).json({ error: 'server_error', message: e && e.message ? String(e.message) : undefined })
+      const debug = isTrue(process.env.YASSIR_DEBUG)
+      if (debug) console.error('yassir start failed', e)
+      else console.error('yassir start failed', e && e.message ? String(e.message) : e)
+      return res.status(500).json({
+        error: 'server_error',
+        message: e && e.message ? String(e.message) : undefined,
+        details: debug ? (e && e.body ? e.body : null) : undefined,
+      })
     }
   })
 
@@ -647,7 +654,14 @@ function createApp() {
 
       return res.json({ ok: true, payment: { status: finalStatus }, badge, yassir: chk })
     } catch (e) {
-      return res.status(500).json({ error: 'server_error', message: e && e.message ? String(e.message) : undefined })
+      const debug = isTrue(process.env.YASSIR_DEBUG)
+      if (debug) console.error('yassir check failed', e)
+      else console.error('yassir check failed', e && e.message ? String(e.message) : e)
+      return res.status(500).json({
+        error: 'server_error',
+        message: e && e.message ? String(e.message) : undefined,
+        details: debug ? (e && e.body ? e.body : null) : undefined,
+      })
     }
   })
 
