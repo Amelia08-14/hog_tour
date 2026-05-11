@@ -60,6 +60,57 @@ function normalizeYassirStatus(v) {
   return null
 }
 
+function callingCodeFromIso2(iso2) {
+  const k = String(iso2 || '').trim().toUpperCase()
+  const map = {
+    DZ: '213',
+    FR: '33',
+    BE: '32',
+    CH: '41',
+    DE: '49',
+    ES: '34',
+    IT: '39',
+    GB: '44',
+    UK: '44',
+    US: '1',
+    CA: '1',
+    MA: '212',
+    TN: '216',
+  }
+  return map[k] || null
+}
+
+function toE164FromRegistration(iso2, phoneNumber) {
+  const raw = String(phoneNumber || '').trim()
+  if (!raw) return ''
+  if (raw.startsWith('+')) return raw.replace(/\s+/g, '')
+  const digits = raw.replace(/[^\d]/g, '')
+  if (!digits) return ''
+  const cc = callingCodeFromIso2(iso2)
+  if (!cc) return ''
+  const national = digits.replace(/^0+/, '')
+  return `+${cc}${national}`
+}
+
+async function ensureBadgeForRegistration(db, registrationId) {
+  const existing = await db.get(`SELECT token, issued_at FROM badges WHERE registration_id = ?`, [registrationId])
+  if (existing && existing.token) return existing
+  const badgeId = require('uuid').v4()
+  const token = newToken()
+  const issuedAt = nowIso()
+  try {
+    await db.run(
+      `INSERT INTO badges (id, registration_id, token, issued_at) VALUES (?, ?, ?, ?);`,
+      [badgeId, registrationId, token, issuedAt],
+    )
+    return { token, issued_at: issuedAt }
+  } catch {
+    const again = await db.get(`SELECT token, issued_at FROM badges WHERE registration_id = ?`, [registrationId])
+    if (again && again.token) return again
+    throw new Error('badge_issue_failed')
+  }
+}
+
 function requireApiKey(req, res, next) {
   const expected = process.env.PAYMENT_API_KEY
   if (!expected) return res.status(500).json({ error: 'PAYMENT_API_KEY is not configured' })
@@ -158,11 +209,17 @@ function createApp() {
       const derivedPaymentMode = rz === 'Algérie' ? 'on_site' : 'online_yassir'
       const currency = String(process.env.PAYMENT_CURRENCY || 'EUR').trim().toUpperCase() || 'EUR'
       const amountCents = derivedPaymentMode === 'online_yassir' ? parsePriceToCents(body.hebergement) : null
+      const phoneE164 = body.phoneE164 ? String(body.phoneE164).trim() : ''
+      const normalizedPhoneE164 = phoneE164 && /^\+\d{6,20}$/.test(phoneE164.replace(/\s+/g, '')) ? phoneE164.replace(/\s+/g, '') : ''
+      if (derivedPaymentMode === 'online_yassir' && !normalizedPhoneE164) {
+        return res.status(400).json({ error: 'phone_missing' })
+      }
 
       const registrationId = require('uuid').v4()
       const paymentId = require('uuid').v4()
-      const badgeId = require('uuid').v4()
-      const token = newToken()
+      const issueBadgeNow = derivedPaymentMode !== 'online_yassir'
+      const badgeId = issueBadgeNow ? require('uuid').v4() : null
+      const token = issueBadgeNow ? newToken() : null
 
       const createdAt = nowIso()
 
@@ -186,7 +243,7 @@ function createApp() {
           `INSERT INTO registrations (
             id, created_at, updated_at,
             prenom, nom, sexe, adresse, ville,
-            pays_iso2, phone_country_iso2, phone_number,
+            pays_iso2, phone_country_iso2, phone_number, phone_e164,
             email, nationalite, nationalite_autre,
             residence_zone,
             profil, profil_groupe,
@@ -195,7 +252,7 @@ function createApp() {
           ) VALUES (
             ?, ?, ?,
             ?, ?, ?, ?, ?,
-            ?, ?, ?,
+            ?, ?, ?, ?,
             ?, ?, ?,
             ?,
             ?, ?,
@@ -214,6 +271,7 @@ function createApp() {
             String(body.paysIso2).trim().toUpperCase(),
             String(body.phoneCountryIso2).trim().toUpperCase(),
             String(body.phoneNumber).trim(),
+            normalizedPhoneE164 || null,
             String(body.email).trim(),
             String(body.nationalite).trim(),
             body.nationaliteAutre ? String(body.nationaliteAutre).trim() : null,
@@ -246,10 +304,12 @@ function createApp() {
           ],
         )
 
-        await db.run(
-          `INSERT INTO badges (id, registration_id, token, issued_at) VALUES (?, ?, ?, ?);`,
-          [badgeId, registrationId, token, createdAt],
-        )
+        if (issueBadgeNow) {
+          await db.run(
+            `INSERT INTO badges (id, registration_id, token, issued_at) VALUES (?, ?, ?, ?);`,
+            [badgeId, registrationId, token, createdAt],
+          )
+        }
           for (const f of storedFiles) {
             await db.run(
               `INSERT INTO registration_files (
@@ -268,8 +328,11 @@ function createApp() {
       }
 
       const baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${Number(process.env.PORT) || 4000}`
-      const sig = signToken(token)
-      const badgeUrl = `${baseUrl.replace(/\/$/, '')}/v1/badge?token=${encodeURIComponent(token)}&sig=${encodeURIComponent(sig)}`
+      const paymentSig = signToken(paymentId)
+      const paymentUrl = `${baseUrl.replace(/\/$/, '')}/paiement?paymentId=${encodeURIComponent(paymentId)}&sig=${encodeURIComponent(paymentSig)}`
+      const badgeUrl = issueBadgeNow
+        ? `${baseUrl.replace(/\/$/, '')}/v1/badge?token=${encodeURIComponent(token)}&sig=${encodeURIComponent(signToken(token))}`
+        : null
 
       const mailDisabled = ['1', 'true', 'yes'].includes(String(process.env.MAIL_DISABLED || '').toLowerCase().trim())
       const contactEmail = String(process.env.MAIL_TO || process.env.MAIL_FROM || 'contact@hogalgierschapteralgeria.com').trim()
@@ -309,10 +372,14 @@ function createApp() {
             replyTo: contactEmail,
             text:
               `Bonjour ${userFullName},\n\n` +
-              `Votre inscription au H.O.G Tour 2026 a bien été enregistrée.\n\n` +
-              `Votre badge : ${badgeUrl}\n` +
-              `Mode de paiement : ${derivedPaymentMode}\n` +
-              `Référence : ${registrationId}\n\n` +
+              (derivedPaymentMode === 'online_yassir'
+                ? `Votre inscription est en attente de paiement pour être validée.\n\n` +
+                  `Paiement en ligne (carte) : ${paymentUrl}\n` +
+                  `Référence : ${registrationId}\n\n`
+                : `Votre inscription au H.O.G Tour 2026 a bien été enregistrée.\n\n` +
+                  `Votre badge : ${badgeUrl}\n` +
+                  `Mode de paiement : ${derivedPaymentMode}\n` +
+                  `Référence : ${registrationId}\n\n`) +
               `Pour toute question, vous pouvez répondre à cet email.\n`,
           })
           userMailSent = true
@@ -323,7 +390,7 @@ function createApp() {
 
       return res.status(201).json({
         id: registrationId,
-        badge: { url: badgeUrl },
+        badge: badgeUrl ? { url: badgeUrl } : null,
         mail: { sent: userMailSent },
         files: { count: storedFiles.length },
         payment: {
@@ -331,6 +398,7 @@ function createApp() {
           status: derivedPaymentMode === 'online_yassir' ? 'pending' : 'unpaid',
           amountCents,
           currency: amountCents != null ? currency : null,
+          url: derivedPaymentMode === 'online_yassir' ? paymentUrl : null,
         },
       })
     } catch (e) {
@@ -368,30 +436,50 @@ function createApp() {
     try {
       const body = req.body || {}
       const token = body.token ? String(body.token) : ''
+      const paymentIdParam = body.paymentId ? String(body.paymentId) : ''
       const sig = body.sig ? String(body.sig) : ''
       const msisdn = body.msisdn ? String(body.msisdn).trim() : ''
       const otp = body.otp ? String(body.otp).trim() : ''
       const paymentMethodCode = body.paymentMethodCode ? String(body.paymentMethodCode).trim() : ''
       const paymentMethodPreference = body.paymentMethodPreference ? String(body.paymentMethodPreference).trim().toLowerCase() : ''
-      if (!token || !sig) return res.status(400).json({ error: 'missing_params' })
-      if (!safeEqual(sig, signToken(token))) return res.status(401).json({ error: 'invalid_signature' })
+      if ((!token && !paymentIdParam) || !sig) return res.status(400).json({ error: 'missing_params' })
+      if (token) {
+        if (!safeEqual(sig, signToken(token))) return res.status(401).json({ error: 'invalid_signature' })
+      } else {
+        if (!safeEqual(sig, signToken(paymentIdParam))) return res.status(401).json({ error: 'invalid_signature' })
+      }
 
       const db = await getDb()
-      const row = await db.get(
-        `SELECT r.*, p.id as payment_id, p.status as payment_status, p.amount_cents, p.currency, p.reference
-         FROM badges b
-         JOIN registrations r ON r.id = b.registration_id
-         JOIN payments p ON p.registration_id = r.id
-         WHERE b.token = ?`,
-        [token],
-      )
+      const row = paymentIdParam
+        ? await db.get(
+            `SELECT r.*, p.id as payment_id, p.status as payment_status, p.amount_cents, p.currency, p.reference
+             FROM payments p
+             JOIN registrations r ON r.id = p.registration_id
+             WHERE p.id = ?`,
+            [paymentIdParam],
+          )
+        : await db.get(
+            `SELECT r.*, p.id as payment_id, p.status as payment_status, p.amount_cents, p.currency, p.reference
+             FROM badges b
+             JOIN registrations r ON r.id = b.registration_id
+             JOIN payments p ON p.registration_id = r.id
+             WHERE b.token = ?`,
+            [token],
+          )
       if (!row) return res.status(404).json({ error: 'not_found' })
       if (String(row.paiement_mode || '') !== 'online_yassir') return res.status(400).json({ error: 'not_online_payment' })
       if (!row.amount_cents || !row.currency) return res.status(400).json({ error: 'payment_amount_missing' })
       if (String(row.payment_status || '') === 'paid') return res.status(409).json({ error: 'already_paid' })
 
+      const phoneE164 =
+        (msisdn && msisdn.trim()) ||
+        String(row.phone_e164 || '').trim() ||
+        toE164FromRegistration(String(row.phone_country_iso2 || ''), String(row.phone_number || '')) ||
+        ''
+      if (!phoneE164) return res.status(400).json({ error: 'phone_missing' })
+
       const customer = await ensureCustomer({
-        phoneE164: msisdn,
+        phoneE164,
         email: String(row.email || ''),
         firstName: String(row.prenom || ''),
         lastName: String(row.nom || ''),
@@ -486,10 +574,19 @@ function createApp() {
         [mappedStatus, paymentMethodPreference === 'card' ? 'yassir_card' : 'yassir', String(intentId), updatedAt, 'yassir_api', String(row.payment_id)],
       )
 
+      let badge = null
+      if (mappedStatus === 'paid') {
+        const b = await ensureBadgeForRegistration(db, String(row.id))
+        const baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${Number(process.env.PORT) || 4000}`
+        const badgeUrl = `${baseUrl.replace(/\/$/, '')}/v1/badge?token=${encodeURIComponent(String(b.token))}&sig=${encodeURIComponent(signToken(String(b.token)))}`
+        badge = { url: badgeUrl }
+      }
+
       return res.json({
         ok: true,
         payment: { status: mappedStatus, reference: String(intentId) },
         redirectUrl: redirectUrl || null,
+        badge,
         yassir: { intent, proceed },
       })
     } catch (e) {
@@ -500,21 +597,33 @@ function createApp() {
   app.get('/v1/payments/yassir/check', async (req, res) => {
     try {
       const token = typeof req.query.token === 'string' ? req.query.token : ''
+      const paymentIdParam = typeof req.query.paymentId === 'string' ? req.query.paymentId : ''
       const sig = typeof req.query.sig === 'string' ? req.query.sig : ''
-      if (!token || !sig) return res.status(400).json({ error: 'missing_params' })
-      if (!safeEqual(sig, signToken(token))) return res.status(401).json({ error: 'invalid_signature' })
+      if ((!token && !paymentIdParam) || !sig) return res.status(400).json({ error: 'missing_params' })
+      if (token) {
+        if (!safeEqual(sig, signToken(token))) return res.status(401).json({ error: 'invalid_signature' })
+      } else {
+        if (!safeEqual(sig, signToken(paymentIdParam))) return res.status(401).json({ error: 'invalid_signature' })
+      }
 
       const db = await getDb()
-      const row = await db.get(
-        `SELECT p.id as payment_id, p.status as payment_status, p.reference
-         FROM badges b
-         JOIN payments p ON p.registration_id = b.registration_id
-         WHERE b.token = ?`,
-        [token],
-      )
+      const row = paymentIdParam
+        ? await db.get(
+            `SELECT p.id as payment_id, p.registration_id as registration_id, p.status as payment_status, p.reference
+             FROM payments p
+             WHERE p.id = ?`,
+            [paymentIdParam],
+          )
+        : await db.get(
+            `SELECT p.id as payment_id, p.registration_id as registration_id, p.status as payment_status, p.reference
+             FROM badges b
+             JOIN payments p ON p.registration_id = b.registration_id
+             WHERE b.token = ?`,
+            [token],
+          )
       if (!row) return res.status(404).json({ error: 'not_found' })
       const intentId = String(row.reference || '').trim()
-      if (!intentId) return res.json({ ok: true, payment: { status: String(row.payment_status || 'unpaid') } })
+      if (!intentId) return res.json({ ok: true, payment: { status: String(row.payment_status || 'unpaid') }, badge: null })
 
       const chk = await checkIntent({ intentId })
       const rawStatus = firstString(chk, ['status', 'paymentStatus', 'payment_status']) || firstString(chk && chk.intent, ['status'])
@@ -527,7 +636,16 @@ function createApp() {
         )
       }
 
-      return res.json({ ok: true, payment: { status: mappedStatus || String(row.payment_status || '') }, yassir: chk })
+      let badge = null
+      const finalStatus = mappedStatus || String(row.payment_status || '')
+      if (finalStatus === 'paid') {
+        const b = await ensureBadgeForRegistration(db, String(row.registration_id))
+        const baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${Number(process.env.PORT) || 4000}`
+        const badgeUrl = `${baseUrl.replace(/\/$/, '')}/v1/badge?token=${encodeURIComponent(String(b.token))}&sig=${encodeURIComponent(signToken(String(b.token)))}`
+        badge = { url: badgeUrl }
+      }
+
+      return res.json({ ok: true, payment: { status: finalStatus }, badge, yassir: chk })
     } catch (e) {
       return res.status(500).json({ error: 'server_error', message: e && e.message ? String(e.message) : undefined })
     }

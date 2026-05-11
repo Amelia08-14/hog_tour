@@ -116,6 +116,7 @@ async function initDb() {
         pays_iso2 CHAR(2) NOT NULL,
         phone_country_iso2 CHAR(2) NOT NULL,
         phone_number VARCHAR(64) NOT NULL,
+        phone_e164 VARCHAR(32),
         email VARCHAR(190) NOT NULL,
         nationalite VARCHAR(80) NOT NULL,
         nationalite_autre VARCHAR(120),
@@ -192,6 +193,7 @@ async function initDb() {
     }
     await addCol('passport_num', 'VARCHAR(120) NULL')
     await addCol('residence_zone', 'VARCHAR(32) NULL')
+    await addCol('phone_e164', 'VARCHAR(32) NULL')
 
     try {
       await db.exec(`CREATE UNIQUE INDEX ux_registrations_passport_num ON registrations(passport_num);`)
@@ -215,6 +217,7 @@ async function initDb() {
         pays_iso2 TEXT NOT NULL,
         phone_country_iso2 TEXT NOT NULL,
         phone_number TEXT NOT NULL,
+        phone_e164 TEXT,
         email TEXT NOT NULL,
         nationalite TEXT NOT NULL,
         nationalite_autre TEXT,
@@ -272,6 +275,8 @@ async function initDb() {
   if (!hasResidenceZone) await db.exec(`ALTER TABLE registrations ADD COLUMN residence_zone TEXT;`)
   const hasPassport = cols.some(c => c.name === 'passport_num')
   if (!hasPassport) await db.exec(`ALTER TABLE registrations ADD COLUMN passport_num TEXT;`)
+  const hasPhoneE164 = cols.some(c => c.name === 'phone_e164')
+  if (!hasPhoneE164) await db.exec(`ALTER TABLE registrations ADD COLUMN phone_e164 TEXT;`)
 }
 
 async function withTransaction(fn) {

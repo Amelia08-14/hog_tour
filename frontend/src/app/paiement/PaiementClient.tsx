@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 export default function PaiementClient() {
   const sp = useSearchParams()
   const token = sp.get('token') || ''
+  const paymentId = sp.get('paymentId') || ''
   const sig = sp.get('sig') || ''
 
   const [loading, setLoading] = useState(false)
@@ -28,7 +29,7 @@ export default function PaiementClient() {
     setResult(null)
     setChecked(null)
 
-    if (!token || !sig) {
+    if ((!token && !paymentId) || !sig) {
       setError("Lien de paiement invalide.")
       return
     }
@@ -39,7 +40,8 @@ export default function PaiementClient() {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          token,
+          token: token || undefined,
+          paymentId: paymentId || undefined,
           sig,
           paymentMethodPreference: 'card',
         }),
@@ -63,7 +65,10 @@ export default function PaiementClient() {
     setError(null)
     setLoading(true)
     try {
-      const url = apiUrl(`/v1/payments/yassir/check?token=${encodeURIComponent(token)}&sig=${encodeURIComponent(sig)}`)
+      const qs = token
+        ? `token=${encodeURIComponent(token)}&sig=${encodeURIComponent(sig)}`
+        : `paymentId=${encodeURIComponent(paymentId)}&sig=${encodeURIComponent(sig)}`
+      const url = apiUrl(`/v1/payments/yassir/check?${qs}`)
       const res = await fetch(url)
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
@@ -120,9 +125,16 @@ export default function PaiementClient() {
                 Vérifier le statut
               </button>
               {checked && (
-                <span className="text-muted text-[13px]">
-                  Statut actuel: {String(checked?.payment?.status || '')}
-                </span>
+                <>
+                  <span className="text-muted text-[13px]">
+                    Statut actuel: {String(checked?.payment?.status || '')}
+                  </span>
+                  {typeof checked?.badge?.url === 'string' && checked.badge.url && (
+                    <a className="text-orange underline text-[13px]" href={String(checked.badge.url)}>
+                      Ouvrir le badge
+                    </a>
+                  )}
+                </>
               )}
             </div>
           </div>

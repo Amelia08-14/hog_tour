@@ -110,6 +110,17 @@ export default function InscriptionPage() {
       permisNum: String(fd.get('permis') || '').trim(),
       immatriculation: String(fd.get('immat') || '').trim(),
       passportNum: String(fd.get('passport') || '').trim(),
+      phoneE164: (() => {
+          try {
+            const cc = getCountryCallingCode(phoneCountry as any)
+            const digits = String(fd.get('phoneNumber') || '').replace(/[^\d]/g, '')
+            const national = digits.replace(/^0+/, '')
+            if (!cc || !national) return ''
+            return `+${cc}${national}`
+          } catch {
+            return ''
+          }
+        })(),
     }
 
     const requiredText = [
@@ -145,6 +156,7 @@ export default function InscriptionPage() {
       out.set('paysIso2', payload.paysIso2)
       out.set('phoneCountryIso2', payload.phoneCountryIso2)
       out.set('phoneNumber', payload.phoneNumber)
+      if (payload.phoneE164) out.set('phoneE164', payload.phoneE164)
       out.set('email', payload.email)
       out.set('nationalite', payload.nationalite)
       if (payload.nationaliteAutre) out.set('nationaliteAutre', payload.nationaliteAutre)
@@ -168,7 +180,22 @@ export default function InscriptionPage() {
 
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setError("Une erreur est survenue. Merci de réessayer.")
+        const err = String((data as any)?.error || '')
+        if (res.status === 409 && err === 'duplicate_passport') {
+          setError("Ce numéro de passeport est déjà utilisé pour une inscription. Merci de vérifier et réessayer.")
+        } else if (res.status === 400 && err === 'missing_fields') {
+          setError('Veuillez remplir tous les champs obligatoires.')
+        } else if (res.status === 400 && err === 'phone_missing') {
+          setError("Numéro de téléphone invalide. Merci de vérifier l’indicatif et le numéro.")
+        } else {
+          setError("Une erreur est survenue. Merci de réessayer.")
+        }
+        return
+      }
+
+      const paymentUrl = typeof (data as any)?.payment?.url === 'string' ? String((data as any).payment.url) : ''
+      if (paymentUrl) {
+        window.location.href = paymentUrl
         return
       }
 
