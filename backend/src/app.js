@@ -8,6 +8,7 @@ const QRCode = require('qrcode')
 const { sendMail } = require('./mailer')
 const { writeRegistrationFiles, deleteStoredFiles, resolveStoragePath } = require('./uploads')
 const { ensureCustomer, listPaymentMethods, createPaymentIntent, proceedIntent, checkIntent } = require('./yassir')
+const { iso2ToIso3 } = require('./iso3166')
 
 const multer = (() => {
   try { return require('multer') } catch { return null }
@@ -531,6 +532,7 @@ function createApp() {
       const failRedirectUrl = String(process.env.YASSIR_FAIL_REDIRECT_URL || '').trim() || undefined
       const countryIso2 = String(row.pays_iso2 || '').trim()
       if (!countryIso2) return res.status(400).json({ error: 'missing_fields' })
+      if (!iso2ToIso3(countryIso2)) return res.status(400).json({ error: 'invalid_country' })
 
       const intent = await createPaymentIntent({
         customerId,

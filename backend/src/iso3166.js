@@ -250,12 +250,19 @@ const ISO2_TO_ISO3 = {
   ZW: 'ZWE',
 }
 
+const ISO3_SET = new Set(Object.values(ISO2_TO_ISO3))
+const ALIASES = {
+  ALG: 'DZA',
+  ALGERIA: 'DZA',
+  ALGERIE: 'DZA',
+}
+
 function iso2ToIso3(v) {
   const k = String(v || '').trim().toUpperCase()
   if (!k) return ''
-  if (k.length === 3) return k
+  if (ALIASES[k]) return ALIASES[k]
+  if (k.length === 3) return ISO3_SET.has(k) ? k : ''
   return ISO2_TO_ISO3[k] || ''
 }
 
 module.exports = { iso2ToIso3 }
-

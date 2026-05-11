@@ -115,6 +115,12 @@
     font-family: var(--font-ar-body), var(--font-body), sans-serif;
     letter-spacing: normal;
   }
+  html[lang="ar"] .uppercase {
+    text-transform: none !important;
+  }
+  html[lang="ar"] [class*="tracking-"] {
+    letter-spacing: normal !important;
+  }
   html[lang="ar"] .font-display {
     font-family: var(--font-ar-display), var(--font-ar-body), sans-serif;
     letter-spacing: normal !important;
@@ -138,6 +144,11 @@
   .section-tag::before {
     content: '';
     @apply block w-6 h-px bg-orange flex-shrink-0;
+  }
+  html[lang="ar"] .section-tag {
+    flex-direction: row-reverse;
+    text-transform: none;
+    letter-spacing: normal;
   }
 }
 

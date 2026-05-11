@@ -12,6 +12,7 @@ export default function Nav({ lang }: { lang: Lang }) {
   const [open,     setOpen]     = useState(false)
   const pathname = usePathname()
   const isHome   = pathname === '/'
+  const isAr = lang === 'ar'
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 80)
@@ -40,13 +41,14 @@ export default function Nav({ lang }: { lang: Lang }) {
       flex items-center justify-between
       px-6 md:px-10 h-[72px]
       transition-all duration-500
+      ${isAr ? 'flex-row-reverse' : ''}
       ${solid
         ? 'bg-bg/95 backdrop-blur-md border-b border-orange/10'
         : 'bg-transparent border-b border-transparent'}
     `}>
 
       {/* Logo */}
-      <Link href="/" className="flex items-center gap-3 flex-shrink-0">
+      <Link href="/" className={`flex items-center gap-3 flex-shrink-0 ${isAr ? 'flex-row-reverse text-right' : ''}`}>
         <div className="w-[48px] h-[48px] rounded-full border border-orange/40 bg-bg/60 backdrop-blur-sm flex items-center justify-center overflow-hidden hover:border-orange hover:shadow-[0_0_16px_rgba(255,107,0,0.2)] transition-all duration-200">
           <Image
             src="/images/hog-logo.png"
@@ -59,7 +61,7 @@ export default function Nav({ lang }: { lang: Lang }) {
         </div>
         <div className="flex flex-col gap-0.5">
           <span className="font-display text-orange text-[17px] tracking-[0.3em] leading-none">H.O.G Algeria</span>
-          <span className="text-muted2 text-[10px] tracking-[0.2em] uppercase">{t(lang, 'nav.chapter')}</span>
+          <span className={`text-muted2 text-[10px] ${isAr ? '' : 'tracking-[0.2em] uppercase'}`}>{t(lang, 'nav.chapter')}</span>
         </div>
       </Link>
 
@@ -79,7 +81,7 @@ export default function Nav({ lang }: { lang: Lang }) {
       </ul>
 
       {/* Right */}
-      <div className="flex items-center gap-4">
+      <div className={`flex items-center gap-4 ${isAr ? 'flex-row-reverse' : ''}`}>
 
         {/* Lang */}
         <div className="hidden lg:flex items-center gap-2 px-2 py-1 rounded-full border border-white/15 bg-bg/40 backdrop-blur-md">
@@ -91,8 +93,8 @@ export default function Nav({ lang }: { lang: Lang }) {
               aria-current={lang === code ? 'true' : undefined}
               className={
                 lang === code
-                  ? "px-2.5 py-1 rounded-full bg-orange text-black text-[11px] tracking-widest uppercase font-bold"
-                  : "px-2.5 py-1 rounded-full text-[11px] tracking-widest uppercase text-white/85 hover:text-orange hover:bg-white/5 transition-colors"
+                  ? `px-2.5 py-1 rounded-full bg-orange text-black text-[11px] font-bold ${isAr ? '' : 'tracking-widest uppercase'}`
+                  : `px-2.5 py-1 rounded-full text-[11px] text-white/85 hover:text-orange hover:bg-white/5 transition-colors ${isAr ? '' : 'tracking-widest uppercase'}`
               }
             >
               {code.toUpperCase()}
@@ -103,7 +105,7 @@ export default function Nav({ lang }: { lang: Lang }) {
         {/* CTA */}
         <Link
           href="/inscription"
-          className="hidden lg:inline-flex bg-orange text-black font-condensed font-bold text-[12px] tracking-[0.22em] uppercase px-5 py-2.5 hover:bg-white hover:-translate-y-0.5 transition-all duration-200 whitespace-nowrap"
+          className={`hidden lg:inline-flex bg-orange text-black font-condensed font-bold text-[12px] px-5 py-2.5 hover:bg-white hover:-translate-y-0.5 transition-all duration-200 whitespace-nowrap ${isAr ? '' : 'tracking-[0.22em] uppercase'}`}
         >
           {t(lang, 'nav.registerCta')}
         </Link>
