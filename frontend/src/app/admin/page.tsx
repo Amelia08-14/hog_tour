@@ -69,6 +69,9 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [q, setQ] = useState('')
+  const [mailInfo, setMailInfo] = useState<any | null>(null)
+  const [mailTestTo, setMailTestTo] = useState('')
+  const [mailTestResult, setMailTestResult] = useState<string | null>(null)
 
   const [items, setItems] = useState<RegistrationRow[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -150,6 +153,39 @@ export default function AdminPage() {
     URL.revokeObjectURL(url)
   }
 
+  async function loadMailInfo() {
+    setMailTestResult(null)
+    try {
+      const res = await fetch(apiUrl('/v1/admin/debug/mail'), { credentials: 'include' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) return
+      setMailInfo(data)
+    } catch {}
+  }
+
+  async function sendTestMail() {
+    setMailTestResult(null)
+    setLoading(true)
+    try {
+      const res = await fetch(apiUrl('/v1/admin/debug/mail/test'), {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ to: mailTestTo.trim() || undefined }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setMailTestResult(`Échec: ${String(data?.message || 'mail_failed')}`)
+        return
+      }
+      setMailTestResult('OK: email envoyé (si SMTP fonctionne).')
+    } catch {
+      setMailTestResult("Échec: impossible de contacter le serveur.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
     let alive = true
     ;(async () => {
@@ -157,10 +193,14 @@ export default function AdminPage() {
       if (!alive) return
       setAuthed(ok)
       setChecking(false)
-      if (ok) loadList()
+      if (ok) {
+        loadList()
+        loadMailInfo()
+      }
     })()
     return () => { alive = false }
   }, [])
+
 
   async function handleLogin(e: FormEvent) {
     e.preventDefault()
@@ -286,6 +326,44 @@ export default function AdminPage() {
           </div>
         ) : (
           <div className="mt-10">
+            <div className="border border-orange/12 bg-bg3 p-6">
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <p className="text-muted text-[11px] tracking-[0.18em] uppercase">Email (diagnostic)</p>
+                <button onClick={loadMailInfo} className="text-orange underline">
+                  Rafraîchir
+                </button>
+              </div>
+              <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="border border-orange/10 p-4">
+                  <p className="text-muted text-[11px] tracking-[0.18em] uppercase">Configuration</p>
+                  <pre className="mt-3 whitespace-pre-wrap break-words text-[12px] text-htext">
+                    {mailInfo ? JSON.stringify(mailInfo, null, 2) : '—'}
+                  </pre>
+                </div>
+                <div className="border border-orange/10 p-4">
+                  <p className="text-muted text-[11px] tracking-[0.18em] uppercase">Test</p>
+                  <div className="mt-3 flex flex-col gap-3">
+                    <input
+                      value={mailTestTo}
+                      onChange={e => setMailTestTo(e.target.value)}
+                      placeholder="Destinataire (optionnel)"
+                      className="bg-bg2 border border-orange/10 text-htext text-[13px] px-4 py-3 outline-none focus:border-orange/30"
+                    />
+                    <button
+                      onClick={sendTestMail}
+                      disabled={loading}
+                      className="bg-orange text-black font-condensed font-bold text-[12px] tracking-[0.2em] uppercase px-6 py-3 hover:bg-white transition-colors disabled:opacity-60"
+                    >
+                      Envoyer test
+                    </button>
+                    {mailTestResult && (
+                      <div className="text-[13px] text-orange">{mailTestResult}</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <p className="text-muted text-[13px] tracking-[0.18em] uppercase">{filtered.length} inscription(s)</p>
               <div className="flex items-center gap-3 flex-wrap">

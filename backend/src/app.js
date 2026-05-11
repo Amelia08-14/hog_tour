@@ -477,6 +477,45 @@ function createApp() {
     return res.json({ ok: true, user: u })
   })
 
+  app.get('/v1/admin/debug/mail', requireAdmin, (req, res) => {
+    return res.json({
+      ok: true,
+      mail: {
+        disabled: ['1', 'true', 'yes'].includes(String(process.env.MAIL_DISABLED || '').toLowerCase().trim()),
+        from: String(process.env.MAIL_FROM || ''),
+        to: String(process.env.MAIL_TO || ''),
+      },
+      smtp: {
+        host: String(process.env.SMTP_HOST || ''),
+        port: Number(process.env.SMTP_PORT || 587),
+        secure: ['1', 'true', 'yes'].includes(String(process.env.SMTP_SECURE || '').toLowerCase().trim()),
+        user: String(process.env.SMTP_USER || ''),
+        tlsServername: String(process.env.SMTP_TLS_SERVERNAME || ''),
+        tlsRejectUnauthorized: !['0', 'false', 'no'].includes(String(process.env.SMTP_TLS_REJECT_UNAUTHORIZED || '').toLowerCase().trim()),
+      },
+    })
+  })
+
+  app.post('/v1/admin/debug/mail/test', requireAdmin, async (req, res) => {
+    try {
+      const body = req.body || {}
+      const to = body.to ? String(body.to).trim() : ''
+      await sendMail({
+        to: to || undefined,
+        subject: `Test email — HOG Tour backend`,
+        text: `Test email envoyé le ${nowIso()}\n`,
+      })
+      return res.json({ ok: true })
+    } catch (e) {
+      return res.status(500).json({
+        ok: false,
+        error: 'mail_failed',
+        message: e && e.message ? String(e.message) : String(e),
+        code: e && e.code ? String(e.code) : undefined,
+      })
+    }
+  })
+
   app.get('/v1/admin/files/:id', requireAdmin, async (req, res) => {
     try {
       const db = await getDb()
