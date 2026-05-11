@@ -3,7 +3,7 @@ const cors = require('cors')
 require('dotenv').config()
 
 const { initDb, getDb, withTransaction } = require('./db')
-const { newToken, signToken, safeEqual } = require('./security')
+const { newToken, signToken, safeEqual, signAdminSession, verifyAdminSession } = require('./security')
 const QRCode = require('qrcode')
 const { sendMail } = require('./mailer')
 
@@ -16,6 +16,42 @@ function requireApiKey(req, res, next) {
   if (!expected) return res.status(500).json({ error: 'PAYMENT_API_KEY is not configured' })
   const got = req.header('x-api-key')
   if (!got || got !== expected) return res.status(401).json({ error: 'unauthorized' })
+  return next()
+}
+
+function getCookie(req, name) {
+  const h = String(req.headers.cookie || '')
+  const parts = h.split(';')
+  for (const part of parts) {
+    const idx = part.indexOf('=')
+    if (idx < 0) continue
+    const k = part.slice(0, idx).trim()
+    if (k !== name) continue
+    return decodeURIComponent(part.slice(idx + 1).trim())
+  }
+  return null
+}
+
+function cookieString(name, value, opts) {
+  const v = encodeURIComponent(String(value || ''))
+  let s = `${name}=${v}`
+  if (opts && opts.maxAgeSeconds != null) s += `; Max-Age=${Number(opts.maxAgeSeconds) || 0}`
+  if (opts && opts.path) s += `; Path=${opts.path}`
+  if (opts && opts.httpOnly) s += `; HttpOnly`
+  if (opts && opts.secure) s += `; Secure`
+  if (opts && opts.sameSite) s += `; SameSite=${opts.sameSite}`
+  return s
+}
+
+function requireAdmin(req, res, next) {
+  const expected = process.env.PAYMENT_API_KEY
+  const got = req.header('x-api-key')
+  if (expected && got && got === expected) return next()
+
+  const session = getCookie(req, 'admin_session')
+  const payload = verifyAdminSession(session)
+  if (!payload) return res.status(401).json({ error: 'unauthorized' })
+  req.admin = payload
   return next()
 }
 
@@ -304,7 +340,7 @@ function createApp() {
     }
   })
 
-  app.get('/v1/qr', requireApiKey, async (req, res) => {
+  app.get('/v1/qr', requireAdmin, async (req, res) => {
     try {
       const token = typeof req.query.token === 'string' ? req.query.token : ''
       const sig = typeof req.query.sig === 'string' ? req.query.sig : ''
@@ -348,14 +384,69 @@ function createApp() {
     }
   })
 
-  app.get('/v1/admin/registrations', requireApiKey, async (req, res) => {
+  app.post('/v1/admin/login', async (req, res) => {
+    try {
+      const configuredUser = String(process.env.ADMIN_USER || '')
+      const configuredPass = String(process.env.ADMIN_PASS || '')
+      if (!configuredUser || !configuredPass) return res.status(500).json({ error: 'ADMIN_USER/ADMIN_PASS is not configured' })
+
+      const body = req.body || {}
+      const username = body.username ? String(body.username) : ''
+      const password = body.password ? String(body.password) : ''
+      if (!username || !password) return res.status(400).json({ error: 'missing_fields' })
+
+      if (!safeEqual(username, configuredUser) || !safeEqual(password, configuredPass)) {
+        return res.status(401).json({ error: 'unauthorized' })
+      }
+
+      const ttlSeconds = 60 * 60 * 24 * 7
+      const session = signAdminSession({ u: configuredUser, exp: Date.now() + ttlSeconds * 1000 })
+      res.setHeader(
+        'set-cookie',
+        cookieString('admin_session', session, {
+          httpOnly: true,
+          sameSite: 'Lax',
+          secure: String(process.env.NODE_ENV || '') === 'production',
+          path: '/',
+          maxAgeSeconds: ttlSeconds,
+        }),
+      )
+      return res.json({ ok: true })
+    } catch (e) {
+      return res.status(500).json({ error: 'server_error' })
+    }
+  })
+
+  app.post('/v1/admin/logout', (req, res) => {
+    res.setHeader(
+      'set-cookie',
+      cookieString('admin_session', '', {
+        httpOnly: true,
+        sameSite: 'Lax',
+        secure: String(process.env.NODE_ENV || '') === 'production',
+        path: '/',
+        maxAgeSeconds: 0,
+      }),
+    )
+    return res.json({ ok: true })
+  })
+
+  app.get('/v1/admin/me', requireAdmin, (req, res) => {
+    const u = req.admin && typeof req.admin.u === 'string' ? req.admin.u : null
+    return res.json({ ok: true, user: u })
+  })
+
+  app.get('/v1/admin/registrations', requireAdmin, async (req, res) => {
     try {
       const db = await getDb()
+      const rawLimit = typeof req.query.limit === 'string' ? Number(req.query.limit) : undefined
+      const limit = Math.max(1, Math.min(5000, Number.isFinite(rawLimit) ? rawLimit : 500))
       const rows = await db.all(
-        `SELECT id, created_at, prenom, nom, email, pays_iso2, phone_country_iso2, phone_number
+        `SELECT id, created_at, prenom, nom, email, pays_iso2, phone_country_iso2, phone_number, residence_zone, paiement_mode
          FROM registrations
          ORDER BY created_at DESC
-         LIMIT 200`,
+         LIMIT ?`,
+        [limit],
       )
       return res.json({ items: rows })
     } catch (e) {
@@ -363,7 +454,7 @@ function createApp() {
     }
   })
 
-  app.get('/v1/admin/registrations/:id', requireApiKey, async (req, res) => {
+  app.get('/v1/admin/registrations/:id', requireAdmin, async (req, res) => {
     try {
       const db = await getDb()
       const r = await db.get(`SELECT * FROM registrations WHERE id = ?`, [req.params.id])
@@ -384,7 +475,7 @@ function createApp() {
     }
   })
 
-  app.post('/v1/admin/qr/resolve', requireApiKey, async (req, res) => {
+  app.post('/v1/admin/qr/resolve', requireAdmin, async (req, res) => {
     try {
       const body = req.body || {}
       let token = body.token ? String(body.token) : ''
@@ -422,7 +513,7 @@ function createApp() {
     }
   })
 
-  app.patch('/v1/admin/registrations/:id/payment', requireApiKey, async (req, res) => {
+  app.patch('/v1/admin/registrations/:id/payment', requireAdmin, async (req, res) => {
     try {
       const body = req.body || {}
       const status = body.status ? String(body.status) : ''
