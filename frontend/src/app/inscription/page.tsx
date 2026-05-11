@@ -20,6 +20,7 @@ export default function InscriptionPage() {
   const [phoneCountry, setPhoneCountry] = useState('DZ')
   const [badgeQrUrl, setBadgeQrUrl] = useState<string | null>(null)
   const [mailSent, setMailSent] = useState<boolean | null>(null)
+  const [payUrl, setPayUrl] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -178,6 +179,20 @@ export default function InscriptionPage() {
         ? rawBadgeUrl.replace(/\/v1\/qr(\?|$)/, '/v1/badge$1')
         : null
       setBadgeQrUrl(normalizedBadgeUrl)
+
+      const payMode = String(data?.payment?.mode ?? '')
+      const payStatus = String(data?.payment?.status ?? '')
+      if (normalizedBadgeUrl && payMode === 'online_yassir' && payStatus !== 'paid') {
+        try {
+          const u = new URL(normalizedBadgeUrl)
+          const token = u.searchParams.get('token') || ''
+          const sig = u.searchParams.get('sig') || ''
+          if (token && sig) setPayUrl(`/paiement?token=${encodeURIComponent(token)}&sig=${encodeURIComponent(sig)}`)
+        } catch {}
+      } else {
+        setPayUrl(null)
+      }
+
       setSent(true)
     } catch {
       setError("Impossible de contacter le serveur. Merci de réessayer.")
@@ -206,6 +221,14 @@ export default function InscriptionPage() {
           <p className="text-muted2 text-[12px] leading-relaxed mb-8 break-all">
             Badge : <a className="text-orange underline" href={badgeQrUrl}>{badgeQrUrl}</a>
           </p>
+        )}
+        {payUrl && (
+          <a
+            href={payUrl}
+            className="mb-3 bg-bg3 border border-orange/20 text-htext font-condensed font-bold text-[12px] tracking-[0.2em] uppercase px-8 py-3 hover:border-orange/40 transition-colors"
+          >
+            Payer en ligne (carte)
+          </a>
         )}
         <a href="/" className="bg-orange text-black font-condensed font-bold text-[13px] tracking-[0.2em] uppercase px-9 py-3.5 hover:bg-white transition-colors">
           Retour à l'accueil

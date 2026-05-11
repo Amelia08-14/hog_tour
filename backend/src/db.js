@@ -192,6 +192,10 @@ async function initDb() {
     }
     await addCol('passport_num', 'VARCHAR(120) NULL')
     await addCol('residence_zone', 'VARCHAR(32) NULL')
+
+    try {
+      await db.exec(`CREATE UNIQUE INDEX ux_registrations_passport_num ON registrations(passport_num);`)
+    } catch {}
     return
   }
 
@@ -259,6 +263,7 @@ async function initDb() {
 
       CREATE INDEX IF NOT EXISTS idx_payments_registration_id ON payments(registration_id);
       CREATE INDEX IF NOT EXISTS idx_badges_token ON badges(token);
+      CREATE UNIQUE INDEX IF NOT EXISTS ux_registrations_passport_num ON registrations(passport_num);
       CREATE INDEX IF NOT EXISTS idx_registration_files_registration_id ON registration_files(registration_id);
   `)
 

@@ -7,6 +7,7 @@ const { newToken, signToken, safeEqual, signAdminSession, verifyAdminSession } =
 const QRCode = require('qrcode')
 const { sendMail } = require('./mailer')
 const { writeRegistrationFiles, deleteStoredFiles, resolveStoragePath } = require('./uploads')
+const { ensureCustomer, listPaymentMethods, createPaymentIntent, proceedIntent, checkIntent } = require('./yassir')
 
 const multer = (() => {
   try { return require('multer') } catch { return null }
@@ -25,6 +26,38 @@ const uploadForRegistration = createUploadMiddleware()
 
 function nowIso() {
   return new Date().toISOString()
+}
+
+function parsePriceToCents(input) {
+  const s = String(input || '')
+  const m = s.match(/(\d+(?:[.,]\d+)?)\s*€?/i)
+  if (!m) return null
+  const n = Number(String(m[1]).replace(',', '.'))
+  if (!Number.isFinite(n) || n <= 0) return null
+  return Math.round(n * 100)
+}
+
+function isTrue(v) {
+  return ['1', 'true', 'yes'].includes(String(v || '').toLowerCase().trim())
+}
+
+function firstString(obj, keys) {
+  for (const k of keys) {
+    const v = obj && obj[k]
+    if (typeof v === 'string' && v.trim()) return v.trim()
+  }
+  return null
+}
+
+function normalizeYassirStatus(v) {
+  const s = String(v || '').toLowerCase().trim()
+  if (!s) return null
+  if (['paid', 'succeeded', 'success', 'completed', 'captured'].includes(s)) return 'paid'
+  if (['pending', 'processing', 'in_progress', 'requires_action', 'initiated'].includes(s)) return 'pending'
+  if (['failed', 'declined', 'error'].includes(s)) return 'cancelled'
+  if (['cancelled', 'canceled', 'expired'].includes(s)) return 'cancelled'
+  if (['refunded'].includes(s)) return 'refunded'
+  return null
 }
 
 function requireApiKey(req, res, next) {
@@ -123,6 +156,8 @@ function createApp() {
       }
 
       const derivedPaymentMode = rz === 'Algérie' ? 'on_site' : 'online_yassir'
+      const currency = String(process.env.PAYMENT_CURRENCY || 'EUR').trim().toUpperCase() || 'EUR'
+      const amountCents = derivedPaymentMode === 'online_yassir' ? parsePriceToCents(body.hebergement) : null
 
       const registrationId = require('uuid').v4()
       const paymentId = require('uuid').v4()
@@ -130,6 +165,13 @@ function createApp() {
       const token = newToken()
 
       const createdAt = nowIso()
+
+      const passportNum = String(body.passportNum).trim()
+      {
+        const db = await getDb()
+        const existing = await db.get(`SELECT id FROM registrations WHERE passport_num = ?`, [passportNum])
+        if (existing && existing.id) return res.status(409).json({ error: 'duplicate_passport' })
+      }
 
       const incomingFiles = Array.isArray(req.files) ? req.files : []
       let storedFiles = []
@@ -183,7 +225,7 @@ function createApp() {
             derivedPaymentMode,
             String(body.permisNum).trim(),
             String(body.immatriculation).trim(),
-            String(body.passportNum).trim(),
+            passportNum,
           ],
         )
 
@@ -191,7 +233,17 @@ function createApp() {
           `INSERT INTO payments (
             id, registration_id, status, amount_cents, currency, method, reference, updated_at, updated_by
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`,
-          [paymentId, registrationId, 'unpaid', null, null, null, null, createdAt, null],
+          [
+            paymentId,
+            registrationId,
+            derivedPaymentMode === 'online_yassir' ? 'pending' : 'unpaid',
+            amountCents,
+            amountCents != null ? currency : null,
+            derivedPaymentMode === 'online_yassir' ? 'yassir' : null,
+            null,
+            createdAt,
+            null,
+          ],
         )
 
         await db.run(
@@ -209,6 +261,9 @@ function createApp() {
         })
       } catch (e) {
         if (storedFiles.length) await deleteStoredFiles(storedFiles.map(f => f.storagePath))
+        if (e && (e.code === 'SQLITE_CONSTRAINT' || e.code === 'ER_DUP_ENTRY')) {
+          return res.status(409).json({ error: 'duplicate_passport' })
+        }
         throw e
       }
 
@@ -271,6 +326,12 @@ function createApp() {
         badge: { url: badgeUrl },
         mail: { sent: userMailSent },
         files: { count: storedFiles.length },
+        payment: {
+          mode: derivedPaymentMode,
+          status: derivedPaymentMode === 'online_yassir' ? 'pending' : 'unpaid',
+          amountCents,
+          currency: amountCents != null ? currency : null,
+        },
       })
     } catch (e) {
       return res.status(500).json({ error: 'server_error' })
@@ -300,6 +361,175 @@ function createApp() {
       return res.json({ ok: true })
     } catch (e) {
       return res.status(500).json({ error: 'server_error' })
+    }
+  })
+
+  app.post('/v1/payments/yassir/start', async (req, res) => {
+    try {
+      const body = req.body || {}
+      const token = body.token ? String(body.token) : ''
+      const sig = body.sig ? String(body.sig) : ''
+      const msisdn = body.msisdn ? String(body.msisdn).trim() : ''
+      const otp = body.otp ? String(body.otp).trim() : ''
+      const paymentMethodCode = body.paymentMethodCode ? String(body.paymentMethodCode).trim() : ''
+      const paymentMethodPreference = body.paymentMethodPreference ? String(body.paymentMethodPreference).trim().toLowerCase() : ''
+      if (!token || !sig) return res.status(400).json({ error: 'missing_params' })
+      if (!safeEqual(sig, signToken(token))) return res.status(401).json({ error: 'invalid_signature' })
+
+      const db = await getDb()
+      const row = await db.get(
+        `SELECT r.*, p.id as payment_id, p.status as payment_status, p.amount_cents, p.currency, p.reference
+         FROM badges b
+         JOIN registrations r ON r.id = b.registration_id
+         JOIN payments p ON p.registration_id = r.id
+         WHERE b.token = ?`,
+        [token],
+      )
+      if (!row) return res.status(404).json({ error: 'not_found' })
+      if (String(row.paiement_mode || '') !== 'online_yassir') return res.status(400).json({ error: 'not_online_payment' })
+      if (!row.amount_cents || !row.currency) return res.status(400).json({ error: 'payment_amount_missing' })
+      if (String(row.payment_status || '') === 'paid') return res.status(409).json({ error: 'already_paid' })
+
+      const customer = await ensureCustomer({
+        phoneE164: msisdn,
+        email: String(row.email || ''),
+        firstName: String(row.prenom || ''),
+        lastName: String(row.nom || ''),
+      })
+      const customerId = firstString(customer, ['id', 'customerId', 'customer_id']) || firstString(customer && customer.customer, ['id'])
+      if (!customerId) return res.status(500).json({ error: 'yassir_customer_failed' })
+
+      let resolvedPaymentMethodId = null
+      let resolvedPaymentMethodCode = paymentMethodCode || null
+      try {
+        const methodsResp = await listPaymentMethods({
+          country: String(row.pays_iso2 || ''),
+          amountCents: Number(row.amount_cents),
+        })
+        const list =
+          (methodsResp && Array.isArray(methodsResp.items) && methodsResp.items) ||
+          (methodsResp && Array.isArray(methodsResp.paymentMethods) && methodsResp.paymentMethods) ||
+          (Array.isArray(methodsResp) ? methodsResp : [])
+        if (Array.isArray(list) && list.length) {
+          const wanted = String(paymentMethodCode || '').toLowerCase()
+          const preferCard = paymentMethodPreference === 'card'
+
+          const matchCode = (m) => String(m && (m.code || m.paymentMethodCode || m.payment_method_code) || '').toLowerCase()
+          const matchName = (m) => String(m && (m.name || m.label || '') || '').toLowerCase()
+          const isCard = (m) => {
+            const c = matchCode(m)
+            const n = matchName(m)
+            return c.includes('card') || c.includes('visa') || c.includes('master') || n.includes('card') || n.includes('visa') || n.includes('master')
+          }
+
+          const found =
+            (wanted ? list.find(m => matchCode(m) === wanted) : null) ||
+            (preferCard ? list.find(isCard) : null) ||
+            list[0]
+          resolvedPaymentMethodId = firstString(found, ['id', 'paymentMethodId', 'payment_method_id'])
+          resolvedPaymentMethodCode =
+            firstString(found, ['code', 'paymentMethodCode', 'payment_method_code']) || resolvedPaymentMethodCode
+        }
+      } catch {}
+
+      const callbackUrl = String(process.env.YASSIR_CALLBACK_URL || '').trim() || undefined
+      const successRedirectUrl = String(process.env.YASSIR_SUCCESS_REDIRECT_URL || '').trim() || undefined
+      const failRedirectUrl = String(process.env.YASSIR_FAIL_REDIRECT_URL || '').trim() || undefined
+
+      const intent = await createPaymentIntent({
+        customerId,
+        amountCents: Number(row.amount_cents),
+        currency: String(row.currency),
+        merchantTransactionId: String(row.payment_id),
+        description: `HOG Tour 2026 — ${String(row.prenom || '')} ${String(row.nom || '')}`.trim(),
+        callbackUrl,
+        successRedirectUrl,
+        failRedirectUrl,
+      })
+      const intentId =
+        firstString(intent, ['id', 'intentId', 'intent_id', 'paymentIntentId', 'payment_intent_id']) ||
+        firstString(intent && intent.intent, ['id', 'intentId', 'intent_id'])
+      if (!intentId) return res.status(500).json({ error: 'yassir_intent_failed' })
+
+      if (paymentMethodPreference !== 'card' && (!msisdn || !otp) && !resolvedPaymentMethodId && !resolvedPaymentMethodCode) {
+        return res.status(400).json({ error: 'missing_fields' })
+      }
+
+      const proceed = await proceedIntent({
+        intentId,
+        paymentMethodCode: resolvedPaymentMethodCode,
+        paymentMethodId: resolvedPaymentMethodId,
+        msisdn,
+        otp,
+      })
+
+      const rawStatus =
+        firstString(proceed, ['status', 'paymentStatus', 'payment_status']) ||
+        firstString(intent, ['status', 'paymentStatus', 'payment_status'])
+      const mappedStatus = normalizeYassirStatus(rawStatus) || 'pending'
+
+      const redirectUrl =
+        firstString(proceed, ['redirectUrl', 'paymentUrl', 'url', 'checkoutUrl', 'redirect_url', 'payment_url']) ||
+        firstString(intent, ['redirectUrl', 'paymentUrl', 'url', 'checkoutUrl', 'redirect_url', 'payment_url']) ||
+        firstString(proceed && proceed.nextAction, ['url', 'redirectUrl', 'paymentUrl']) ||
+        firstString(intent && intent.nextAction, ['url', 'redirectUrl', 'paymentUrl'])
+
+      const updatedAt = nowIso()
+      await db.run(
+        `UPDATE payments
+         SET status = ?,
+             method = ?,
+             reference = ?,
+             updated_at = ?,
+             updated_by = ?
+         WHERE id = ?`,
+        [mappedStatus, paymentMethodPreference === 'card' ? 'yassir_card' : 'yassir', String(intentId), updatedAt, 'yassir_api', String(row.payment_id)],
+      )
+
+      return res.json({
+        ok: true,
+        payment: { status: mappedStatus, reference: String(intentId) },
+        redirectUrl: redirectUrl || null,
+        yassir: { intent, proceed },
+      })
+    } catch (e) {
+      return res.status(500).json({ error: 'server_error', message: e && e.message ? String(e.message) : undefined })
+    }
+  })
+
+  app.get('/v1/payments/yassir/check', async (req, res) => {
+    try {
+      const token = typeof req.query.token === 'string' ? req.query.token : ''
+      const sig = typeof req.query.sig === 'string' ? req.query.sig : ''
+      if (!token || !sig) return res.status(400).json({ error: 'missing_params' })
+      if (!safeEqual(sig, signToken(token))) return res.status(401).json({ error: 'invalid_signature' })
+
+      const db = await getDb()
+      const row = await db.get(
+        `SELECT p.id as payment_id, p.status as payment_status, p.reference
+         FROM badges b
+         JOIN payments p ON p.registration_id = b.registration_id
+         WHERE b.token = ?`,
+        [token],
+      )
+      if (!row) return res.status(404).json({ error: 'not_found' })
+      const intentId = String(row.reference || '').trim()
+      if (!intentId) return res.json({ ok: true, payment: { status: String(row.payment_status || 'unpaid') } })
+
+      const chk = await checkIntent({ intentId })
+      const rawStatus = firstString(chk, ['status', 'paymentStatus', 'payment_status']) || firstString(chk && chk.intent, ['status'])
+      const mappedStatus = normalizeYassirStatus(rawStatus)
+
+      if (mappedStatus && mappedStatus !== String(row.payment_status || '').trim()) {
+        await db.run(
+          `UPDATE payments SET status = ?, updated_at = ?, updated_by = ? WHERE id = ?`,
+          [mappedStatus, nowIso(), 'yassir_api', String(row.payment_id)],
+        )
+      }
+
+      return res.json({ ok: true, payment: { status: mappedStatus || String(row.payment_status || '') }, yassir: chk })
+    } catch (e) {
+      return res.status(500).json({ error: 'server_error', message: e && e.message ? String(e.message) : undefined })
     }
   })
 
@@ -481,14 +711,14 @@ function createApp() {
     return res.json({
       ok: true,
       mail: {
-        disabled: ['1', 'true', 'yes'].includes(String(process.env.MAIL_DISABLED || '').toLowerCase().trim()),
+        disabled: isTrue(process.env.MAIL_DISABLED),
         from: String(process.env.MAIL_FROM || ''),
         to: String(process.env.MAIL_TO || ''),
       },
       smtp: {
         host: String(process.env.SMTP_HOST || ''),
         port: Number(process.env.SMTP_PORT || 587),
-        secure: ['1', 'true', 'yes'].includes(String(process.env.SMTP_SECURE || '').toLowerCase().trim()),
+        secure: isTrue(process.env.SMTP_SECURE),
         user: String(process.env.SMTP_USER || ''),
         tlsServername: String(process.env.SMTP_TLS_SERVERNAME || ''),
         tlsRejectUnauthorized: !['0', 'false', 'no'].includes(String(process.env.SMTP_TLS_REJECT_UNAUTHORIZED || '').toLowerCase().trim()),
