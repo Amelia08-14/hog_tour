@@ -19,6 +19,7 @@ export default function InscriptionPage() {
   const [pays, setPays] = useState('')
   const [phoneCountry, setPhoneCountry] = useState('DZ')
   const [badgeQrUrl, setBadgeQrUrl] = useState<string | null>(null)
+  const [mailSent, setMailSent] = useState<boolean | null>(null)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -146,6 +147,8 @@ export default function InscriptionPage() {
         return
       }
 
+      const ms = (data?.mail?.sent ?? null) as boolean | null
+      setMailSent(typeof ms === 'boolean' ? ms : null)
       const rawBadgeUrl = (data?.badge?.url ?? data?.badge?.qrUrl ?? null) as string | null
       const normalizedBadgeUrl = rawBadgeUrl
         ? rawBadgeUrl.replace(/\/v1\/qr(\?|$)/, '/v1/badge$1')
@@ -167,6 +170,14 @@ export default function InscriptionPage() {
         </div>
         <h2 className="font-display text-[32px] tracking-[0.2em] text-orange mb-3">Inscription envoyée !</h2>
         <p className="text-muted text-[14px] leading-relaxed mb-8">Nous avons bien reçu votre demande et vous contacterons dans les plus brefs délais.</p>
+        {mailSent === true && (
+          <p className="text-muted2 text-[12px] leading-relaxed mb-6">Un email de confirmation vient de vous être envoyé.</p>
+        )}
+        {mailSent === false && (
+          <p className="text-muted2 text-[12px] leading-relaxed mb-6">
+            L'email de confirmation n'a pas pu être envoyé. Merci de conserver le lien du badge ci-dessous.
+          </p>
+        )}
         {badgeQrUrl && (
           <p className="text-muted2 text-[12px] leading-relaxed mb-8 break-all">
             Badge : <a className="text-orange underline" href={badgeQrUrl}>{badgeQrUrl}</a>
