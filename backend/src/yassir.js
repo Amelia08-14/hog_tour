@@ -82,9 +82,11 @@ async function ensureCustomer({ phoneE164, email, firstName, lastName }) {
     return found
   } catch (e) {
     if (isNotFound(e)) {
+      const name = `${String(firstName || '').trim()} ${String(lastName || '').trim()}`.trim()
       const created = await yassirRequest('POST', `/api/v1/customers`, {
         body: {
           phone,
+          name: name || undefined,
           email: email || undefined,
           firstName: firstName || undefined,
           lastName: lastName || undefined,
