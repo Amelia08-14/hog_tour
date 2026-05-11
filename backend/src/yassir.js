@@ -1,3 +1,5 @@
+const { iso2ToIso3 } = require('./iso3166')
+
 function requiredEnv(name) {
   const v = String(process.env[name] || '').trim()
   if (!v) throw new Error(`${name} is not configured`)
@@ -124,9 +126,9 @@ async function ensureCustomer({ phoneE164, email, firstName, lastName }) {
 }
 
 async function listPaymentMethods({ country, amountCents }) {
-  const c = String(country || '').trim().toUpperCase()
+  const c = iso2ToIso3(country)
   return yassirRequest('GET', `/api/v1/payment-methods`, {
-    query: { country: c || undefined, amount: amountCents != null ? Number(amountCents) : undefined },
+    query: { countryCode: c || undefined, amount: amountCents != null ? Number(amountCents) : undefined },
   })
 }
 
