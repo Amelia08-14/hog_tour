@@ -25,21 +25,27 @@ async function getTransporter() {
       secure,
       auth: { user, pass },
     })
-  })()
+  })().catch((e) => {
+    transporterPromise = undefined
+    throw e
+  })
 
   return transporterPromise
 }
 
-async function sendMail({ subject, text, html, replyTo }) {
+async function sendMail({ to, cc, bcc, subject, text, html, replyTo }) {
   if (bool(process.env.MAIL_DISABLED)) return
 
   const from = String(process.env.MAIL_FROM || 'contact@hogalgierschapteralgeria.com')
-  const to = String(process.env.MAIL_TO || 'contact@hogalgierschapteralgeria.com')
+  const defaultTo = String(process.env.MAIL_TO || 'contact@hogalgierschapteralgeria.com')
+  const finalTo = String(to || defaultTo).trim()
 
   const transporter = await getTransporter()
   await transporter.sendMail({
     from,
-    to,
+    to: finalTo,
+    cc: cc || undefined,
+    bcc: bcc || undefined,
     replyTo: replyTo || undefined,
     subject,
     text,
@@ -48,4 +54,3 @@ async function sendMail({ subject, text, html, replyTo }) {
 }
 
 module.exports = { sendMail }
-

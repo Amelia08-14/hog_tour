@@ -140,29 +140,60 @@ function createApp() {
       const sig = signToken(token)
       const badgeUrl = `${baseUrl.replace(/\/$/, '')}/v1/badge?token=${encodeURIComponent(token)}&sig=${encodeURIComponent(sig)}`
 
-      try {
-        await sendMail({
-          subject: `Nouvelle inscription — ${String(body.prenom).trim()} ${String(body.nom).trim()}`,
-          replyTo: String(body.email).trim(),
-          text:
-            `Nouvelle inscription H.O.G Tour 2026\n\n` +
-            `Nom: ${String(body.nom).trim()}\n` +
-            `Prénom: ${String(body.prenom).trim()}\n` +
-            `Email: ${String(body.email).trim()}\n` +
-            `Téléphone: ${String(body.phoneCountryIso2).trim().toUpperCase()} ${String(body.phoneNumber).trim()}\n` +
-            `Pays: ${String(body.paysIso2).trim().toUpperCase()}\n` +
-            `Nationalité: ${String(body.nationalite).trim()}${body.nationalite === 'Autre' ? ` (${String(body.nationaliteAutre || '').trim()})` : ''}\n` +
-            `Résidence: ${rz}\n` +
-            `Paiement: ${derivedPaymentMode}\n` +
-            `Passeport: ${String(body.passportNum).trim()}\n` +
-            `Badge: ${badgeUrl}\n\n` +
-            `ID: ${registrationId}\n`,
-        })
-      } catch {}
+      const mailDisabled = ['1', 'true', 'yes'].includes(String(process.env.MAIL_DISABLED || '').toLowerCase().trim())
+      const contactEmail = String(process.env.MAIL_TO || process.env.MAIL_FROM || 'contact@hogalgierschapteralgeria.com').trim()
+      const userEmail = String(body.email).trim()
+      const userFullName = `${String(body.prenom).trim()} ${String(body.nom).trim()}`
+
+      if (!mailDisabled) {
+        try {
+          await sendMail({
+            subject: `Nouvelle inscription — ${userFullName}`,
+            replyTo: userEmail,
+            text:
+              `Nouvelle inscription H.O.G Tour 2026\n\n` +
+              `Nom: ${String(body.nom).trim()}\n` +
+              `Prénom: ${String(body.prenom).trim()}\n` +
+              `Email: ${userEmail}\n` +
+              `Téléphone: ${String(body.phoneCountryIso2).trim().toUpperCase()} ${String(body.phoneNumber).trim()}\n` +
+              `Pays: ${String(body.paysIso2).trim().toUpperCase()}\n` +
+              `Nationalité: ${String(body.nationalite).trim()}${body.nationalite === 'Autre' ? ` (${String(body.nationaliteAutre || '').trim()})` : ''}\n` +
+              `Résidence: ${rz}\n` +
+              `Paiement: ${derivedPaymentMode}\n` +
+              `Passeport: ${String(body.passportNum).trim()}\n` +
+              `Badge: ${badgeUrl}\n\n` +
+              `ID: ${registrationId}\n`,
+          })
+        } catch (e) {
+          console.error('registration admin email failed', e)
+        }
+      }
+
+      let userMailSent = false
+      if (!mailDisabled) {
+        try {
+          await sendMail({
+            to: userEmail,
+            subject: `Confirmation d'inscription — H.O.G Tour 2026`,
+            replyTo: contactEmail,
+            text:
+              `Bonjour ${userFullName},\n\n` +
+              `Votre inscription au H.O.G Tour 2026 a bien été enregistrée.\n\n` +
+              `Votre badge : ${badgeUrl}\n` +
+              `Mode de paiement : ${derivedPaymentMode}\n` +
+              `Référence : ${registrationId}\n\n` +
+              `Pour toute question, vous pouvez répondre à cet email.\n`,
+          })
+          userMailSent = true
+        } catch (e) {
+          console.error('registration user email failed', e)
+        }
+      }
 
       return res.status(201).json({
         id: registrationId,
         badge: { url: badgeUrl },
+        mail: { sent: userMailSent },
       })
     } catch (e) {
       return res.status(500).json({ error: 'server_error' })
