@@ -20,7 +20,14 @@ function getAuthHeader() {
 function deriveServiceFromBody(body) {
   if (!body || typeof body !== 'object') return ''
   const customerId = String(body.customerId || body.userId || '').trim()
-  const m = /^EXT_([A-Z0-9]+)\./i.exec(customerId)
+  const m = /EXT_([A-Z0-9]+)\./i.exec(customerId)
+  return m && m[1] ? String(m[1]).toUpperCase() : ''
+}
+
+function deriveServiceFromEnv() {
+  const clientId = String(process.env.YASSIR_CLIENT_ID || '').trim()
+  if (!clientId) return ''
+  const m = /EXT_([A-Z0-9]+)\./i.exec(clientId)
   return m && m[1] ? String(m[1]).toUpperCase() : ''
 }
 
@@ -36,7 +43,7 @@ async function yassirRequest(method, path, { query, body } = {}) {
 
   const platform = String(process.env.YASSIR_PLATFORM || 'API').trim().toUpperCase() || 'API'
   const envService = String(process.env.YASSIR_SERVICE || process.env.YASSIR_X_SERVICE || '').trim()
-  const service = envService || deriveServiceFromBody(body) || 'PAYMENT'
+  const service = envService || deriveServiceFromBody(body) || deriveServiceFromEnv() || 'PAYMENT'
   const sdkVersion = String(process.env.YASSIR_SDK_VERSION || '').trim()
 
   const headers = {
