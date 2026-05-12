@@ -55,6 +55,27 @@ async function yassirRequest(method, path, { query, body } = {}) {
     const err = new Error(`Yassir API error (${res.status})`)
     err.status = res.status
     err.body = json ?? text
+    if (String(process.env.YASSIR_DEBUG || '').trim()) {
+      const safePreview = body && typeof body === 'object'
+        ? {
+            countryCode: body.countryCode,
+            actionCountryCode: body.actionCountryCode,
+            currency: body.currency,
+            actionCurrencyCode: body.actionCurrencyCode,
+            amount: body.amount,
+            merchantTransactionId: body.merchantTransactionId,
+            actionId: body.actionId,
+            customerId: body.customerId,
+            userId: body.userId,
+          }
+        : undefined
+      err.request = {
+        method,
+        url: u.toString(),
+        bodyKeys: body && typeof body === 'object' ? Object.keys(body) : undefined,
+        preview: safePreview,
+      }
+    }
     throw err
   }
 
@@ -135,11 +156,19 @@ async function listPaymentMethods({ country, amountCents }) {
 async function createPaymentIntent({ customerId, country, amountCents, currency, merchantTransactionId, description, callbackUrl, successRedirectUrl, failRedirectUrl }) {
   const countryCode = iso2ToIso3(country)
   if (!countryCode) throw new Error('countryCode is required')
+  const userId = String(customerId ?? '').trim()
+  const actionId = String(merchantTransactionId ?? '').trim()
+  const actionCurrencyCode = String(currency ?? '').trim().toUpperCase()
+  const actionCountryCode = String(countryCode).trim()
   const body = {
     customerId,
     countryCode,
     country: countryCode,
     country_code: countryCode,
+    userId: userId || undefined,
+    actionId: actionId || undefined,
+    actionCurrencyCode: actionCurrencyCode || undefined,
+    actionCountryCode: actionCountryCode || undefined,
     amount: Number(amountCents),
     currency,
     merchantTransactionId,
