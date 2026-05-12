@@ -28,12 +28,14 @@ async function yassirRequest(method, path, { query, body } = {}) {
   }
 
   const platform = String(process.env.YASSIR_PLATFORM || 'API').trim().toUpperCase() || 'API'
+  const service = String(process.env.YASSIR_SERVICE || process.env.YASSIR_X_SERVICE || 'PAYMENT').trim()
   const sdkVersion = String(process.env.YASSIR_SDK_VERSION || '').trim()
 
   const headers = {
     accept: 'application/json',
     authorization: getAuthHeader(),
     'x-platform': platform,
+    'x-service': service,
   }
   if (platform !== 'API' && sdkVersion) {
     headers['x-sdk-version'] = sdkVersion
@@ -73,6 +75,11 @@ async function yassirRequest(method, path, { query, body } = {}) {
         method,
         url: u.toString(),
         bodyKeys: body && typeof body === 'object' ? Object.keys(body) : undefined,
+        headersPreview: {
+          'x-platform': headers['x-platform'],
+          'x-service': headers['x-service'],
+          'x-sdk-version': headers['x-sdk-version'],
+        },
         preview: safePreview,
       }
     }
