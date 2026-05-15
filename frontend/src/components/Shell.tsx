@@ -17,6 +17,7 @@ export default function Shell({ children, lang }: { children: ReactNode; lang: L
 
   return (
     <>
+      <div className="film-grain" aria-hidden="true" />
       <div className="ambient-lights" aria-hidden="true" />
       <div className="ambient-illustration" aria-hidden="true">
         <svg viewBox="0 0 1600 900" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">

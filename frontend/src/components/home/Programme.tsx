@@ -136,15 +136,19 @@ export default function Programme({ lang }: { lang: Lang }) {
   const days = copy.days
 
   return (
-    <section id="programme" className="py-28 bg-bg2 border-t border-b border-orange/10">
-      <div className="max-w-container mx-auto px-6 md:px-10">
+    <section id="programme" className="py-28 bg-bg2 border-t border-b border-orange/10 relative overflow-hidden">
+      <div className="prog-glow" aria-hidden="true"/>
+      <div className="max-w-container mx-auto px-6 md:px-10 relative z-10">
 
         {/* Header */}
         <div className="reveal reveal-streak flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6 mb-14">
-          <div>
+          <div className={lang === 'ar' ? 'text-right' : ''}>
             <div className="section-tag">{copy.tag}</div>
-            <h2 className="font-display leading-[.93] tracking-wide"
-              style={{ fontSize: 'clamp(44px, 6vw, 72px)' }}>
+            <h2 className="font-display tracking-wide"
+              style={{
+                fontSize: lang === 'ar' ? 'clamp(28px, 3.5vw, 46px)' : 'clamp(44px, 6vw, 72px)',
+                lineHeight: lang === 'ar' ? '1.35' : '0.93',
+              }}>
               {copy.titleA} <span className="text-orange">4</span> {copy.titleB}
             </h2>
             <p className="text-muted text-[18px] leading-relaxed font-light max-w-[560px] mt-3">
@@ -205,9 +209,9 @@ export default function Programme({ lang }: { lang: Lang }) {
             <div
               key={i}
               onClick={() => setActive(i)}
-              className={`relative overflow-hidden p-7 cursor-pointer transition-colors duration-200
+              className={`relative overflow-hidden p-7 cursor-pointer transition-all duration-300
                 ${active === i
-                  ? 'bg-bg4 border-b-2 border-orange'
+                  ? 'prog-day-active bg-bg4 border-b-2 border-orange'
                   : 'bg-bg2 border-b-2 border-transparent hover:bg-bg3'}`}
             >
               {/* Gros numéro fond */}

@@ -3,48 +3,97 @@ import type { Lang } from '@/i18n/shared'
 import { t } from '@/i18n/messages'
 
 export default function Ticket({ lang }: { lang: Lang }) {
+  const isAr = lang === 'ar'
   return (
-    <section className="py-16 bg-bg2 border-t border-orange/10">
-      <div className="max-w-container mx-auto px-6 md:px-10">
-        <div className="reveal reveal-streak hog-glow relative bg-bg3 border border-orange/12 px-10 md:px-16 py-14 overflow-hidden">
-          {/* Damier déco */}
-          <div className="absolute top-0 right-0 bottom-0 w-[40%] pointer-events-none opacity-60"
-            style={{ maskImage: 'linear-gradient(to left, rgba(0,0,0,1) 0%, transparent 100%)' }}>
-            <svg width="100%" height="100%">
-              <defs>
-                <pattern id="checker" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
-                  <rect x="0"  y="0"  width="20" height="20" fill="rgba(255,255,255,.04)"/>
-                  <rect x="20" y="20" width="20" height="20" fill="rgba(255,255,255,.04)"/>
-                </pattern>
-              </defs>
-              <rect width="100%" height="100%" fill="url(#checker)"/>
-            </svg>
-          </div>
+    <section className="ticket-cinematic relative py-32 overflow-hidden">
 
-          <div className="relative z-10">
-            <h2 className="font-display tracking-wide text-htext mb-7"
-              style={{ fontSize: 'clamp(32px, 4.5vw, 56px)' }}>
-              {t(lang, 'home.ticketTitle')}
-            </h2>
-            <div className="h-px bg-white/10 mb-7"/>
-            <div className="flex items-center gap-12 flex-wrap">
-              <span className="text-muted text-[15px]">{lang === 'en' ? 'October, 2026' : lang === 'ar' ? 'أكتوبر 2026' : 'Octobre, 2026'}</span>
-              <div className="flex-1 min-w-[180px]">
-                <p className="font-condensed font-bold text-[20px] tracking-[0.12em]">HOG TOUR 2026 ®</p>
-                <p className="flex items-center gap-1.5 text-muted text-[14px] mt-1">
-                  <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
-                  </svg>
-                  {lang === 'en' ? 'Algiers' : lang === 'ar' ? 'الجزائر' : 'Alger'}
-                </p>
-              </div>
-              <a href="/inscription"
-                className="bg-orange text-black font-condensed font-extrabold text-[14px] tracking-[0.22em] uppercase px-9 py-3.5 hover:bg-white hover:-translate-y-0.5 transition-all duration-200 flex-shrink-0">
-                {t(lang, 'home.ticketCta')}
-              </a>
+      {/* ── Background image ── */}
+      <div className="absolute inset-0" style={{
+        backgroundImage: "url('/images/hero-bg.png')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center 55%',
+      }}/>
+
+      {/* ── Dark gradient overlay ── */}
+      <div className="absolute inset-0" style={{
+        background: 'linear-gradient(to bottom, #0A0A08 0%, rgba(10,10,8,.78) 35%, rgba(10,10,8,.78) 65%, #0A0A08 100%)',
+      }}/>
+
+      {/* ── Orange volumetric glow ── */}
+      <div className="absolute inset-0 pointer-events-none" style={{
+        background: 'radial-gradient(1000px 500px at 50% 50%, rgba(255,107,0,.14) 0%, rgba(255,107,0,0) 72%)',
+      }}/>
+
+      {/* ── Grid overlay ── */}
+      <div className="absolute inset-0 pointer-events-none" style={{
+        background: 'repeating-linear-gradient(90deg, rgba(255,107,0,.04) 0 1px, transparent 1px 60px), repeating-linear-gradient(0deg, rgba(255,107,0,.04) 0 1px, transparent 1px 60px)',
+        maskImage: 'radial-gradient(ellipse 80% 70% at 50% 50%, black 30%, transparent 80%)',
+      }}/>
+
+      {/* ── Corner accents ── */}
+      <div className="absolute inset-8 pointer-events-none" style={{
+        background:
+          'linear-gradient(#FF6B00,#FF6B00) top left / 40px 1px no-repeat,' +
+          'linear-gradient(#FF6B00,#FF6B00) top left / 1px 40px no-repeat,' +
+          'linear-gradient(#FF6B00,#FF6B00) top right / 40px 1px no-repeat,' +
+          'linear-gradient(#FF6B00,#FF6B00) top right / 1px 40px no-repeat,' +
+          'linear-gradient(#FF6B00,#FF6B00) bottom left / 40px 1px no-repeat,' +
+          'linear-gradient(#FF6B00,#FF6B00) bottom left / 1px 40px no-repeat,' +
+          'linear-gradient(#FF6B00,#FF6B00) bottom right / 40px 1px no-repeat,' +
+          'linear-gradient(#FF6B00,#FF6B00) bottom right / 1px 40px no-repeat',
+        opacity: 0.35,
+      }}/>
+
+      {/* ── Content ── */}
+      <div className={`relative z-10 max-w-container mx-auto px-6 md:px-10 text-center ${isAr ? 'text-right md:text-center' : ''}`}>
+
+        <div className="section-tag justify-center">{t(lang, 'home.ticketTag')}</div>
+
+        <h2
+          className="font-display tracking-wide text-htext mt-3 mb-3"
+          style={{
+            fontSize: isAr ? 'clamp(26px, 3.5vw, 48px)' : 'clamp(38px, 5.5vw, 76px)',
+            lineHeight: isAr ? 1.35 : 0.93,
+            textShadow: '0 4px 40px rgba(0,0,0,.6)',
+          }}
+        >
+          {t(lang, 'home.ticketTitle')}
+        </h2>
+
+        <p className={`font-condensed text-muted mt-3 mb-10 ${isAr ? '' : 'uppercase tracking-[0.22em]'}`}
+          style={{ fontSize: 'clamp(12px, 1.4vw, 15px)' }}>
+          {t(lang, 'home.ticketSubtitle')}
+        </p>
+
+        {/* Divider */}
+        <div className="ticket-divider mx-auto mb-10"/>
+
+        {/* CTA */}
+        <a
+          href="/inscription"
+          className={`ticket-cta font-condensed font-extrabold ${isAr ? '' : 'uppercase'} inline-flex items-center gap-3 transition-all duration-300`}
+          style={{ letterSpacing: isAr ? '0px' : '0.22em' }}
+        >
+          {t(lang, 'home.ticketCta')}
+          <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </a>
+
+        {/* Info strip */}
+        <div className="ticket-info-strip mt-14 flex items-center justify-center gap-8 flex-wrap">
+          {[
+            { icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z', label: lang === 'ar' ? '29 أكتوبر — 1 نوفمبر 2026' : lang === 'en' ? 'Oct 29 — Nov 1, 2026' : '29 Oct — 1er Nov 2026' },
+            { icon: 'M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z', label: lang === 'ar' ? 'الجزائر → غرداية' : 'Algiers → Ghardaïa' },
+            { icon: 'M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7', label: lang === 'ar' ? '1580 كم' : '1 580 km' },
+          ].map((item, i) => (
+            <div key={i} className="flex items-center gap-2 text-muted">
+              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" className="text-orange/70 flex-shrink-0">
+                <path d={item.icon}/>
+              </svg>
+              <span className={`font-condensed text-[13px] ${isAr ? '' : 'uppercase tracking-[0.14em]'}`}>{item.label}</span>
             </div>
-            <div className="h-px bg-white/10 mt-7"/>
-          </div>
+          ))}
         </div>
       </div>
     </section>
