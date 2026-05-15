@@ -209,6 +209,7 @@ async function createPaymentIntent({ customerId, country, amountCents, currency,
     callbackUrl,
     successRedirectUrl,
     failRedirectUrl,
+    captureMethod: 'DIRECT',
   }
   return yassirRequest('POST', `/api/v1/payments/intents`, { query: { countryCode }, body })
 }
