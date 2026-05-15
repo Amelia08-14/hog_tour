@@ -31,6 +31,12 @@ function deriveServiceFromEnv() {
   return m && m[1] ? String(m[1]).toUpperCase() : ''
 }
 
+function deriveCountryCodeFromBody(body) {
+  if (!body || typeof body !== 'object') return ''
+  const v = String(body.countryCode || body.actionCountryCode || body.country || body.country_code || '').trim()
+  return v
+}
+
 async function yassirRequest(method, path, { query, body } = {}) {
   const baseUrl = getBaseUrl()
   const u = new URL(baseUrl + path)
@@ -45,6 +51,7 @@ async function yassirRequest(method, path, { query, body } = {}) {
   const envService = String(process.env.YASSIR_SERVICE || process.env.YASSIR_X_SERVICE || '').trim()
   const service = envService || deriveServiceFromBody(body) || deriveServiceFromEnv() || 'PAYMENT'
   const sdkVersion = String(process.env.YASSIR_SDK_VERSION || '').trim()
+  const countryHeader = deriveCountryCodeFromBody(body)
 
   const headers = {
     accept: 'application/json',
@@ -52,6 +59,7 @@ async function yassirRequest(method, path, { query, body } = {}) {
     'x-platform': platform,
     'x-service': service,
   }
+  if (countryHeader) headers['x-country-code'] = countryHeader
   if (platform !== 'API' && sdkVersion) {
     headers['x-sdk-version'] = sdkVersion
   }
@@ -77,7 +85,7 @@ async function yassirRequest(method, path, { query, body } = {}) {
         ? {
             countryCode: body.countryCode,
             actionCountryCode: body.actionCountryCode,
-            currency: body.currency,
+            currencyCode: body.currencyCode,
             actionCurrencyCode: body.actionCurrencyCode,
             amount: body.amount,
             merchantTransactionId: body.merchantTransactionId,
@@ -93,6 +101,7 @@ async function yassirRequest(method, path, { query, body } = {}) {
         headersPreview: {
           'x-platform': headers['x-platform'],
           'x-service': headers['x-service'],
+          'x-country-code': headers['x-country-code'],
           'x-sdk-version': headers['x-sdk-version'],
         },
         preview: safePreview,
@@ -182,6 +191,8 @@ async function createPaymentIntent({ customerId, country, amountCents, currency,
   const actionId = String(merchantTransactionId ?? '').trim()
   const actionCurrencyCode = String(currency ?? '').trim().toUpperCase()
   const actionCountryCode = String(countryCode).trim()
+  const amountMajor = amountCents != null ? Number(amountCents) / 100 : NaN
+  const amount = Number.isFinite(amountMajor) ? Math.round(amountMajor * 100) / 100 : undefined
   const body = {
     customerId,
     countryCode,
@@ -191,8 +202,8 @@ async function createPaymentIntent({ customerId, country, amountCents, currency,
     actionId: actionId || undefined,
     actionCurrencyCode: actionCurrencyCode || undefined,
     actionCountryCode: actionCountryCode || undefined,
-    amount: Number(amountCents),
-    currency,
+    amount,
+    currencyCode: actionCurrencyCode || undefined,
     merchantTransactionId,
     description,
     callbackUrl,
