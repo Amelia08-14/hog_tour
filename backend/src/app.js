@@ -54,11 +54,32 @@ function normalizeYassirStatus(v) {
   const s = String(v || '').toLowerCase().trim()
   if (!s) return null
   if (['paid', 'succeeded', 'success', 'completed', 'captured'].includes(s)) return 'paid'
-  if (['pending', 'processing', 'in_progress', 'requires_action', 'initiated'].includes(s)) return 'pending'
+  if (['pending', 'processing', 'in_progress', 'requires_action', 'initiated', 'requires_payment_method'].includes(s)) return 'pending'
   if (['failed', 'declined', 'error'].includes(s)) return 'cancelled'
   if (['cancelled', 'canceled', 'expired'].includes(s)) return 'cancelled'
   if (['refunded'].includes(s)) return 'refunded'
   return null
+}
+
+function normalizeYassirStatusCode(code) {
+  const n = Number(code)
+  if (!Number.isFinite(n)) return null
+  if (n === 2) return 'paid'
+  if (n === 12 || n === 11 || n === 0) return 'pending'
+  if (n >= 3 && n <= 9) return 'pending'
+  if (n >= 20) return 'cancelled'
+  return null
+}
+
+function extractYassirStatus(obj) {
+  if (!obj) return null
+  const data = (obj && obj.data) || obj
+  const byCode = normalizeYassirStatusCode(data.statusCode)
+  if (byCode) return byCode
+  return normalizeYassirStatus(
+    firstString(data, ['status', 'paymentStatus', 'payment_status']) ||
+    firstString(obj, ['status', 'paymentStatus', 'payment_status'])
+  )
 }
 
 function callingCodeFromIso2(iso2) {
@@ -545,29 +566,38 @@ function createApp() {
         successRedirectUrl,
         failRedirectUrl,
       })
+      const intentData = (intent && intent.data) || {}
       const intentId =
+        firstString(intentData, ['paymentId', 'id', 'intentId', 'intent_id']) ||
         firstString(intent, ['id', 'intentId', 'intent_id', 'paymentIntentId', 'payment_intent_id']) ||
         firstString(intent && intent.intent, ['id', 'intentId', 'intent_id'])
       if (!intentId) return res.status(500).json({ error: 'yassir_intent_failed' })
 
-      if (paymentMethodPreference !== 'card' && (!msisdn || !otp) && !resolvedPaymentMethodId && !resolvedPaymentMethodCode) {
-        return res.status(400).json({ error: 'missing_fields' })
+      const clientSecret =
+        firstString(intentData, ['clientSecret', 'client_secret']) ||
+        firstString(intent, ['clientSecret', 'client_secret'])
+
+      if (!resolvedPaymentMethodCode && !resolvedPaymentMethodId && !msisdn) {
+        resolvedPaymentMethodCode = 'STRIPE'
       }
 
       const proceed = await proceedIntent({
         intentId,
+        clientSecret,
         paymentMethodCode: resolvedPaymentMethodCode,
         paymentMethodId: resolvedPaymentMethodId,
         msisdn,
         otp,
+        countryCode: iso2ToIso3(countryIso2),
+        locale: 'en_US',
       })
 
-      const rawStatus =
-        firstString(proceed, ['status', 'paymentStatus', 'payment_status']) ||
-        firstString(intent, ['status', 'paymentStatus', 'payment_status'])
-      const mappedStatus = normalizeYassirStatus(rawStatus) || 'pending'
+      const mappedStatus = extractYassirStatus(proceed) || extractYassirStatus(intent) || 'pending'
 
+      const proceedData = (proceed && proceed.data) || {}
       const redirectUrl =
+        (proceedData.metadata && proceedData.metadata.payUrl) ||
+        firstString(proceedData.metadata, ['payUrl', 'redirectUrl', 'url']) ||
         firstString(proceed, ['redirectUrl', 'paymentUrl', 'url', 'checkoutUrl', 'redirect_url', 'payment_url']) ||
         firstString(intent, ['redirectUrl', 'paymentUrl', 'url', 'checkoutUrl', 'redirect_url', 'payment_url']) ||
         firstString(proceed && proceed.nextAction, ['url', 'redirectUrl', 'paymentUrl']) ||
@@ -644,8 +674,7 @@ function createApp() {
       if (!intentId) return res.json({ ok: true, payment: { status: String(row.payment_status || 'unpaid') }, badge: null })
 
       const chk = await checkIntent({ intentId })
-      const rawStatus = firstString(chk, ['status', 'paymentStatus', 'payment_status']) || firstString(chk && chk.intent, ['status'])
-      const mappedStatus = normalizeYassirStatus(rawStatus)
+      const mappedStatus = extractYassirStatus(chk)
 
       if (mappedStatus && mappedStatus !== String(row.payment_status || '').trim()) {
         await db.run(

@@ -10,6 +10,10 @@ function getBaseUrl() {
   return (process.env.YASSIR_BASE_URL || 'https://stg-api.payment.yassir.io').replace(/\/$/, '')
 }
 
+function getCheckBaseUrl() {
+  return (process.env.YASSIR_CHECK_BASE_URL || process.env.YASSIR_BASE_URL || 'https://epayment-core-stg.yassir.io').replace(/\/$/, '')
+}
+
 function getAuthHeader() {
   const clientId = requiredEnv('YASSIR_CLIENT_ID')
   const clientSecret = requiredEnv('YASSIR_CLIENT_SECRET')
@@ -37,8 +41,8 @@ function deriveCountryCodeFromBody(body) {
   return v
 }
 
-async function yassirRequest(method, path, { query, body } = {}) {
-  const baseUrl = getBaseUrl()
+async function yassirRequest(method, path, { query, body, extraHeaders, baseUrlOverride } = {}) {
+  const baseUrl = baseUrlOverride || getBaseUrl()
   const u = new URL(baseUrl + path)
   if (query) {
     for (const [k, v] of Object.entries(query)) {
@@ -58,8 +62,11 @@ async function yassirRequest(method, path, { query, body } = {}) {
     authorization: getAuthHeader(),
     'x-platform': platform,
     'x-service': service,
+    ...extraHeaders,
   }
-  if (countryHeader) headers['x-country-code'] = countryHeader
+  if (!extraHeaders || !extraHeaders['x-country-code']) {
+    if (countryHeader) headers['x-country-code'] = countryHeader
+  }
   if (platform !== 'API' && sdkVersion) {
     headers['x-sdk-version'] = sdkVersion
   }
@@ -209,23 +216,29 @@ async function createPaymentIntent({ customerId, country, amountCents, currency,
     callbackUrl,
     successRedirectUrl,
     failRedirectUrl,
-    captureMethod: 'DIRECT',
   }
   return yassirRequest('POST', `/api/v1/payments/intents`, { query: { countryCode }, body })
 }
 
-async function proceedIntent({ intentId, paymentMethodCode, paymentMethodId, msisdn, otp }) {
+async function proceedIntent({ intentId, clientSecret, paymentMethodCode, paymentMethodId, msisdn, otp, countryCode, locale }) {
+  const extraHeaders = {}
+  if (clientSecret) extraHeaders['x-client-secret'] = clientSecret
+  if (locale) extraHeaders['x-locale'] = locale
+  if (countryCode) extraHeaders['x-country-code'] = countryCode
+
   const body = {
     ...(paymentMethodCode ? { paymentMethodCode, paymentMethod: paymentMethodCode } : {}),
     ...(paymentMethodId ? { paymentMethodId } : {}),
     ...(msisdn ? { msisdn } : {}),
     ...(otp ? { otp } : {}),
   }
-  return yassirRequest('POST', `/api/v1/payments/intents/${encodeURIComponent(intentId)}/proceed`, { body })
+  return yassirRequest('POST', `/api/v1/payments/intents/${encodeURIComponent(intentId)}/proceed`, { body, extraHeaders })
 }
 
 async function checkIntent({ intentId }) {
-  return yassirRequest('GET', `/api/v1/payments/intents/${encodeURIComponent(intentId)}/check`)
+  return yassirRequest('GET', `/api/v1/payments/intents/${encodeURIComponent(intentId)}/check`, {
+    baseUrlOverride: getCheckBaseUrl(),
+  })
 }
 
 module.exports = {
