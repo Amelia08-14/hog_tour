@@ -191,31 +191,20 @@ async function listPaymentMethods({ country, amountCents }) {
   })
 }
 
-async function createPaymentIntent({ customerId, country, amountCents, currency, merchantTransactionId, description, callbackUrl, successRedirectUrl, failRedirectUrl }) {
+async function createPaymentIntent({ phoneE164, country, amountCents, currency, merchantTransactionId, description, callbackUrl, successRedirectUrl, failRedirectUrl }) {
   const countryCode = iso2ToIso3(country)
   if (!countryCode) throw new Error('countryCode is required')
-  const userId = String(customerId ?? '').trim()
   const actionId = String(merchantTransactionId ?? '').trim()
   const actionCurrencyCode = String(currency ?? '').trim().toUpperCase()
   const actionCountryCode = String(countryCode).trim()
   const amountMajor = amountCents != null ? Number(amountCents) / 100 : NaN
   const amount = Number.isFinite(amountMajor) ? Math.round(amountMajor * 100) / 100 : undefined
   const body = {
-    customerId,
-    countryCode,
-    country: countryCode,
-    country_code: countryCode,
-    userId: userId || undefined,
-    actionId: actionId || undefined,
-    actionCurrencyCode: actionCurrencyCode || undefined,
     actionCountryCode: actionCountryCode || undefined,
+    actionCurrencyCode: actionCurrencyCode || undefined,
+    actionId: actionId || undefined,
     amount,
-    currencyCode: actionCurrencyCode || undefined,
-    merchantTransactionId,
-    description,
-    callbackUrl,
-    successRedirectUrl,
-    failRedirectUrl,
+    userId: String(phoneE164 || '').trim() || undefined,
   }
   return yassirRequest('POST', `/api/v1/payments/intents`, { query: { countryCode }, body })
 }

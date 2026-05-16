@@ -556,12 +556,11 @@ function createApp() {
       if (!iso2ToIso3(countryIso2)) return res.status(400).json({ error: 'invalid_country' })
 
       const intent = await createPaymentIntent({
-        customerId,
+        phoneE164,
         country: countryIso2,
         amountCents: Number(row.amount_cents),
         currency: String(row.currency),
         merchantTransactionId: String(row.payment_id),
-        description: `HOG Tour 2026 — ${String(row.prenom || '')} ${String(row.nom || '')}`.trim(),
         callbackUrl,
         successRedirectUrl,
         failRedirectUrl,
