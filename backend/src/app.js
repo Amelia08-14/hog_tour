@@ -704,6 +704,71 @@ function createApp() {
     }
   })
 
+  app.post('/v1/payments/yassir/webhook', async (req, res) => {
+    // Always ACK immediately — Yassir will retry on non-2xx
+    res.status(200).json({ ok: true })
+
+    try {
+      const payload = req.body || {}
+
+      if (isTrue(process.env.YASSIR_DEBUG)) {
+        console.log('yassir webhook payload', JSON.stringify({
+          headers: {
+            'content-type': req.headers['content-type'],
+            'x-signature': req.headers['x-signature'],
+            'x-webhook-signature': req.headers['x-webhook-signature'],
+            'x-yassir-signature': req.headers['x-yassir-signature'],
+          },
+          body: payload,
+        }, null, 2))
+      }
+
+      // Extract intent/payment ID — format unknown until Shabrina confirms
+      const data = (payload && payload.data) || payload
+      const intentId =
+        firstString(data, ['paymentId', 'intentId', 'intent_id', 'payment_id', 'transactionId', 'paymentIntentId']) ||
+        firstString(payload, ['paymentId', 'intentId', 'intent_id', 'payment_id', 'transactionId', 'paymentIntentId'])
+
+      if (!intentId) {
+        console.warn('yassir webhook: no intentId in payload', JSON.stringify(payload))
+        return
+      }
+
+      const mappedStatus = extractYassirStatus(payload)
+      if (!mappedStatus) {
+        console.warn('yassir webhook: unknown status in payload', JSON.stringify(payload))
+        return
+      }
+
+      const db = await getDb()
+      const row = await db.get(
+        `SELECT p.id as payment_id, p.registration_id, p.status as payment_status
+         FROM payments p WHERE p.reference = ?`,
+        [intentId],
+      )
+
+      if (!row) {
+        console.warn('yassir webhook: no payment found for intentId', intentId)
+        return
+      }
+
+      if (mappedStatus === String(row.payment_status || '').trim()) return
+
+      await db.run(
+        `UPDATE payments SET status = ?, updated_at = ?, updated_by = ? WHERE id = ?`,
+        [mappedStatus, nowIso(), 'yassir_webhook', String(row.payment_id)],
+      )
+
+      if (mappedStatus === 'paid') {
+        await ensureBadgeForRegistration(db, String(row.registration_id))
+      }
+
+      console.log(`yassir webhook: ${intentId} → ${mappedStatus}`)
+    } catch (e) {
+      console.error('yassir webhook error', e && e.message ? String(e.message) : e)
+    }
+  })
+
   app.get('/v1/badge', async (req, res) => {
     try {
       const token = typeof req.query.token === 'string' ? req.query.token : ''
