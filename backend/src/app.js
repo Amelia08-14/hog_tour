@@ -390,19 +390,21 @@ function createApp() {
         try {
           await sendMail({
             to: userEmail,
-            subject: `Confirmation d'inscription — H.O.G Tour 2026`,
+            subject: derivedPaymentMode === 'online_yassir'
+              ? `Finalisez votre inscription — H.O.G Tour 2026`
+              : `Confirmation d'inscription — H.O.G Tour 2026`,
             replyTo: contactEmail,
-            text:
-              `Bonjour ${userFullName},\n\n` +
-              (derivedPaymentMode === 'online_yassir'
-                ? `Votre inscription est en attente de paiement pour être validée.\n\n` +
-                  `Paiement en ligne (carte) : ${paymentUrl}\n` +
-                  `Référence : ${registrationId}\n\n`
-                : `Votre inscription au H.O.G Tour 2026 a bien été enregistrée.\n\n` +
-                  `Votre badge : ${badgeUrl}\n` +
-                  `Mode de paiement : ${derivedPaymentMode}\n` +
-                  `Référence : ${registrationId}\n\n`) +
-              `Pour toute question, vous pouvez répondre à cet email.\n`,
+            html: buildConfirmationEmailHtml({
+              prenom: String(body.prenom).trim(),
+              fullName: userFullName,
+              registrationId,
+              mode: derivedPaymentMode,
+              paymentUrl: paymentUrl || null,
+              badgeUrl: badgeUrl || null,
+            }),
+            text: derivedPaymentMode === 'online_yassir'
+              ? `Bonjour ${userFullName},\n\nVotre inscription est en attente de paiement.\nPaiement : ${paymentUrl}\nRéférence : ${registrationId}\n`
+              : `Bonjour ${userFullName},\n\nVotre inscription est confirmée.\nBadge : ${badgeUrl}\nRéférence : ${registrationId}\n`,
           })
           userMailSent = true
         } catch (e) {
@@ -800,45 +802,20 @@ function createApp() {
       })
       const svg = await QRCode.toString(qrPayload, { type: 'svg', margin: 1, width: 260 })
 
-      const html = `<!doctype html>
-<html lang="fr">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Badge H.O.G Tour 2026</title>
-    <style>
-      :root { color-scheme: dark; }
-      body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:#0B0B0B; color:#F5F5F5; }
-      .wrap { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:40px 16px; }
-      .card { width:100%; max-width:540px; border:1px solid rgba(255,107,0,.18); background:#121212; padding:28px; }
-      .tag { letter-spacing:.22em; text-transform:uppercase; font-size:12px; color:rgba(255,255,255,.75); }
-      h1 { margin:10px 0 0; font-size:28px; letter-spacing:.12em; text-transform:uppercase; color:#FF6B00; }
-      .meta { margin-top:10px; color:rgba(255,255,255,.8); font-size:14px; line-height:1.5; }
-      .qr { margin-top:18px; display:flex; justify-content:center; background:#fff; padding:14px; }
-      .hint { margin-top:14px; color:rgba(255,255,255,.7); font-size:12px; line-height:1.5; }
-      .link { margin-top:10px; font-size:12px; word-break:break-all; color:rgba(255,255,255,.6); }
-      a { color:#FF6B00; }
-    </style>
-  </head>
-  <body>
-    <div class="wrap">
-      <div class="card">
-        <div class="tag">Badge</div>
-        <h1>H.O.G Tour 2026</h1>
-        <div class="meta">
-          <div><strong>${escapeHtml(String(badge.prenom || ''))} ${escapeHtml(String(badge.nom || ''))}</strong></div>
-          <div>${escapeHtml(String(badge.email || ''))}</div>
-          <div>${escapeHtml(String(badge.passport_num || ''))}</div>
-        </div>
-        <div class="qr">${svg}</div>
-        <div class="hint">
-          Gardez ce badge. Le QR code contient vos informations (nom, prénom, passeport) ainsi que le token/signature pour vérification.
-        </div>
-        <div class="link">${escapeHtml(badgeUrl)}</div>
-      </div>
-    </div>
-  </body>
-</html>`
+      const issuedDate = badge.issued_at
+        ? new Date(badge.issued_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
+        : ''
+      const zone = String(badge.residence_zone || '').trim()
+      const html = buildBadgeHtml({
+        prenom: String(badge.prenom || ''),
+        nom: String(badge.nom || ''),
+        email: String(badge.email || ''),
+        passportNum: String(badge.passport_num || ''),
+        zone,
+        issuedDate,
+        badgeId: String(badge.badge_id || ''),
+        qrSvg: svg,
+      })
 
       res.setHeader('content-type', 'text/html; charset=utf-8')
       return res.status(200).send(html)
@@ -1148,6 +1125,171 @@ function createApp() {
 
 function escapeHtml(s) {
   return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+}
+
+function buildBadgeHtml({ prenom, nom, email, passportNum, zone, issuedDate, badgeId, qrSvg }) {
+  const h = escapeHtml
+  return `<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>${h(prenom)} ${h(nom)} — Badge H.O.G Tour 2026</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#0A0A08;color:#F0EBE0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,Arial,sans-serif;min-height:100vh}
+    .grain{position:fixed;inset:0;pointer-events:none;z-index:999;opacity:.04;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:160px;mix-blend-mode:overlay}
+    .glow{position:fixed;inset:-40% -40%;pointer-events:none;z-index:0;background:radial-gradient(700px 500px at 50% 25%,rgba(255,107,0,.16) 0%,transparent 70%)}
+    .wrap{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 16px}
+    .card{width:100%;max-width:460px;position:relative}
+    .corners{position:absolute;inset:0;background:linear-gradient(#FF6B00,#FF6B00) top left/30px 1px no-repeat,linear-gradient(#FF6B00,#FF6B00) top left/1px 30px no-repeat,linear-gradient(#FF6B00,#FF6B00) top right/30px 1px no-repeat,linear-gradient(#FF6B00,#FF6B00) top right/1px 30px no-repeat,linear-gradient(#FF6B00,#FF6B00) bottom left/30px 1px no-repeat,linear-gradient(#FF6B00,#FF6B00) bottom left/1px 30px no-repeat,linear-gradient(#FF6B00,#FF6B00) bottom right/30px 1px no-repeat,linear-gradient(#FF6B00,#FF6B00) bottom right/1px 30px no-repeat;opacity:.45;pointer-events:none;z-index:2}
+    .top-bar{background:#FF6B00;height:3px}
+    .header{padding:28px 30px 22px;border:1px solid rgba(255,107,0,.14);border-top:none;background:rgba(14,11,8,.97)}
+    .eyebrow{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+    .eline{width:22px;height:1px;background:rgba(255,107,0,.55)}
+    .etxt{font-size:9px;letter-spacing:.4em;text-transform:uppercase;color:rgba(255,107,0,.75)}
+    .role{font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:6px}
+    .name{font-size:clamp(26px,6vw,38px);font-weight:900;letter-spacing:.05em;text-transform:uppercase;color:#F0EBE0;line-height:1.05}
+    .zone-pill{display:inline-block;background:#FF6B00;color:#000;font-size:9px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;padding:3px 10px;margin-top:10px}
+    .divider{height:1px;background:linear-gradient(to right,transparent,rgba(255,107,0,.35),transparent);margin:20px 0}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:0}
+    .cell{padding:10px 12px;border:1px solid rgba(255,107,0,.07);background:rgba(255,107,0,.02)}
+    .clabel{font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:rgba(255,255,255,.28);margin-bottom:4px}
+    .cval{font-size:12px;font-weight:600;color:rgba(255,255,255,.82);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .qr-section{padding:0 30px 26px;border:1px solid rgba(255,107,0,.14);border-top:none;background:rgba(14,11,8,.97)}
+    .qr-wrap{background:#fff;padding:14px;display:flex;justify-content:center;margin-bottom:14px}
+    .qr-wrap svg{display:block;width:220px;height:220px}
+    .route{display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 14px;border:1px solid rgba(255,107,0,.09);background:rgba(255,107,0,.03)}
+    .rcity{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.55)}
+    .rarrow{color:rgba(255,107,0,.65);font-size:13px}
+    .scan{margin-top:12px;text-align:center;font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:rgba(255,255,255,.28)}
+    .bid{margin-top:8px;text-align:center;font-size:9px;font-family:monospace;color:rgba(255,255,255,.16);word-break:break-all}
+    .bottom-bar{background:rgba(255,107,0,.35);height:1px}
+  </style>
+</head>
+<body>
+  <div class="grain"></div>
+  <div class="glow"></div>
+  <div class="wrap">
+    <div class="card">
+      <div class="corners"></div>
+      <div class="top-bar"></div>
+      <div class="header">
+        <div class="eyebrow">
+          <div class="eline"></div>
+          <span class="etxt">H.O.G Algiers Chapter</span>
+          <div class="eline"></div>
+        </div>
+        <div class="role">Participant · H.O.G Tour 2026</div>
+        <div class="name">${h(prenom)}<br>${h(nom)}</div>
+        ${zone ? `<div class="zone-pill">${h(zone)}</div>` : ''}
+        <div class="divider"></div>
+        <div class="grid">
+          <div class="cell"><div class="clabel">Passeport</div><div class="cval">${h(passportNum)}</div></div>
+          <div class="cell"><div class="clabel">Émis le</div><div class="cval">${h(issuedDate)}</div></div>
+          <div class="cell"><div class="clabel">Dates</div><div class="cval">29 Oct — 1 Nov</div></div>
+          <div class="cell"><div class="clabel">Distance</div><div class="cval">1 580 km</div></div>
+        </div>
+      </div>
+      <div class="qr-section">
+        <div class="qr-wrap">${qrSvg}</div>
+        <div class="route">
+          <span class="rcity">Alger</span>
+          <span class="rarrow">→</span>
+          <span class="rcity">Ghardaïa</span>
+          <span class="rarrow">→</span>
+          <span class="rcity">Alger</span>
+        </div>
+        <div class="scan">Scannez pour vérifier</div>
+        <div class="bid">${h(badgeId)}</div>
+      </div>
+      <div class="bottom-bar"></div>
+    </div>
+  </div>
+</body>
+</html>`
+}
+
+function buildConfirmationEmailHtml({ prenom, fullName, registrationId, mode, paymentUrl, badgeUrl }) {
+  const h = escapeHtml
+  const isPending = mode === 'online_yassir'
+  const ctaUrl = isPending ? (paymentUrl || '#') : (badgeUrl || '#')
+  const ctaLabel = isPending ? 'FINALISER MON PAIEMENT' : 'ACCÉDER À MON BADGE'
+  const mainMsg = isPending
+    ? `Votre inscription au <strong style="color:#FF6B00;">H.O.G Tour 2026</strong> a bien été reçue. Il ne vous reste plus qu'une étape : finalisez votre paiement en ligne pour confirmer votre place.`
+    : `Votre inscription au <strong style="color:#FF6B00;">H.O.G Tour 2026</strong> est confirmée. Votre badge officiel est disponible — conservez-le précieusement, il vous sera demandé lors de l'événement.`
+
+  return `<!doctype html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>H.O.G Tour 2026</title></head>
+<body style="margin:0;padding:0;background:#0A0A08;font-family:Arial,Helvetica,sans-serif;-webkit-font-smoothing:antialiased;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0A0A08;padding:48px 20px;">
+<tr><td align="center">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:580px;">
+
+  <!-- Top orange bar -->
+  <tr><td style="background:#FF6B00;height:3px;font-size:0;line-height:0;">&nbsp;</td></tr>
+
+  <!-- Header -->
+  <tr><td style="background:#111009;border:1px solid rgba(255,107,0,.14);border-top:none;padding:40px 44px 32px;">
+    <p style="margin:0 0 10px;font-size:9px;letter-spacing:5px;text-transform:uppercase;color:rgba(255,107,0,.7);">H.O.G Algiers Chapter Algeria</p>
+    <h1 style="margin:0 0 4px;font-size:34px;font-weight:900;letter-spacing:4px;text-transform:uppercase;color:#FF6B00;line-height:1;">H.O.G TOUR</h1>
+    <p style="margin:0 0 28px;font-size:20px;font-weight:900;letter-spacing:4px;color:rgba(255,255,255,.15);">2026</p>
+    <hr style="border:none;border-top:1px solid rgba(255,107,0,.18);margin:0 0 28px;">
+    <p style="margin:0 0 16px;font-size:16px;color:rgba(255,255,255,.85);line-height:1.5;">
+      Bonjour <strong style="color:#FF6B00;">${h(prenom)}</strong>,
+    </p>
+    <p style="margin:0 0 32px;font-size:14px;color:rgba(255,255,255,.6);line-height:1.9;">${mainMsg}</p>
+    <table cellpadding="0" cellspacing="0" border="0">
+      <tr>
+        <td style="background:#FF6B00;padding:16px 38px;">
+          <a href="${h(ctaUrl)}" style="color:#000;font-weight:700;font-size:11px;letter-spacing:3px;text-transform:uppercase;text-decoration:none;">${ctaLabel} &rarr;</a>
+        </td>
+      </tr>
+    </table>
+  </td></tr>
+
+  <!-- Details -->
+  <tr><td style="background:#0D0C09;border:1px solid rgba(255,107,0,.09);border-top:none;padding:28px 44px;">
+    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr>
+        <td width="50%" style="padding:12px 16px 12px 0;border-bottom:1px solid rgba(255,255,255,.05);">
+          <p style="margin:0;font-size:8px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.28);">Participant</p>
+          <p style="margin:5px 0 0;font-size:14px;font-weight:700;color:rgba(255,255,255,.85);">${h(fullName)}</p>
+        </td>
+        <td width="50%" style="padding:12px 0 12px 16px;border-bottom:1px solid rgba(255,255,255,.05);">
+          <p style="margin:0;font-size:8px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.28);">Référence</p>
+          <p style="margin:5px 0 0;font-size:12px;font-weight:600;color:rgba(255,255,255,.7);font-family:monospace;">${h(registrationId)}</p>
+        </td>
+      </tr>
+      <tr>
+        <td width="50%" style="padding:12px 16px 0 0;">
+          <p style="margin:0;font-size:8px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.28);">Dates</p>
+          <p style="margin:5px 0 0;font-size:13px;font-weight:600;color:rgba(255,255,255,.75);">29 Oct — 1 Nov 2026</p>
+        </td>
+        <td width="50%" style="padding:12px 0 0 16px;">
+          <p style="margin:0;font-size:8px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.28);">Route</p>
+          <p style="margin:5px 0 0;font-size:13px;font-weight:600;color:rgba(255,255,255,.75);">Alger &rarr; Gharda&iuml;a &rarr; Alger</p>
+        </td>
+      </tr>
+    </table>
+  </td></tr>
+
+  <!-- Footer -->
+  <tr><td style="background:#0A0A08;border:1px solid rgba(255,107,0,.06);border-top:none;padding:22px 44px;text-align:center;">
+    <p style="margin:0 0 6px;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.2);">Pour toute question</p>
+    <a href="mailto:contact@hogalgierschapteralgeria.com" style="color:rgba(255,107,0,.65);font-size:12px;text-decoration:none;">contact@hogalgierschapteralgeria.com</a>
+    <p style="margin:16px 0 0;font-size:9px;color:rgba(255,255,255,.12);letter-spacing:2px;">H.O.G ALGIERS CHAPTER ALGERIA &middot; 2026</p>
+  </td></tr>
+
+  <!-- Bottom bar -->
+  <tr><td style="background:rgba(255,107,0,.4);height:1px;font-size:0;line-height:0;">&nbsp;</td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>`
 }
 
 async function createStartedApp() {
