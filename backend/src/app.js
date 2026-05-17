@@ -762,12 +762,79 @@ function createApp() {
       )
 
       if (mappedStatus === 'paid') {
-        await ensureBadgeForRegistration(db, String(row.registration_id))
+        const badge = await ensureBadgeForRegistration(db, String(row.registration_id))
+        const mailDisabled = ['1', 'true', 'yes'].includes(String(process.env.MAIL_DISABLED || '').toLowerCase().trim())
+        if (!mailDisabled) {
+          try {
+            const reg = await db.get(`SELECT * FROM registrations WHERE id = ?`, [row.registration_id])
+            if (reg) {
+              const baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${Number(process.env.PORT) || 4000}`
+              const badgeUrl = `${baseUrl.replace(/\/$/, '')}/v1/badge?token=${encodeURIComponent(String(badge.token))}&sig=${encodeURIComponent(signToken(String(badge.token)))}`
+              const fullName = `${String(reg.prenom || '')} ${String(reg.nom || '')}`
+              await sendMail({
+                to: String(reg.email || ''),
+                subject: `Paiement confirmé — H.O.G Tour 2026`,
+                replyTo: String(process.env.MAIL_TO || process.env.MAIL_FROM || 'contact@hogalgierschapteralgeria.com'),
+                html: buildConfirmationEmailHtml({
+                  prenom: String(reg.prenom || ''),
+                  fullName,
+                  registrationId: String(reg.id || ''),
+                  mode: 'paid',
+                  paymentUrl: null,
+                  badgeUrl,
+                }),
+                text: `Bonjour ${fullName},\n\nVotre paiement est confirmé. Accédez à votre badge : ${badgeUrl}\nRéférence : ${reg.id}\n`,
+              })
+            }
+          } catch (mailErr) {
+            console.error('webhook confirmation email failed', mailErr && mailErr.message ? String(mailErr.message) : mailErr)
+          }
+        }
       }
 
       console.log(`yassir webhook: ${intentId} → ${mappedStatus}`)
     } catch (e) {
       console.error('yassir webhook error', e && e.message ? String(e.message) : e)
+    }
+  })
+
+  app.get('/v1/payments/yassir/result', async (req, res) => {
+    try {
+      const ref = typeof req.query.ref === 'string' ? req.query.ref.trim() : ''
+      if (!ref) return res.status(400).json({ error: 'missing_params' })
+
+      const db = await getDb()
+      const row = await db.get(
+        `SELECT p.id as payment_id, p.registration_id, p.status as payment_status, p.reference
+         FROM payments p WHERE p.reference = ?`,
+        [ref],
+      )
+      if (!row) return res.status(404).json({ error: 'not_found' })
+
+      let finalStatus = String(row.payment_status || 'pending')
+
+      try {
+        const chk = await checkIntent({ intentId: ref })
+        const mappedStatus = extractYassirStatus(chk)
+        if (mappedStatus && mappedStatus !== finalStatus) {
+          await db.run(
+            `UPDATE payments SET status = ?, updated_at = ?, updated_by = ? WHERE id = ?`,
+            [mappedStatus, nowIso(), 'yassir_api', String(row.payment_id)],
+          )
+          finalStatus = mappedStatus
+        }
+      } catch {}
+
+      let badgeUrl = null
+      if (finalStatus === 'paid') {
+        const b = await ensureBadgeForRegistration(db, String(row.registration_id))
+        const baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${Number(process.env.PORT) || 4000}`
+        badgeUrl = `${baseUrl.replace(/\/$/, '')}/v1/badge?token=${encodeURIComponent(String(b.token))}&sig=${encodeURIComponent(signToken(String(b.token)))}`
+      }
+
+      return res.json({ payment: { status: finalStatus }, badgeUrl })
+    } catch (e) {
+      return res.status(500).json({ error: 'server_error' })
     }
   })
 
