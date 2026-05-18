@@ -7,7 +7,7 @@ import { t } from '@/i18n/messages'
 const V = {
   sexe: { femme: 'Femme', homme: 'Homme' },
   nationalite: { dz: 'Algérienne', autre: 'Autre' },
-  residence: { dz: 'Algérie', ailleurs: 'Ailleurs' },
+  residence: { dz: 'Algérie', lby: 'Lybie', tun: 'Tunisie', ailleurs: 'Ailleurs' },
   profil: { solo: 'Solo', groupe: "Membre d'un groupe de Motards" },
   hebergement: {
     simple: 'Chambre simple (480 €)',
@@ -40,8 +40,10 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
     setMounted(true)
   }, [])
 
+  const ON_SITE_ZONES = [V.residence.dz, V.residence.lby, V.residence.tun]
+
   useEffect(() => {
-    if (residenceZone === V.residence.dz) {
+    if (ON_SITE_ZONES.includes(residenceZone as typeof V.residence.dz)) {
       setPaiement('on_site')
       return
     }
@@ -120,7 +122,7 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
       profilGroupe: profil === V.profil.groupe ? profilGroupe.trim() : '',
       hebergement,
       tailleTshirt: taille,
-      paiementMode: paiement || (residenceZone === V.residence.dz ? 'on_site' : residenceZone ? 'online_yassir' : ''),
+      paiementMode: paiement || (ON_SITE_ZONES.includes(residenceZone as typeof V.residence.dz) ? 'on_site' : residenceZone ? 'online_yassir' : ''),
       permisNum: String(fd.get('permis') || '').trim(),
       immatriculation: String(fd.get('immat') || '').trim(),
       passportNum: String(fd.get('passport') || '').trim(),
@@ -418,6 +420,8 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
                 <G label={`${t(lang, 'registration.fields.residence')} *`}>
                   <div className="flex gap-5 flex-wrap">
                     <CB value={V.residence.dz} label={String(t(lang, 'registration.options.residenceDz'))} state={residenceZone} set={setResidenceZone} />
+                    <CB value={V.residence.lby} label={String(t(lang, 'registration.options.residenceLby'))} state={residenceZone} set={setResidenceZone} />
+                    <CB value={V.residence.tun} label={String(t(lang, 'registration.options.residenceTun'))} state={residenceZone} set={setResidenceZone} />
                     <CB value={V.residence.ailleurs} label={String(t(lang, 'registration.options.residenceAbroad'))} state={residenceZone} set={setResidenceZone} />
                   </div>
                 </G>
@@ -470,7 +474,7 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
 
               <G label={`${t(lang, 'registration.fields.payment')} *`}>
                 <div className="border border-white/8 bg-bg2 px-5 py-4 text-[13px] text-htext leading-relaxed">
-                  {residenceZone === V.residence.dz
+                  {ON_SITE_ZONES.includes(residenceZone as typeof V.residence.dz)
                     ? t(lang, 'registration.payment.onSite')
                     : residenceZone === V.residence.ailleurs
                       ? t(lang, 'registration.payment.online')

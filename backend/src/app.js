@@ -224,11 +224,11 @@ function createApp() {
       }
 
       const rz = String(body.residenceZone).trim()
-      if (!['Algérie', 'Ailleurs'].includes(rz)) {
+      if (!['Algérie', 'Lybie', 'Tunisie', 'Ailleurs'].includes(rz)) {
         return res.status(400).json({ error: 'invalid_fields', fields: ['residenceZone'] })
       }
 
-      const derivedPaymentMode = rz === 'Algérie' ? 'on_site' : 'online_yassir'
+      const derivedPaymentMode = ['Algérie', 'Lybie', 'Tunisie'].includes(rz) ? 'on_site' : 'online_yassir'
       const currency = String(process.env.PAYMENT_CURRENCY || 'EUR').trim().toUpperCase() || 'EUR'
       const amountCents = derivedPaymentMode === 'online_yassir' ? parsePriceToCents(body.hebergement) : null
       const phoneE164 = body.phoneE164 ? String(body.phoneE164).trim() : ''
@@ -386,25 +386,21 @@ function createApp() {
       }
 
       let userMailSent = false
-      if (!mailDisabled) {
+      if (!mailDisabled && derivedPaymentMode !== 'online_yassir') {
         try {
           await sendMail({
             to: userEmail,
-            subject: derivedPaymentMode === 'online_yassir'
-              ? `Finalisez votre inscription — H.O.G Tour 2026`
-              : `Confirmation d'inscription — H.O.G Tour 2026`,
+            subject: `Confirmation d'inscription — H.O.G Tour 2026`,
             replyTo: contactEmail,
             html: buildConfirmationEmailHtml({
               prenom: String(body.prenom).trim(),
               fullName: userFullName,
               registrationId,
               mode: derivedPaymentMode,
-              paymentUrl: paymentUrl || null,
+              paymentUrl: null,
               badgeUrl: badgeUrl || null,
             }),
-            text: derivedPaymentMode === 'online_yassir'
-              ? `Bonjour ${userFullName},\n\nVotre inscription est en attente de paiement.\nPaiement : ${paymentUrl}\nRéférence : ${registrationId}\n`
-              : `Bonjour ${userFullName},\n\nVotre inscription est confirmée.\nBadge : ${badgeUrl}\nRéférence : ${registrationId}\n`,
+            text: `Bonjour ${userFullName},\n\nVotre inscription est confirmée.\nBadge : ${badgeUrl}\nRéférence : ${registrationId}\n`,
           })
           userMailSent = true
         } catch (e) {
@@ -622,6 +618,31 @@ function createApp() {
         const baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${Number(process.env.PORT) || 4000}`
         const badgeUrl = `${baseUrl.replace(/\/$/, '')}/v1/badge?token=${encodeURIComponent(String(b.token))}&sig=${encodeURIComponent(signToken(String(b.token)))}`
         badge = { url: badgeUrl }
+      }
+
+      if (redirectUrl && mappedStatus !== 'paid') {
+        const mailDisabled = ['1', 'true', 'yes'].includes(String(process.env.MAIL_DISABLED || '').toLowerCase().trim())
+        if (!mailDisabled) {
+          try {
+            const fullName = `${String(row.prenom || '')} ${String(row.nom || '')}`
+            await sendMail({
+              to: String(row.email || ''),
+              subject: `Inscription en attente de confirmation — H.O.G Tour 2026`,
+              replyTo: String(process.env.MAIL_TO || process.env.MAIL_FROM || 'contact@hogalgierschapteralgeria.com'),
+              html: buildConfirmationEmailHtml({
+                prenom: String(row.prenom || ''),
+                fullName,
+                registrationId: String(row.payment_id || ''),
+                mode: 'payment_pending',
+                paymentUrl: null,
+                badgeUrl: null,
+              }),
+              text: `Bonjour ${fullName},\n\nVotre paiement est en cours de traitement. Vous recevrez votre badge de participation par email dès confirmation.\nRéférence : ${row.payment_id}\n`,
+            })
+          } catch (mailErr) {
+            console.error('yassir start pending email failed', mailErr && mailErr.message ? String(mailErr.message) : mailErr)
+          }
+        }
       }
 
       return res.json({
@@ -1279,12 +1300,15 @@ function buildBadgeHtml({ prenom, nom, email, passportNum, zone, issuedDate, bad
 
 function buildConfirmationEmailHtml({ prenom, fullName, registrationId, mode, paymentUrl, badgeUrl }) {
   const h = escapeHtml
-  const isPending = mode === 'online_yassir'
-  const ctaUrl = isPending ? (paymentUrl || '#') : (badgeUrl || '#')
-  const ctaLabel = isPending ? 'FINALISER MON PAIEMENT' : 'ACCÉDER À MON BADGE'
-  const mainMsg = isPending
-    ? `Votre inscription au <strong style="color:#FF6B00;">H.O.G Tour 2026</strong> a bien été reçue. Il ne vous reste plus qu'une étape : finalisez votre paiement en ligne pour confirmer votre place.`
-    : `Votre inscription au <strong style="color:#FF6B00;">H.O.G Tour 2026</strong> est confirmée. Votre badge officiel est disponible — conservez-le précieusement, il vous sera demandé lors de l'événement.`
+  const isPaid = mode !== 'online_yassir' && mode !== 'payment_pending'
+  const isPending = mode === 'payment_pending'
+  const ctaUrl = isPaid ? (badgeUrl || '#') : null
+  const ctaLabel = isPaid ? 'ACCÉDER À MON BADGE' : null
+  const mainMsg = isPaid
+    ? `Votre inscription au <strong style="color:#FF6B00;">H.O.G Tour 2026</strong> est confirmée. Votre badge officiel est disponible — conservez-le précieusement, il vous sera demandé lors de l'événement.`
+    : isPending
+      ? `Votre paiement pour le <strong style="color:#FF6B00;">H.O.G Tour 2026</strong> est en cours de traitement. Vous recevrez votre badge de participation par email dès que le paiement sera confirmé.`
+      : `Votre inscription au <strong style="color:#FF6B00;">H.O.G Tour 2026</strong> a bien été reçue.`
 
   return `<!doctype html>
 <html>
@@ -1306,14 +1330,14 @@ function buildConfirmationEmailHtml({ prenom, fullName, registrationId, mode, pa
     <p style="margin:0 0 16px;font-size:16px;color:rgba(255,255,255,.85);line-height:1.5;">
       Bonjour <strong style="color:#FF6B00;">${h(prenom)}</strong>,
     </p>
-    <p style="margin:0 0 32px;font-size:14px;color:rgba(255,255,255,.6);line-height:1.9;">${mainMsg}</p>
-    <table cellpadding="0" cellspacing="0" border="0">
+    <p style="margin:0 ${ctaUrl ? '32px' : '0'} 0;font-size:14px;color:rgba(255,255,255,.6);line-height:1.9;">${mainMsg}</p>
+    ${ctaUrl ? `<table cellpadding="0" cellspacing="0" border="0" style="margin-top:32px;">
       <tr>
         <td style="background:#FF6B00;padding:16px 38px;">
           <a href="${h(ctaUrl)}" style="color:#000;font-weight:700;font-size:11px;letter-spacing:3px;text-transform:uppercase;text-decoration:none;">${ctaLabel} &rarr;</a>
         </td>
       </tr>
-    </table>
+    </table>` : ''}
   </td></tr>
 
   <!-- Details -->
