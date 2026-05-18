@@ -608,12 +608,16 @@ function createApp() {
          SET status = ?,
              method = ?,
              reference = ?,
-             client_secret = ?,
              updated_at = ?,
              updated_by = ?
          WHERE id = ?`,
-        [mappedStatus, paymentMethodPreference === 'card' ? 'yassir_card' : 'yassir', String(intentId), clientSecret || null, updatedAt, 'yassir_api', String(row.payment_id)],
+        [mappedStatus, paymentMethodPreference === 'card' ? 'yassir_card' : 'yassir', String(intentId), updatedAt, 'yassir_api', String(row.payment_id)],
       )
+      if (clientSecret) {
+        try {
+          await db.run(`UPDATE payments SET client_secret = ? WHERE id = ?`, [clientSecret, String(row.payment_id)])
+        } catch { /* column may not exist yet on older deployments */ }
+      }
 
       let badge = null
       if (mappedStatus === 'paid') {
