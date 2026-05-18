@@ -65,8 +65,10 @@ function normalizeYassirStatusCode(code) {
   const n = Number(code)
   if (!Number.isFinite(n)) return null
   if (n === 2) return 'paid'
+  if (n === 3) return 'cancelled'
+  if (n === 13) return 'pending'
   if (n === 12 || n === 11 || n === 0) return 'pending'
-  if (n >= 3 && n <= 9) return 'pending'
+  if (n >= 4 && n <= 9) return 'pending'
   if (n >= 20) return 'cancelled'
   return null
 }
@@ -606,10 +608,11 @@ function createApp() {
          SET status = ?,
              method = ?,
              reference = ?,
+             client_secret = ?,
              updated_at = ?,
              updated_by = ?
          WHERE id = ?`,
-        [mappedStatus, paymentMethodPreference === 'card' ? 'yassir_card' : 'yassir', String(intentId), updatedAt, 'yassir_api', String(row.payment_id)],
+        [mappedStatus, paymentMethodPreference === 'card' ? 'yassir_card' : 'yassir', String(intentId), clientSecret || null, updatedAt, 'yassir_api', String(row.payment_id)],
       )
 
       let badge = null
@@ -679,13 +682,13 @@ function createApp() {
       const db = await getDb()
       const row = paymentIdParam
         ? await db.get(
-            `SELECT p.id as payment_id, p.registration_id as registration_id, p.status as payment_status, p.reference
+            `SELECT p.id as payment_id, p.registration_id as registration_id, p.status as payment_status, p.reference, p.client_secret
              FROM payments p
              WHERE p.id = ?`,
             [paymentIdParam],
           )
         : await db.get(
-            `SELECT p.id as payment_id, p.registration_id as registration_id, p.status as payment_status, p.reference
+            `SELECT p.id as payment_id, p.registration_id as registration_id, p.status as payment_status, p.reference, p.client_secret
              FROM badges b
              JOIN payments p ON p.registration_id = b.registration_id
              WHERE b.token = ?`,
@@ -695,7 +698,7 @@ function createApp() {
       const intentId = String(row.reference || '').trim()
       if (!intentId) return res.json({ ok: true, payment: { status: String(row.payment_status || 'unpaid') }, badge: null })
 
-      const chk = await checkIntent({ intentId })
+      const chk = await checkIntent({ intentId, clientSecret: row.client_secret || undefined })
       const mappedStatus = extractYassirStatus(chk)
 
       if (mappedStatus && mappedStatus !== String(row.payment_status || '').trim()) {
@@ -826,7 +829,7 @@ function createApp() {
 
       const db = await getDb()
       const row = await db.get(
-        `SELECT p.id as payment_id, p.registration_id, p.status as payment_status, p.reference
+        `SELECT p.id as payment_id, p.registration_id, p.status as payment_status, p.reference, p.client_secret
          FROM payments p WHERE p.reference = ?`,
         [ref],
       )
@@ -836,7 +839,7 @@ function createApp() {
       let justPaid = false
 
       try {
-        const chk = await checkIntent({ intentId: ref })
+        const chk = await checkIntent({ intentId: ref, clientSecret: row.client_secret || undefined })
         const mappedStatus = extractYassirStatus(chk)
         console.log(`yassir result check: ref=${ref} raw=${JSON.stringify(chk && chk.data ? { statusCode: chk.data.statusCode, status: chk.data.status } : chk)} mapped=${mappedStatus}`)
         if (mappedStatus && mappedStatus !== finalStatus) {
@@ -1245,7 +1248,7 @@ function createApp() {
     try {
       const db = await getDb()
       const payment = await db.get(
-        `SELECT p.id as payment_id, p.registration_id, p.status as payment_status, p.reference
+        `SELECT p.id as payment_id, p.registration_id, p.status as payment_status, p.reference, p.client_secret
          FROM payments p JOIN registrations r ON r.id = p.registration_id WHERE r.id = ?`,
         [req.params.id],
       )
@@ -1253,7 +1256,7 @@ function createApp() {
       const intentId = String(payment.reference || '').trim()
       if (!intentId) return res.status(400).json({ error: 'no_reference', message: 'Payment has no Yassir reference stored yet.' })
 
-      const chk = await checkIntent({ intentId })
+      const chk = await checkIntent({ intentId, clientSecret: payment.client_secret || undefined })
       const mappedStatus = extractYassirStatus(chk)
       console.log(`admin force-check: registration=${req.params.id} ref=${intentId} raw=${JSON.stringify(chk && chk.data ? { statusCode: chk.data.statusCode, status: chk.data.status } : chk)} mapped=${mappedStatus}`)
 

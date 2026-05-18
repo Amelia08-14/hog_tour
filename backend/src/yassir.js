@@ -224,9 +224,12 @@ async function proceedIntent({ intentId, clientSecret, paymentMethodCode, paymen
   return yassirRequest('POST', `/api/v1/payments/intents/${encodeURIComponent(intentId)}/proceed`, { body, extraHeaders })
 }
 
-async function checkIntent({ intentId }) {
+async function checkIntent({ intentId, clientSecret }) {
+  const extraHeaders = {}
+  if (clientSecret) extraHeaders['x-client-secret'] = clientSecret
   return yassirRequest('GET', `/api/v1/payments/intents/${encodeURIComponent(intentId)}/check`, {
     baseUrlOverride: getCheckBaseUrl(),
+    extraHeaders,
   })
 }
 

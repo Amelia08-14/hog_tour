@@ -277,6 +277,10 @@ async function initDb() {
   if (!hasPassport) await db.exec(`ALTER TABLE registrations ADD COLUMN passport_num TEXT;`)
   const hasPhoneE164 = cols.some(c => c.name === 'phone_e164')
   if (!hasPhoneE164) await db.exec(`ALTER TABLE registrations ADD COLUMN phone_e164 TEXT;`)
+
+  const paymentCols = await db.all(`PRAGMA table_info(payments);`)
+  const hasClientSecret = paymentCols.some(c => c.name === 'client_secret')
+  if (!hasClientSecret) await db.exec(`ALTER TABLE payments ADD COLUMN client_secret TEXT;`)
 }
 
 async function withTransaction(fn) {
