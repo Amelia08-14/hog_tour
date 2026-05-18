@@ -838,6 +838,7 @@ function createApp() {
       try {
         const chk = await checkIntent({ intentId: ref })
         const mappedStatus = extractYassirStatus(chk)
+        console.log(`yassir result check: ref=${ref} raw=${JSON.stringify(chk && chk.data ? { statusCode: chk.data.statusCode, status: chk.data.status } : chk)} mapped=${mappedStatus}`)
         if (mappedStatus && mappedStatus !== finalStatus) {
           await db.run(
             `UPDATE payments SET status = ?, updated_at = ?, updated_by = ? WHERE id = ?`,
@@ -846,7 +847,9 @@ function createApp() {
           if (mappedStatus === 'paid') justPaid = true
           finalStatus = mappedStatus
         }
-      } catch {}
+      } catch (chkErr) {
+        console.error(`yassir result checkIntent failed: ref=${ref}`, chkErr && chkErr.message ? String(chkErr.message) : chkErr, chkErr && chkErr.body ? JSON.stringify(chkErr.body) : '')
+      }
 
       let badgeUrl = null
       if (finalStatus === 'paid') {
@@ -1235,6 +1238,57 @@ function createApp() {
       return res.json({ payment })
     } catch (e) {
       return res.status(500).json({ error: 'server_error' })
+    }
+  })
+
+  app.post('/v1/admin/registrations/:id/payment/check', requireAdmin, async (req, res) => {
+    try {
+      const db = await getDb()
+      const payment = await db.get(
+        `SELECT p.id as payment_id, p.registration_id, p.status as payment_status, p.reference
+         FROM payments p JOIN registrations r ON r.id = p.registration_id WHERE r.id = ?`,
+        [req.params.id],
+      )
+      if (!payment) return res.status(404).json({ error: 'not_found' })
+      const intentId = String(payment.reference || '').trim()
+      if (!intentId) return res.status(400).json({ error: 'no_reference', message: 'Payment has no Yassir reference stored yet.' })
+
+      const chk = await checkIntent({ intentId })
+      const mappedStatus = extractYassirStatus(chk)
+      console.log(`admin force-check: registration=${req.params.id} ref=${intentId} raw=${JSON.stringify(chk && chk.data ? { statusCode: chk.data.statusCode, status: chk.data.status } : chk)} mapped=${mappedStatus}`)
+
+      let updated = false
+      if (mappedStatus && mappedStatus !== String(payment.payment_status || '').trim()) {
+        await db.run(
+          `UPDATE payments SET status = ?, updated_at = ?, updated_by = ? WHERE id = ?`,
+          [mappedStatus, nowIso(), 'admin_force_check', String(payment.payment_id)],
+        )
+        updated = true
+        if (mappedStatus === 'paid') {
+          await ensureBadgeForRegistration(db, String(payment.registration_id))
+        }
+      }
+
+      const baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${Number(process.env.PORT) || 4000}`
+      const badge = await db.get(`SELECT token FROM badges WHERE registration_id = ?`, [payment.registration_id])
+      const badgeUrl = badge
+        ? `${baseUrl.replace(/\/$/, '')}/v1/badge?token=${encodeURIComponent(badge.token)}&sig=${encodeURIComponent(signToken(badge.token))}`
+        : null
+
+      return res.json({
+        ok: true,
+        updated,
+        previousStatus: String(payment.payment_status || ''),
+        newStatus: mappedStatus || String(payment.payment_status || ''),
+        badgeUrl,
+        yassir: chk,
+      })
+    } catch (e) {
+      return res.status(500).json({
+        error: 'server_error',
+        message: e && e.message ? String(e.message) : String(e),
+        details: e && e.body ? e.body : undefined,
+      })
     }
   })
 
