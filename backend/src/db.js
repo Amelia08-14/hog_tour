@@ -141,6 +141,7 @@ async function initDb() {
         currency VARCHAR(8),
         method VARCHAR(64),
         reference VARCHAR(190),
+        client_secret VARCHAR(500),
         updated_at VARCHAR(40) NOT NULL,
         updated_by VARCHAR(64),
         INDEX idx_payments_registration_id (registration_id),
@@ -240,6 +241,7 @@ async function initDb() {
         currency TEXT,
         method TEXT,
         reference TEXT,
+        client_secret TEXT,
         updated_at TEXT NOT NULL,
         updated_by TEXT,
         FOREIGN KEY(registration_id) REFERENCES registrations(id) ON DELETE CASCADE
@@ -278,9 +280,17 @@ async function initDb() {
   const hasPhoneE164 = cols.some(c => c.name === 'phone_e164')
   if (!hasPhoneE164) await db.exec(`ALTER TABLE registrations ADD COLUMN phone_e164 TEXT;`)
 
-  const paymentCols = await db.all(`PRAGMA table_info(payments);`)
-  const hasClientSecret = paymentCols.some(c => c.name === 'client_secret')
-  if (!hasClientSecret) await db.exec(`ALTER TABLE payments ADD COLUMN client_secret TEXT;`)
+  if (driver() === 'mysql') {
+    try {
+      await db.exec(`ALTER TABLE payments ADD COLUMN client_secret VARCHAR(500);`)
+    } catch (e) {
+      if (!(e && (e.code === 'ER_DUP_FIELDNAME' || String(e.message || '').toLowerCase().includes('duplicate column')))) throw e
+    }
+  } else {
+    const paymentCols = await db.all(`PRAGMA table_info(payments);`)
+    const hasClientSecret = paymentCols.some(c => c.name === 'client_secret')
+    if (!hasClientSecret) await db.exec(`ALTER TABLE payments ADD COLUMN client_secret TEXT;`)
+  }
 }
 
 async function withTransaction(fn) {
