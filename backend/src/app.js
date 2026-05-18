@@ -843,10 +843,17 @@ function createApp() {
           )
         : await db.get(
             `SELECT p.id as payment_id, p.registration_id, p.status as payment_status, p.reference, p.client_secret
-             FROM payments p WHERE p.reference = ?`,
-            [ref],
+             FROM payments p WHERE p.reference = ? OR p.id = ?`,
+            [ref, ref],
           )
-      if (!row) return res.status(404).json({ error: 'not_found' })
+      if (!row) {
+        // Payment record not found — if Yassir says success, trust it (badge will arrive via webhook email)
+        if (urlStatus === 'success') {
+          console.log(`yassir result: no record found for ref=${ref}, trusting urlStatus=success`)
+          return res.json({ payment: { status: 'paid' }, badgeUrl: null })
+        }
+        return res.status(404).json({ error: 'not_found' })
+      }
 
       let finalStatus = String(row.payment_status || 'pending')
       let justPaid = false

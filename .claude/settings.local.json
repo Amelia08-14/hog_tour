@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C e:/HOG_tour add frontend/src/i18n/messages.ts frontend/src/app/inscription/InscriptionClient.tsx backend/src/app.js)",
+      "Bash(git -C e:/HOG_tour commit -m ' *)",
+      "Bash(git -C e:/HOG_tour push)",
+      "Bash(xargs grep -l \"yassir/start\\\\|paymentId\\\\|paiement\")",
+      "Bash(git -C e:/HOG_tour add backend/src/app.js)",
+      "WebFetch(domain:stg-docs.payment.yassir.io)",
+      "Bash(git -C e:/HOG_tour add backend/src/app.js backend/src/yassir.js backend/src/db.js)",
+      "Bash(git -C e:/HOG_tour add backend/src/db.js)",
+      "Bash(git -C e:/HOG_tour add backend/src/app.js frontend/src/app/payment-success/PaymentSuccessClient.tsx)"
+    ]
+  }
+}

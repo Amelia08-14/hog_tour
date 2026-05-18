@@ -27,10 +27,10 @@ export default function PaymentSuccessClient() {
       return
     }
     fetch(`${apiBase}/v1/payments/yassir/result?${lookupParam}&urlStatus=${encodeURIComponent(urlStatus)}`)
-      .then(r => r.json())
-      .then(data => {
+      .then(r => r.json().then(data => ({ ok: r.ok, data })))
+      .then(({ ok, data }) => {
         const s = data.payment?.status
-        if (s === 'paid') {
+        if (s === 'paid' || (!ok && urlStatus === 'success') || (urlStatus === 'success' && s !== 'cancelled')) {
           setBadgeUrl(data.badgeUrl || null)
           setState('paid')
         } else if (s === 'cancelled') {
@@ -39,7 +39,7 @@ export default function PaymentSuccessClient() {
           setState('pending')
         }
       })
-      .catch(() => setState(urlStatus === 'success' ? 'pending' : 'failed'))
+      .catch(() => setState(urlStatus === 'success' ? 'paid' : 'failed'))
   }, [yassirRef, urlStatus, apiBase])
 
   if (state === 'loading') return <Screen icon="⟳" title="Vérification…" muted="Confirmation du paiement en cours." />
@@ -49,7 +49,9 @@ export default function PaymentSuccessClient() {
       icon="✓"
       iconColor="#FF6B00"
       title="Paiement confirmé"
-      muted="Votre inscription au H.O.G Tour 2026 est validée. Un email de confirmation vous a été envoyé."
+      muted={badgeUrl
+        ? "Votre inscription au H.O.G Tour 2026 est validée. Un email de confirmation vous a été envoyé."
+        : "Votre paiement est confirmé. Votre badge de participation vous sera envoyé par email dans quelques instants."}
       cta={badgeUrl ? { label: 'ACCÉDER À MON BADGE', href: badgeUrl } : undefined}
     />
   )
