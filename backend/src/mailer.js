@@ -42,7 +42,7 @@ async function getTransporter() {
   return transporterPromise
 }
 
-async function sendMail({ to, cc, bcc, subject, text, html, replyTo }) {
+async function sendMail({ to, cc, bcc, subject, text, html, replyTo, attachments }) {
   if (bool(process.env.MAIL_DISABLED)) return
 
   const from = String(process.env.MAIL_FROM || 'contact@hogalgierschapteralgeria.com')
@@ -59,6 +59,7 @@ async function sendMail({ to, cc, bcc, subject, text, html, replyTo }) {
     subject,
     text,
     html,
+    attachments: attachments || undefined,
   })
 }
 

@@ -800,6 +800,22 @@ function createApp() {
               const baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${Number(process.env.PORT) || 4000}`
               const badgeUrl = `${baseUrl.replace(/\/$/, '')}/v1/badge?token=${encodeURIComponent(String(badge.token))}&sig=${encodeURIComponent(signToken(String(badge.token)))}`
               const fullName = `${String(reg.prenom || '')} ${String(reg.nom || '')}`
+              const issuedDate = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
+              let pdfAttachment
+              try {
+                const pdfBuffer = await buildBadgePdf({
+                  prenom: String(reg.prenom || ''),
+                  nom: String(reg.nom || ''),
+                  passportNum: String(reg.passport_num || ''),
+                  zone: String(reg.residence_zone || ''),
+                  issuedDate,
+                  badgeId: String(badge.id || ''),
+                })
+                const safeNom = String(reg.nom || '').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()
+                pdfAttachment = { filename: `badge-hog2026-${safeNom}.pdf`, content: pdfBuffer, contentType: 'application/pdf' }
+              } catch (pdfErr) {
+                console.error('webhook badge PDF generation failed', pdfErr && pdfErr.message ? String(pdfErr.message) : pdfErr)
+              }
               await sendMail({
                 to: String(reg.email || ''),
                 subject: `Paiement confirmé — H.O.G Tour 2026`,
@@ -813,6 +829,7 @@ function createApp() {
                   badgeUrl,
                 }),
                 text: `Bonjour ${fullName},\n\nVotre paiement est confirmé. Accédez à votre badge : ${badgeUrl}\nRéférence : ${reg.id}\n`,
+                attachments: pdfAttachment ? [pdfAttachment] : undefined,
               })
             }
           } catch (mailErr) {
@@ -910,6 +927,22 @@ function createApp() {
               const reg = await db.get(`SELECT * FROM registrations WHERE id = ?`, [row.registration_id])
               if (reg) {
                 const fullName = `${String(reg.prenom || '')} ${String(reg.nom || '')}`
+                const issuedDate = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
+                let pdfAttachment
+                try {
+                  const pdfBuffer = await buildBadgePdf({
+                    prenom: String(reg.prenom || ''),
+                    nom: String(reg.nom || ''),
+                    passportNum: String(reg.passport_num || ''),
+                    zone: String(reg.residence_zone || ''),
+                    issuedDate,
+                    badgeId: String(b.id || ''),
+                  })
+                  const safeNom = String(reg.nom || '').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()
+                  pdfAttachment = { filename: `badge-hog2026-${safeNom}.pdf`, content: pdfBuffer, contentType: 'application/pdf' }
+                } catch (pdfErr) {
+                  console.error('badge PDF generation failed', pdfErr && pdfErr.message ? String(pdfErr.message) : pdfErr)
+                }
                 await sendMail({
                   to: String(reg.email || ''),
                   subject: `Paiement confirmé — H.O.G Tour 2026`,
@@ -923,6 +956,7 @@ function createApp() {
                     badgeUrl,
                   }),
                   text: `Bonjour ${fullName},\n\nVotre paiement est confirmé. Accédez à votre badge : ${badgeUrl}\nRéférence : ${reg.id}\n`,
+                  attachments: pdfAttachment ? [pdfAttachment] : undefined,
                 })
               }
             } catch (mailErr) {
@@ -964,12 +998,13 @@ function createApp() {
         `NOM: ${String(badge.nom || '').toUpperCase()} ${String(badge.prenom || '').toUpperCase()}`,
         `PASSPORT: ${String(badge.passport_num || '')}`,
       ].join('\n')
-      const svg = await QRCode.toString(qrPayload, { type: 'svg', margin: 1, width: 280 })
+      const qrDataUrl = await QRCode.toDataURL(qrPayload, { margin: 2, width: 280, color: { dark: '#000000', light: '#ffffff' } })
 
       const issuedDate = badge.issued_at
         ? new Date(badge.issued_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
         : ''
       const zone = String(badge.residence_zone || '').trim()
+      const pdfUrl = `${badgeUrl.replace('/v1/badge?', '/v1/badge/pdf?')}`
       const html = buildBadgeHtml({
         prenom: String(badge.prenom || ''),
         nom: String(badge.nom || ''),
@@ -978,11 +1013,52 @@ function createApp() {
         zone,
         issuedDate,
         badgeId: String(badge.badge_id || ''),
-        qrSvg: svg,
+        qrDataUrl,
+        pdfUrl,
       })
 
       res.setHeader('content-type', 'text/html; charset=utf-8')
       return res.status(200).send(html)
+    } catch (e) {
+      return res.status(500).json({ error: 'server_error' })
+    }
+  })
+
+  app.get('/v1/badge/pdf', async (req, res) => {
+    try {
+      const token = typeof req.query.token === 'string' ? req.query.token : ''
+      const sig = typeof req.query.sig === 'string' ? req.query.sig : ''
+      if (!token || !sig) return res.status(400).json({ error: 'missing_params' })
+
+      const expectedSig = signToken(token)
+      if (!safeEqual(sig, expectedSig)) return res.status(401).json({ error: 'invalid_signature' })
+
+      const db = await getDb()
+      const badge = await db.get(
+        `SELECT b.id as badge_id, b.issued_at, r.id as registration_id, r.prenom, r.nom, r.passport_num, r.residence_zone
+         FROM badges b
+         JOIN registrations r ON r.id = b.registration_id
+         WHERE b.token = ?`,
+        [token],
+      )
+      if (!badge) return res.status(404).json({ error: 'not_found' })
+
+      const issuedDate = badge.issued_at
+        ? new Date(badge.issued_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
+        : ''
+      const pdfBuffer = await buildBadgePdf({
+        prenom: String(badge.prenom || ''),
+        nom: String(badge.nom || ''),
+        passportNum: String(badge.passport_num || ''),
+        zone: String(badge.residence_zone || ''),
+        issuedDate,
+        badgeId: String(badge.badge_id || ''),
+      })
+
+      const safeNom = String(badge.nom || '').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()
+      res.setHeader('content-type', 'application/pdf')
+      res.setHeader('content-disposition', `attachment; filename="badge-hog2026-${safeNom}.pdf"`)
+      return res.send(pdfBuffer)
     } catch (e) {
       return res.status(500).json({ error: 'server_error' })
     }
@@ -1342,9 +1418,8 @@ function escapeHtml(s) {
   return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
 }
 
-function buildBadgeHtml({ prenom, nom, email, passportNum, zone, issuedDate, badgeId, qrSvg }) {
+function buildBadgeHtml({ prenom, nom, email, passportNum, zone, issuedDate, badgeId, qrDataUrl, pdfUrl }) {
   const h = escapeHtml
-  const safeFilename = `badge-hog2026-${String(nom || '').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}.png`
   return `<!doctype html>
 <html lang="fr">
 <head>
@@ -1374,7 +1449,7 @@ function buildBadgeHtml({ prenom, nom, email, passportNum, zone, issuedDate, bad
     .cval{font-size:12px;font-weight:600;color:rgba(255,255,255,.82);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .qr-section{padding:0 30px 26px;border:1px solid rgba(255,107,0,.14);border-top:none;background:rgba(14,11,8,.97)}
     .qr-wrap{background:#fff;padding:14px;display:flex;justify-content:center;margin-bottom:14px}
-    .qr-wrap svg{display:block;width:230px;height:230px}
+    .qr-wrap img{display:block;width:230px;height:230px;image-rendering:pixelated}
     .route{display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 14px;border:1px solid rgba(255,107,0,.09);background:rgba(255,107,0,.03)}
     .rcity{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.55)}
     .rarrow{color:rgba(255,107,0,.65);font-size:13px}
@@ -1386,8 +1461,7 @@ function buildBadgeHtml({ prenom, nom, email, passportNum, zone, issuedDate, bad
     .dl-btn:hover{opacity:.85}
     .dl-btn.secondary{background:transparent;color:rgba(255,255,255,.55);border:1px solid rgba(255,107,0,.25)}
     .dl-btn.secondary:hover{border-color:rgba(255,107,0,.55);color:#fff}
-    .dl-status{margin-top:12px;text-align:center;font-size:11px;letter-spacing:.15em;color:rgba(255,107,0,.7);min-height:18px}
-    @media print{.grain,.glow,.dl-wrap,.dl-status{display:none!important}.wrap{padding:0;justify-content:flex-start}.card{max-width:100%}}
+    @media print{.grain,.glow,.dl-wrap{display:none!important}.wrap{padding:0;justify-content:flex-start}.card{max-width:100%}}
   </style>
 </head>
 <body>
@@ -1415,7 +1489,7 @@ function buildBadgeHtml({ prenom, nom, email, passportNum, zone, issuedDate, bad
         </div>
       </div>
       <div class="qr-section">
-        <div class="qr-wrap">${qrSvg}</div>
+        <div class="qr-wrap"><img src="${qrDataUrl}" alt="QR Code" width="230" height="230"/></div>
         <div class="route">
           <span class="rcity">Alger</span>
           <span class="rarrow">→</span>
@@ -1430,49 +1504,140 @@ function buildBadgeHtml({ prenom, nom, email, passportNum, zone, issuedDate, bad
     </div>
 
     <div class="dl-wrap">
-      <button class="dl-btn" id="dl-png-btn" onclick="downloadBadge()">
+      ${pdfUrl ? `<a class="dl-btn" href="${h(pdfUrl)}" download>
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 3v13M5 14l7 7 7-7"/><path d="M3 21h18"/></svg>
-        Télécharger mon badge
-      </button>
+        Télécharger mon badge (PDF)
+      </a>` : ''}
       <button class="dl-btn secondary" onclick="window.print()">
-        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2v5a2 2 0 01-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
         Imprimer
       </button>
     </div>
-    <div class="dl-status" id="dl-status"></div>
   </div>
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
-  <script>
-    async function downloadBadge() {
-      const btn = document.getElementById('dl-png-btn')
-      const status = document.getElementById('dl-status')
-      btn.disabled = true
-      btn.textContent = 'Génération...'
-      status.textContent = ''
-      try {
-        const card = document.getElementById('badge-card')
-        const canvas = await html2canvas(card, {
-          backgroundColor: '#0A0A08',
-          scale: 2,
-          useCORS: true,
-          logging: false,
-        })
-        const link = document.createElement('a')
-        link.download = ${JSON.stringify(safeFilename)}
-        link.href = canvas.toDataURL('image/png')
-        link.click()
-        status.textContent = 'Badge téléchargé ✓'
-      } catch(e) {
-        status.textContent = 'Erreur — utilisez Imprimer à la place'
-      } finally {
-        btn.disabled = false
-        btn.innerHTML = '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 3v13M5 14l7 7 7-7"/><path d="M3 21h18"/></svg> Télécharger mon badge'
-      }
-    }
-  </script>
 </body>
 </html>`
+}
+
+async function buildBadgePdf({ prenom, nom, passportNum, zone, issuedDate, badgeId }) {
+  const PDFDocument = require('pdfkit')
+  const qrPayload = [
+    'HOG TOUR 2026',
+    `NOM: ${String(nom || '').toUpperCase()} ${String(prenom || '').toUpperCase()}`,
+    `PASSPORT: ${String(passportNum || '')}`,
+  ].join('\n')
+  const qrDataUrl = await QRCode.toDataURL(qrPayload, { margin: 2, width: 300, color: { dark: '#000000', light: '#ffffff' } })
+  const qrBuffer = Buffer.from(qrDataUrl.split(',')[1], 'base64')
+
+  return new Promise((resolve, reject) => {
+    const W = 420
+    const H = 600
+    const PAD = 28
+    const doc = new PDFDocument({
+      size: [W, H],
+      margins: { top: 0, bottom: 0, left: 0, right: 0 },
+      info: { Title: `Badge H.O.G Tour 2026 — ${prenom} ${nom}` },
+    })
+    const chunks = []
+    doc.on('data', c => chunks.push(c))
+    doc.on('end', () => resolve(Buffer.concat(chunks)))
+    doc.on('error', reject)
+
+    // Background
+    doc.rect(0, 0, W, H).fill('#0A0A08')
+    // Top orange bar
+    doc.rect(0, 0, W, 4).fill('#FF6B00')
+    // Header block
+    doc.rect(0, 4, W, 258).fill('#111009')
+    doc.rect(0, 4, W, 258).strokeColor('#FF6B00').strokeOpacity(0.12).lineWidth(0.7).stroke()
+
+    // Eyebrow
+    let y = 28
+    doc.moveTo(PAD, y + 4).lineTo(PAD + 16, y + 4).strokeColor('#FF6B00').strokeOpacity(0.55).lineWidth(0.7).stroke()
+    doc.font('Helvetica').fontSize(7).fillColor('#FF6B00').fillOpacity(0.75)
+      .text('H.O.G ALGIERS CHAPTER', PAD + 22, y, { characterSpacing: 2.5, lineBreak: false })
+    doc.moveTo(W - PAD - 16, y + 4).lineTo(W - PAD, y + 4).strokeColor('#FF6B00').strokeOpacity(0.55).lineWidth(0.7).stroke()
+
+    // Role
+    y = 48
+    doc.fillOpacity(1).font('Helvetica').fontSize(8).fillColor('#666050')
+      .text('PARTICIPANT · H.O.G TOUR 2026', PAD, y, { characterSpacing: 2, lineBreak: false })
+
+    // Name
+    y = 66
+    doc.font('Helvetica-Bold').fontSize(30).fillColor('#F0EBE0').fillOpacity(1)
+      .text(String(prenom || '').toUpperCase(), PAD, y, { lineBreak: false })
+    y += 34
+    doc.font('Helvetica-Bold').fontSize(30).fillColor('#F0EBE0')
+      .text(String(nom || '').toUpperCase(), PAD, y, { lineBreak: false })
+
+    // Zone pill
+    y += 42
+    if (zone) {
+      doc.rect(PAD, y, 70, 16).fill('#FF6B00')
+      doc.font('Helvetica-Bold').fontSize(7).fillColor('#000000')
+        .text(String(zone).toUpperCase(), PAD + 8, y + 4, { characterSpacing: 1.5, lineBreak: false })
+      y += 24
+    }
+
+    // Divider
+    y += 4
+    doc.moveTo(PAD, y).lineTo(W - PAD, y).strokeColor('#FF6B00').strokeOpacity(0.28).lineWidth(0.5).stroke()
+    y += 12
+
+    // Info grid 2×2
+    const cellW = (W - PAD * 2 - 8) / 2
+    const cellH = 42
+    const cells = [
+      { label: 'PASSEPORT', val: String(passportNum || '—') },
+      { label: 'ÉMIS LE', val: String(issuedDate || '—') },
+      { label: 'DATES', val: '29 Oct — 1 Nov' },
+      { label: 'DISTANCE', val: '1 580 km' },
+    ]
+    cells.forEach((cell, i) => {
+      const col = i % 2
+      const row = Math.floor(i / 2)
+      const cx = PAD + col * (cellW + 8)
+      const cy = y + row * (cellH + 6)
+      doc.rect(cx, cy, cellW, cellH).strokeColor('#FF6B00').strokeOpacity(0.09).lineWidth(0.5).stroke()
+      doc.font('Helvetica').fontSize(7).fillColor('#555040').fillOpacity(1)
+        .text(cell.label, cx + 8, cy + 8, { characterSpacing: 2, lineBreak: false })
+      doc.font('Helvetica-Bold').fontSize(11).fillColor('#D0C8BC').fillOpacity(1)
+        .text(cell.val, cx + 8, cy + 22, { lineBreak: false, width: cellW - 16, ellipsis: true })
+    })
+
+    y += 2 * (cellH + 6) + 10
+
+    // QR section
+    doc.rect(0, y, W, H - y).fill('#111009')
+    doc.moveTo(0, y).lineTo(W, y).strokeColor('#FF6B00').strokeOpacity(0.1).lineWidth(0.5).stroke()
+    y += 16
+
+    // QR image (white bg)
+    const qrSize = 168
+    const qrX = Math.round((W - qrSize) / 2)
+    doc.rect(qrX - 12, y, qrSize + 24, qrSize + 24).fill('#ffffff')
+    doc.image(qrBuffer, qrX, y + 12, { width: qrSize, height: qrSize })
+    y += qrSize + 38
+
+    // Route
+    doc.font('Helvetica').fontSize(9).fillColor('#FF6B00').fillOpacity(0.8)
+      .text('ALGER  →  GHARDAÏA  →  ALGER', 0, y, { align: 'center', width: W, characterSpacing: 1.5 })
+    y += 18
+
+    // Scan label
+    doc.font('Helvetica').fontSize(7).fillColor('#444030').fillOpacity(1)
+      .text('SCANNEZ POUR VÉRIFIER', 0, y, { align: 'center', width: W, characterSpacing: 2.5 })
+    y += 13
+
+    // Badge ID
+    doc.font('Helvetica').fontSize(6).fillColor('#282820').fillOpacity(1)
+      .text(String(badgeId || ''), 0, y, { align: 'center', width: W })
+
+    // Bottom bar
+    doc.rect(0, H - 2, W, 2).fill('#FF6B00').fillOpacity(0.35)
+
+    doc.end()
+  })
 }
 
 function buildConfirmationEmailHtml({ prenom, fullName, registrationId, mode, paymentUrl, badgeUrl }) {
