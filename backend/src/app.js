@@ -959,15 +959,12 @@ function createApp() {
 
       const baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${Number(process.env.PORT) || 4000}`
       const badgeUrl = `${baseUrl.replace(/\/$/, '')}/v1/badge?token=${encodeURIComponent(token)}&sig=${encodeURIComponent(sig)}`
-      const qrPayload = JSON.stringify({
-        type: 'hogtour2026',
-        nom: String(badge.nom || ''),
-        prenom: String(badge.prenom || ''),
-        passportNum: String(badge.passport_num || ''),
-        token,
-        sig,
-      })
-      const svg = await QRCode.toString(qrPayload, { type: 'svg', margin: 1, width: 260 })
+      const qrPayload = [
+        'HOG TOUR 2026',
+        `NOM: ${String(badge.nom || '').toUpperCase()} ${String(badge.prenom || '').toUpperCase()}`,
+        `PASSPORT: ${String(badge.passport_num || '')}`,
+      ].join('\n')
+      const svg = await QRCode.toString(qrPayload, { type: 'svg', margin: 1, width: 280 })
 
       const issuedDate = badge.issued_at
         ? new Date(badge.issued_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -1347,6 +1344,7 @@ function escapeHtml(s) {
 
 function buildBadgeHtml({ prenom, nom, email, passportNum, zone, issuedDate, badgeId, qrSvg }) {
   const h = escapeHtml
+  const safeFilename = `badge-hog2026-${String(nom || '').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}.png`
   return `<!doctype html>
 <html lang="fr">
 <head>
@@ -1376,20 +1374,27 @@ function buildBadgeHtml({ prenom, nom, email, passportNum, zone, issuedDate, bad
     .cval{font-size:12px;font-weight:600;color:rgba(255,255,255,.82);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .qr-section{padding:0 30px 26px;border:1px solid rgba(255,107,0,.14);border-top:none;background:rgba(14,11,8,.97)}
     .qr-wrap{background:#fff;padding:14px;display:flex;justify-content:center;margin-bottom:14px}
-    .qr-wrap svg{display:block;width:220px;height:220px}
+    .qr-wrap svg{display:block;width:230px;height:230px}
     .route{display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 14px;border:1px solid rgba(255,107,0,.09);background:rgba(255,107,0,.03)}
     .rcity{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.55)}
     .rarrow{color:rgba(255,107,0,.65);font-size:13px}
     .scan{margin-top:12px;text-align:center;font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:rgba(255,255,255,.28)}
     .bid{margin-top:8px;text-align:center;font-size:9px;font-family:monospace;color:rgba(255,255,255,.16);word-break:break-all}
     .bottom-bar{background:rgba(255,107,0,.35);height:1px}
+    .dl-wrap{margin-top:24px;display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
+    .dl-btn{display:inline-flex;align-items:center;gap:8px;background:#FF6B00;color:#000;font-weight:700;font-size:11px;letter-spacing:3px;text-transform:uppercase;border:none;cursor:pointer;padding:14px 28px;text-decoration:none;transition:opacity .15s}
+    .dl-btn:hover{opacity:.85}
+    .dl-btn.secondary{background:transparent;color:rgba(255,255,255,.55);border:1px solid rgba(255,107,0,.25)}
+    .dl-btn.secondary:hover{border-color:rgba(255,107,0,.55);color:#fff}
+    .dl-status{margin-top:12px;text-align:center;font-size:11px;letter-spacing:.15em;color:rgba(255,107,0,.7);min-height:18px}
+    @media print{.grain,.glow,.dl-wrap,.dl-status{display:none!important}.wrap{padding:0;justify-content:flex-start}.card{max-width:100%}}
   </style>
 </head>
 <body>
   <div class="grain"></div>
   <div class="glow"></div>
   <div class="wrap">
-    <div class="card">
+    <div id="badge-card" class="card">
       <div class="corners"></div>
       <div class="top-bar"></div>
       <div class="header">
@@ -1423,7 +1428,49 @@ function buildBadgeHtml({ prenom, nom, email, passportNum, zone, issuedDate, bad
       </div>
       <div class="bottom-bar"></div>
     </div>
+
+    <div class="dl-wrap">
+      <button class="dl-btn" id="dl-png-btn" onclick="downloadBadge()">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 3v13M5 14l7 7 7-7"/><path d="M3 21h18"/></svg>
+        Télécharger mon badge
+      </button>
+      <button class="dl-btn secondary" onclick="window.print()">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+        Imprimer
+      </button>
+    </div>
+    <div class="dl-status" id="dl-status"></div>
   </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
+  <script>
+    async function downloadBadge() {
+      const btn = document.getElementById('dl-png-btn')
+      const status = document.getElementById('dl-status')
+      btn.disabled = true
+      btn.textContent = 'Génération...'
+      status.textContent = ''
+      try {
+        const card = document.getElementById('badge-card')
+        const canvas = await html2canvas(card, {
+          backgroundColor: '#0A0A08',
+          scale: 2,
+          useCORS: true,
+          logging: false,
+        })
+        const link = document.createElement('a')
+        link.download = ${JSON.stringify(safeFilename)}
+        link.href = canvas.toDataURL('image/png')
+        link.click()
+        status.textContent = 'Badge téléchargé ✓'
+      } catch(e) {
+        status.textContent = 'Erreur — utilisez Imprimer à la place'
+      } finally {
+        btn.disabled = false
+        btn.innerHTML = '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 3v13M5 14l7 7 7-7"/><path d="M3 21h18"/></svg> Télécharger mon badge'
+      }
+    }
+  </script>
 </body>
 </html>`
 }
