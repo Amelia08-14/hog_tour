@@ -549,8 +549,10 @@ function createApp() {
       } catch {}
 
       const callbackUrl = String(process.env.YASSIR_CALLBACK_URL || '').trim() || undefined
-      const successRedirectUrl = String(process.env.YASSIR_SUCCESS_REDIRECT_URL || '').trim() || undefined
       const failRedirectUrl = String(process.env.YASSIR_FAIL_REDIRECT_URL || '').trim() || undefined
+      const baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${Number(process.env.PORT) || 4000}`
+      const successRedirectBase = String(process.env.YASSIR_SUCCESS_REDIRECT_URL || '').trim() || `${baseUrl.replace(/\/$/, '')}/payment-success`
+      const successRedirectUrl = `${successRedirectBase}${successRedirectBase.includes('?') ? '&' : '?'}internalId=${encodeURIComponent(String(row.payment_id))}`
       const countryIso2 = String(row.pays_iso2 || '').trim()
       if (!countryIso2) return res.status(400).json({ error: 'missing_fields' })
       if (!iso2ToIso3(countryIso2)) return res.status(400).json({ error: 'invalid_country' })
@@ -828,24 +830,32 @@ function createApp() {
   app.get('/v1/payments/yassir/result', async (req, res) => {
     try {
       const ref = typeof req.query.ref === 'string' ? req.query.ref.trim() : ''
+      const internalId = typeof req.query.internalId === 'string' ? req.query.internalId.trim() : ''
       const urlStatus = typeof req.query.urlStatus === 'string' ? req.query.urlStatus.trim().toLowerCase() : ''
-      if (!ref) return res.status(400).json({ error: 'missing_params' })
+      if (!ref && !internalId) return res.status(400).json({ error: 'missing_params' })
 
       const db = await getDb()
-      const row = await db.get(
-        `SELECT p.id as payment_id, p.registration_id, p.status as payment_status, p.reference, p.client_secret
-         FROM payments p WHERE p.reference = ?`,
-        [ref],
-      )
+      const row = internalId
+        ? await db.get(
+            `SELECT p.id as payment_id, p.registration_id, p.status as payment_status, p.reference, p.client_secret
+             FROM payments p WHERE p.id = ?`,
+            [internalId],
+          )
+        : await db.get(
+            `SELECT p.id as payment_id, p.registration_id, p.status as payment_status, p.reference, p.client_secret
+             FROM payments p WHERE p.reference = ?`,
+            [ref],
+          )
       if (!row) return res.status(404).json({ error: 'not_found' })
 
       let finalStatus = String(row.payment_status || 'pending')
       let justPaid = false
 
+      const intentId = String(row.reference || ref || '').trim()
       try {
-        const chk = await checkIntent({ intentId: ref, clientSecret: row.client_secret || undefined })
-        const mappedStatus = extractYassirStatus(chk)
-        console.log(`yassir result check: ref=${ref} raw=${JSON.stringify(chk && chk.data ? { statusCode: chk.data.statusCode, status: chk.data.status } : chk)} mapped=${mappedStatus}`)
+        const chk = intentId ? await checkIntent({ intentId, clientSecret: row.client_secret || undefined }) : null
+        const mappedStatus = chk ? extractYassirStatus(chk) : null
+        console.log(`yassir result check: ref=${intentId} raw=${JSON.stringify(chk && chk.data ? { statusCode: chk.data.statusCode, status: chk.data.status } : chk)} mapped=${mappedStatus}`)
         if (mappedStatus && mappedStatus !== finalStatus) {
           await db.run(
             `UPDATE payments SET status = ?, updated_at = ?, updated_by = ? WHERE id = ?`,

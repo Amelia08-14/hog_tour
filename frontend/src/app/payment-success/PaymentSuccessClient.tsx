@@ -8,6 +8,7 @@ export default function PaymentSuccessClient() {
   const sp = useSearchParams()
   const urlStatus = sp.get('status') || ''
   const yassirRef = sp.get('paymentId') || ''
+  const internalId = sp.get('internalId') || ''
 
   const [state, setState] = useState<State>('loading')
   const [badgeUrl, setBadgeUrl] = useState<string | null>(null)
@@ -18,11 +19,14 @@ export default function PaymentSuccessClient() {
   }, [])
 
   useEffect(() => {
-    if (!yassirRef) {
+    const lookupParam = internalId
+      ? `internalId=${encodeURIComponent(internalId)}`
+      : yassirRef ? `ref=${encodeURIComponent(yassirRef)}` : ''
+    if (!lookupParam) {
       setState(urlStatus === 'success' ? 'pending' : 'failed')
       return
     }
-    fetch(`${apiBase}/v1/payments/yassir/result?ref=${encodeURIComponent(yassirRef)}&urlStatus=${encodeURIComponent(urlStatus)}`)
+    fetch(`${apiBase}/v1/payments/yassir/result?${lookupParam}&urlStatus=${encodeURIComponent(urlStatus)}`)
       .then(r => r.json())
       .then(data => {
         const s = data.payment?.status
