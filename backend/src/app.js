@@ -833,6 +833,7 @@ function createApp() {
       if (!row) return res.status(404).json({ error: 'not_found' })
 
       let finalStatus = String(row.payment_status || 'pending')
+      let justPaid = false
 
       try {
         const chk = await checkIntent({ intentId: ref })
@@ -842,6 +843,7 @@ function createApp() {
             `UPDATE payments SET status = ?, updated_at = ?, updated_by = ? WHERE id = ?`,
             [mappedStatus, nowIso(), 'yassir_api', String(row.payment_id)],
           )
+          if (mappedStatus === 'paid') justPaid = true
           finalStatus = mappedStatus
         }
       } catch {}
@@ -851,6 +853,34 @@ function createApp() {
         const b = await ensureBadgeForRegistration(db, String(row.registration_id))
         const baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${Number(process.env.PORT) || 4000}`
         badgeUrl = `${baseUrl.replace(/\/$/, '')}/v1/badge?token=${encodeURIComponent(String(b.token))}&sig=${encodeURIComponent(signToken(String(b.token)))}`
+
+        if (justPaid) {
+          const mailDisabled = ['1', 'true', 'yes'].includes(String(process.env.MAIL_DISABLED || '').toLowerCase().trim())
+          if (!mailDisabled) {
+            try {
+              const reg = await db.get(`SELECT * FROM registrations WHERE id = ?`, [row.registration_id])
+              if (reg) {
+                const fullName = `${String(reg.prenom || '')} ${String(reg.nom || '')}`
+                await sendMail({
+                  to: String(reg.email || ''),
+                  subject: `Paiement confirmé — H.O.G Tour 2026`,
+                  replyTo: String(process.env.MAIL_TO || process.env.MAIL_FROM || 'contact@hogalgierschapteralgeria.com'),
+                  html: buildConfirmationEmailHtml({
+                    prenom: String(reg.prenom || ''),
+                    fullName,
+                    registrationId: String(reg.id || ''),
+                    mode: 'paid',
+                    paymentUrl: null,
+                    badgeUrl,
+                  }),
+                  text: `Bonjour ${fullName},\n\nVotre paiement est confirmé. Accédez à votre badge : ${badgeUrl}\nRéférence : ${reg.id}\n`,
+                })
+              }
+            } catch (mailErr) {
+              console.error('result confirmation email failed', mailErr && mailErr.message ? String(mailErr.message) : mailErr)
+            }
+          }
+        }
       }
 
       return res.json({ payment: { status: finalStatus }, badgeUrl })
