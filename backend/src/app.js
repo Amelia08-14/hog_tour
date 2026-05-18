@@ -741,17 +741,16 @@ function createApp() {
     try {
       const payload = req.body || {}
 
-      if (isTrue(process.env.YASSIR_DEBUG)) {
-        console.log('yassir webhook payload', JSON.stringify({
-          headers: {
-            'content-type': req.headers['content-type'],
-            'x-signature': req.headers['x-signature'],
-            'x-webhook-signature': req.headers['x-webhook-signature'],
-            'x-yassir-signature': req.headers['x-yassir-signature'],
-          },
-          body: payload,
-        }, null, 2))
-      }
+      // Always log webhook — critical for debugging payment status
+      console.log('yassir webhook received', JSON.stringify({
+        headers: {
+          'content-type': req.headers['content-type'],
+          'x-signature': req.headers['x-signature'],
+          'x-webhook-signature': req.headers['x-webhook-signature'],
+          'x-yassir-signature': req.headers['x-yassir-signature'],
+        },
+        body: payload,
+      }, null, 2))
 
       // Extract intent/payment ID — format unknown until Shabrina confirms
       const data = (payload && payload.data) || payload
@@ -829,6 +828,7 @@ function createApp() {
   app.get('/v1/payments/yassir/result', async (req, res) => {
     try {
       const ref = typeof req.query.ref === 'string' ? req.query.ref.trim() : ''
+      const urlStatus = typeof req.query.urlStatus === 'string' ? req.query.urlStatus.trim().toLowerCase() : ''
       if (!ref) return res.status(400).json({ error: 'missing_params' })
 
       const db = await getDb()
@@ -856,6 +856,17 @@ function createApp() {
         }
       } catch (chkErr) {
         console.error(`yassir result checkIntent failed: ref=${ref}`, chkErr && chkErr.message ? String(chkErr.message) : chkErr, chkErr && chkErr.body ? JSON.stringify(chkErr.body) : '')
+      }
+
+      // Fallback: trust Yassir's redirect status=success when checkIntent fails or returns non-paid
+      if (finalStatus !== 'paid' && urlStatus === 'success') {
+        console.log(`yassir result: checkIntent inconclusive, trusting urlStatus=success for ref=${ref}`)
+        await db.run(
+          `UPDATE payments SET status = 'paid', updated_at = ?, updated_by = 'yassir_redirect' WHERE id = ?`,
+          [nowIso(), String(row.payment_id)],
+        )
+        justPaid = true
+        finalStatus = 'paid'
       }
 
       let badgeUrl = null

@@ -22,7 +22,7 @@ export default function PaymentSuccessClient() {
       setState(urlStatus === 'success' ? 'pending' : 'failed')
       return
     }
-    fetch(`${apiBase}/v1/payments/yassir/result?ref=${encodeURIComponent(yassirRef)}`)
+    fetch(`${apiBase}/v1/payments/yassir/result?ref=${encodeURIComponent(yassirRef)}&urlStatus=${encodeURIComponent(urlStatus)}`)
       .then(r => r.json())
       .then(data => {
         const s = data.payment?.status
