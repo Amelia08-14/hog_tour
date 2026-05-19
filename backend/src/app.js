@@ -1504,7 +1504,7 @@ function buildBadgeHtml({ prenom, nom, email, passportNum, zone, issuedDate, bad
     </div>
 
     <div class="dl-wrap">
-      ${pdfUrl ? `<a class="dl-btn" href="${h(pdfUrl)}" download>
+      ${pdfUrl ? `<a class="dl-btn" href="${h(pdfUrl)}" download="badge-hog2026-${h(String(nom || '').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase())}.pdf">
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 3v13M5 14l7 7 7-7"/><path d="M3 21h18"/></svg>
         Télécharger mon badge (PDF)
       </a>` : ''}
