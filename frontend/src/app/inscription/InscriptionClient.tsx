@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useMemo, useState, type ChangeEventHandler, type ReactNode, type FormEvent } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { getCountries, getCountryCallingCode } from 'libphonenumber-js'
 import type { Lang } from '@/i18n/shared'
 import { t } from '@/i18n/messages'
@@ -17,6 +18,8 @@ const V = {
 } as const
 
 export default function InscriptionClient({ lang }: { lang: Lang }) {
+  const sp = useSearchParams()
+  const isTestMode = sp.get('test') === '1'
   const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -461,6 +464,7 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
                   <CB value={V.hebergement.simple} label={String(t(lang, 'registration.options.accommodationSingle'))} state={hebergement} set={setHebergement} />
                   <CB value={V.hebergement.doubleMotard} label={String(t(lang, 'registration.options.accommodationDoubleRider'))} state={hebergement} set={setHebergement} />
                   <CB value={V.hebergement.couple} label={String(t(lang, 'registration.options.accommodationCouple'))} state={hebergement} set={setHebergement} />
+                  {isTestMode && <CB value="Pack test (1 €)" label="Pack test — 1 €" state={hebergement} set={setHebergement} />}
                 </div>
               </G>
 
