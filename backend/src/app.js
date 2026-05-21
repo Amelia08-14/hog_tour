@@ -599,9 +599,9 @@ function createApp() {
       let redirectUrl = intentRedirectUrl || null
 
       if (!intentRedirectUrl) {
-        // No hosted checkout URL from intent — try proceedIntent (staging/SDK flow)
+        // No hosted checkout URL from intent — try proceedIntent
         if (!resolvedPaymentMethodCode && !resolvedPaymentMethodId && !msisdn) {
-          resolvedPaymentMethodCode = 'STRIPE'
+          resolvedPaymentMethodCode = 'WALLET_V2'
         }
         try {
           proceed = await proceedIntent({
@@ -617,11 +617,11 @@ function createApp() {
           mappedStatus = extractYassirStatus(proceed) || mappedStatus
           const proceedData = (proceed && proceed.data) || {}
           redirectUrl =
-            (proceedData.metadata && proceedData.metadata.payUrl) ||
-            firstString(proceedData.metadata, ['payUrl', 'redirectUrl', 'url']) ||
-            firstString(proceed, ['redirectUrl', 'paymentUrl', 'url', 'checkoutUrl', 'redirect_url', 'payment_url']) ||
-            firstString(proceed && proceed.nextAction, ['url', 'redirectUrl', 'paymentUrl']) ||
-            firstString(intent && intent.nextAction, ['url', 'redirectUrl', 'paymentUrl']) ||
+            firstString(proceed, ['payUrl', 'redirectUrl', 'paymentUrl', 'url', 'checkoutUrl', 'redirect_url', 'payment_url']) ||
+            firstString(proceedData, ['payUrl', 'redirectUrl', 'url', 'checkoutUrl']) ||
+            (proceedData.metadata && firstString(proceedData.metadata, ['payUrl', 'redirectUrl', 'url'])) ||
+            firstString(proceed && proceed.nextAction, ['url', 'redirectUrl', 'payUrl']) ||
+            firstString(intent && intent.nextAction, ['url', 'redirectUrl', 'payUrl']) ||
             null
         } catch (proceedErr) {
           console.error('yassir proceedIntent failed, no hosted URL available:', proceedErr && proceedErr.message ? String(proceedErr.message) : proceedErr, proceedErr && proceedErr.body ? JSON.stringify(proceedErr.body) : '')
