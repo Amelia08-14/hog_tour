@@ -578,31 +578,59 @@ function createApp() {
         firstString(intentData, ['clientSecret', 'client_secret']) ||
         firstString(intent, ['clientSecret', 'client_secret'])
 
-      if (!resolvedPaymentMethodCode && !resolvedPaymentMethodId && !msisdn) {
-        resolvedPaymentMethodCode = 'STRIPE'
+      if (isTrue(process.env.YASSIR_DEBUG)) {
+        console.log('yassir intent response keys:', JSON.stringify(Object.keys(intentData)), 'top-level:', JSON.stringify(Object.keys(intent || {})))
+        console.log('yassir intent data sample:', JSON.stringify({
+          id: intentData.id, paymentId: intentData.paymentId, intentId: intentData.intentId,
+          redirectUrl: intentData.redirectUrl, checkoutUrl: intentData.checkoutUrl,
+          payUrl: intentData.payUrl, status: intentData.status, statusCode: intentData.statusCode,
+          clientSecret: clientSecret ? '***' : undefined,
+        }))
       }
 
-      const proceed = await proceedIntent({
-        intentId,
-        clientSecret,
-        paymentMethodCode: resolvedPaymentMethodCode,
-        paymentMethodId: resolvedPaymentMethodId,
-        msisdn,
-        otp,
-        countryCode: iso2ToIso3(countryIso2),
-        locale: 'en_US',
-      })
+      // Check if createPaymentIntent already provided a hosted checkout URL (production Yassir flow)
+      const intentRedirectUrl =
+        firstString(intentData, ['redirectUrl', 'checkoutUrl', 'payUrl', 'paymentUrl', 'url', 'redirect_url', 'checkout_url']) ||
+        (intentData.metadata && firstString(intentData.metadata, ['payUrl', 'redirectUrl', 'url'])) ||
+        firstString(intent, ['redirectUrl', 'checkoutUrl', 'payUrl', 'paymentUrl', 'url', 'redirect_url'])
 
-      const mappedStatus = extractYassirStatus(proceed) || extractYassirStatus(intent) || 'pending'
+      let proceed = null
+      let mappedStatus = extractYassirStatus(intent) || 'pending'
+      let redirectUrl = intentRedirectUrl || null
 
-      const proceedData = (proceed && proceed.data) || {}
-      const redirectUrl =
-        (proceedData.metadata && proceedData.metadata.payUrl) ||
-        firstString(proceedData.metadata, ['payUrl', 'redirectUrl', 'url']) ||
-        firstString(proceed, ['redirectUrl', 'paymentUrl', 'url', 'checkoutUrl', 'redirect_url', 'payment_url']) ||
-        firstString(intent, ['redirectUrl', 'paymentUrl', 'url', 'checkoutUrl', 'redirect_url', 'payment_url']) ||
-        firstString(proceed && proceed.nextAction, ['url', 'redirectUrl', 'paymentUrl']) ||
-        firstString(intent && intent.nextAction, ['url', 'redirectUrl', 'paymentUrl'])
+      if (!intentRedirectUrl) {
+        // No hosted checkout URL from intent — try proceedIntent (staging/SDK flow)
+        if (!resolvedPaymentMethodCode && !resolvedPaymentMethodId && !msisdn) {
+          resolvedPaymentMethodCode = 'STRIPE'
+        }
+        try {
+          proceed = await proceedIntent({
+            intentId,
+            clientSecret,
+            paymentMethodCode: resolvedPaymentMethodCode,
+            paymentMethodId: resolvedPaymentMethodId,
+            msisdn,
+            otp,
+            countryCode: iso2ToIso3(countryIso2),
+            locale: 'en_US',
+          })
+          mappedStatus = extractYassirStatus(proceed) || mappedStatus
+          const proceedData = (proceed && proceed.data) || {}
+          redirectUrl =
+            (proceedData.metadata && proceedData.metadata.payUrl) ||
+            firstString(proceedData.metadata, ['payUrl', 'redirectUrl', 'url']) ||
+            firstString(proceed, ['redirectUrl', 'paymentUrl', 'url', 'checkoutUrl', 'redirect_url', 'payment_url']) ||
+            firstString(proceed && proceed.nextAction, ['url', 'redirectUrl', 'paymentUrl']) ||
+            firstString(intent && intent.nextAction, ['url', 'redirectUrl', 'paymentUrl']) ||
+            null
+        } catch (proceedErr) {
+          console.error('yassir proceedIntent failed, no hosted URL available:', proceedErr && proceedErr.message ? String(proceedErr.message) : proceedErr, proceedErr && proceedErr.body ? JSON.stringify(proceedErr.body) : '')
+          return res.status(500).json({
+            error: 'payment_method_unavailable',
+            message: proceedErr && proceedErr.body && proceedErr.body.errors ? proceedErr.body.errors.join(', ') : 'Méthode de paiement non disponible.',
+          })
+        }
+      }
 
       const updatedAt = nowIso()
       await db.run(
