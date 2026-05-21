@@ -522,6 +522,9 @@ function createApp() {
           country: String(row.pays_iso2 || ''),
           amountCents: Number(row.amount_cents),
         })
+        if (isTrue(process.env.YASSIR_DEBUG)) {
+          console.log('yassir listPaymentMethods raw:', JSON.stringify(methodsResp))
+        }
         const list =
           (methodsResp && Array.isArray(methodsResp.items) && methodsResp.items) ||
           (methodsResp && Array.isArray(methodsResp.paymentMethods) && methodsResp.paymentMethods) ||
@@ -603,6 +606,17 @@ function createApp() {
         if (!resolvedPaymentMethodCode && !resolvedPaymentMethodId && !msisdn) {
           resolvedPaymentMethodCode = 'WALLET_V2'
         }
+        const extractRedirectFromProceed = (p) => {
+          const pd = (p && p.data) || {}
+          return (
+            firstString(p, ['payUrl', 'redirectUrl', 'paymentUrl', 'url', 'checkoutUrl', 'redirect_url', 'payment_url']) ||
+            firstString(pd, ['payUrl', 'redirectUrl', 'url', 'checkoutUrl']) ||
+            (pd.metadata && firstString(pd.metadata, ['payUrl', 'redirectUrl', 'url'])) ||
+            firstString(p && p.nextAction, ['url', 'redirectUrl', 'payUrl']) ||
+            null
+          )
+        }
+
         try {
           proceed = await proceedIntent({
             intentId,
@@ -615,20 +629,33 @@ function createApp() {
             locale: 'en_US',
           })
           mappedStatus = extractYassirStatus(proceed) || mappedStatus
-          const proceedData = (proceed && proceed.data) || {}
-          redirectUrl =
-            firstString(proceed, ['payUrl', 'redirectUrl', 'paymentUrl', 'url', 'checkoutUrl', 'redirect_url', 'payment_url']) ||
-            firstString(proceedData, ['payUrl', 'redirectUrl', 'url', 'checkoutUrl']) ||
-            (proceedData.metadata && firstString(proceedData.metadata, ['payUrl', 'redirectUrl', 'url'])) ||
-            firstString(proceed && proceed.nextAction, ['url', 'redirectUrl', 'payUrl']) ||
-            firstString(intent && intent.nextAction, ['url', 'redirectUrl', 'payUrl']) ||
-            null
+          redirectUrl = extractRedirectFromProceed(proceed)
+          if (isTrue(process.env.YASSIR_DEBUG)) console.log('yassir proceed response:', JSON.stringify(proceed))
         } catch (proceedErr) {
-          console.error('yassir proceedIntent failed, no hosted URL available:', proceedErr && proceedErr.message ? String(proceedErr.message) : proceedErr, proceedErr && proceedErr.body ? JSON.stringify(proceedErr.body) : '')
-          return res.status(500).json({
-            error: 'payment_method_unavailable',
-            message: proceedErr && proceedErr.body && proceedErr.body.errors ? proceedErr.body.errors.join(', ') : 'Méthode de paiement non disponible.',
-          })
+          const isNotActive = proceedErr && proceedErr.body && Array.isArray(proceedErr.body.errors) &&
+            proceedErr.body.errors.some(e => String(e).toLowerCase().includes('not active'))
+          if (isNotActive) {
+            // Payment method not configured — retry with no method code (universal checkout fallback)
+            console.log('yassir proceed: method not active, retrying with empty body')
+            try {
+              proceed = await proceedIntent({ intentId, clientSecret, countryCode: iso2ToIso3(countryIso2), locale: 'en_US' })
+              mappedStatus = extractYassirStatus(proceed) || mappedStatus
+              redirectUrl = extractRedirectFromProceed(proceed)
+              if (isTrue(process.env.YASSIR_DEBUG)) console.log('yassir proceed (empty body) response:', JSON.stringify(proceed))
+            } catch (proceedErr2) {
+              console.error('yassir proceedIntent (empty body) also failed:', proceedErr2 && proceedErr2.message ? String(proceedErr2.message) : proceedErr2, proceedErr2 && proceedErr2.body ? JSON.stringify(proceedErr2.body) : '')
+              return res.status(500).json({
+                error: 'payment_method_unavailable',
+                message: 'Aucune méthode de paiement disponible sur ce compte Yassir. Contactez le support.',
+              })
+            }
+          } else {
+            console.error('yassir proceedIntent failed:', proceedErr && proceedErr.message ? String(proceedErr.message) : proceedErr, proceedErr && proceedErr.body ? JSON.stringify(proceedErr.body) : '')
+            return res.status(500).json({
+              error: 'payment_method_unavailable',
+              message: proceedErr && proceedErr.body && proceedErr.body.errors ? proceedErr.body.errors.join(', ') : 'Méthode de paiement non disponible.',
+            })
+          }
         }
       }
 
