@@ -10,11 +10,6 @@ const V = {
   nationalite: { dz: 'Algérienne', autre: 'Autre' },
   residence: { dz: 'Algérie', lby: 'Lybie', tun: 'Tunisie', ailleurs: 'Ailleurs' },
   profil: { solo: 'Solo', groupe: "Membre d'un groupe de Motards" },
-  hebergement: {
-    simple: 'Chambre simple (480 €)',
-    doubleMotard: 'Chambre double 400€/ motard',
-    couple: 'Chambre double pour couple 780€',
-  },
 } as const
 
 export default function InscriptionClient({ lang }: { lang: Lang }) {
@@ -29,7 +24,6 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
   const [residenceZone, setResidenceZone] = useState('')
   const [profil, setProfil] = useState('')
   const [profilGroupe, setProfilGroupe] = useState('')
-  const [hebergement, setHebergement] = useState('')
   const [taille, setTaille] = useState('')
   const [paiement, setPaiement] = useState('')
   const [pays, setPays] = useState('')
@@ -86,7 +80,6 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
     if (!nationalite) missingState.push(String(t(lang, 'registration.fields.nationality')))
     if (!residenceZone) missingState.push(String(t(lang, 'registration.fields.residence')))
     if (!profil) missingState.push(String(t(lang, 'registration.fields.profile')))
-    if (!hebergement) missingState.push(String(t(lang, 'registration.fields.accommodation')))
     if (!taille) missingState.push(String(t(lang, 'registration.fields.tshirtSize')))
     if (!pays) missingState.push(String(t(lang, 'registration.fields.country')))
 
@@ -123,7 +116,6 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
       residenceZone,
       profil,
       profilGroupe: profil === V.profil.groupe ? profilGroupe.trim() : '',
-      hebergement,
       tailleTshirt: taille,
       paiementMode: paiement || (ON_SITE_ZONES.includes(residenceZone as typeof V.residence.dz) ? 'on_site' : residenceZone ? 'online_yassir' : ''),
       permisNum: String(fd.get('permis') || '').trim(),
@@ -181,7 +173,6 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
       out.set('residenceZone', payload.residenceZone)
       out.set('profil', payload.profil)
       if (payload.profilGroupe) out.set('profilGroupe', payload.profilGroupe)
-      out.set('hebergement', payload.hebergement)
       out.set('tailleTshirt', payload.tailleTshirt)
       out.set('paiementMode', payload.paiementMode)
       out.set('permisNum', payload.permisNum)
@@ -459,30 +450,11 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
                 />
               )}
 
-              <G label={`${t(lang, 'registration.fields.accommodation')} *`}>
-                <div className="flex gap-5 flex-wrap">
-                  <CB value={V.hebergement.simple} label={String(t(lang, 'registration.options.accommodationSingle'))} state={hebergement} set={setHebergement} />
-                  <CB value={V.hebergement.doubleMotard} label={String(t(lang, 'registration.options.accommodationDoubleRider'))} state={hebergement} set={setHebergement} />
-                  <CB value={V.hebergement.couple} label={String(t(lang, 'registration.options.accommodationCouple'))} state={hebergement} set={setHebergement} />
-                  {isTestMode && <CB value="Pack test (1 €)" label="Pack test — 1 €" state={hebergement} set={setHebergement} />}
-                </div>
-              </G>
-
               <G label={`${t(lang, 'registration.fields.tshirtSize')} *`}>
                 <div className="flex gap-5 flex-wrap">
                   {['S', 'M', 'L', 'XL', 'XXL'].map(sz => (
                     <CB key={sz} value={sz} label={sz} state={taille} set={setTaille} />
                   ))}
-                </div>
-              </G>
-
-              <G label={`${t(lang, 'registration.fields.payment')} *`}>
-                <div className="border border-white/8 bg-bg2 px-5 py-4 text-[13px] text-htext leading-relaxed">
-                  {ON_SITE_ZONES.includes(residenceZone as typeof V.residence.dz)
-                    ? t(lang, 'registration.payment.onSite')
-                    : residenceZone === V.residence.ailleurs
-                      ? t(lang, 'registration.payment.online')
-                      : t(lang, 'registration.payment.chooseResidence')}
                 </div>
               </G>
 
