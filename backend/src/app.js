@@ -39,9 +39,9 @@ function parsePriceToCents(input) {
 }
 
 const HEBERGEMENT_PRICES = {
-  'Chambre simple': { dzd: 7500000, eur: 48000 },
-  'Chambre double — Motard': { dzd: 6500000, eur: 40000 },
-  'Chambre double couple': { dzd: 12500000, eur: 78000 },
+  'Chambre simple': { dzd: 7500000, eur: 96000 },
+  'Chambre double — Motard': { dzd: 6500000, eur: 88000 },
+  'Chambre double couple': { dzd: 12500000, eur: 174000 },
   'Pack test': { dzd: 100, eur: 100 },
 }
 const ON_SITE_ZONES = ['Algérie', 'Lybie', 'Tunisie']
