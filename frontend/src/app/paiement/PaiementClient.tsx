@@ -19,22 +19,24 @@ const ACCOMMODATIONS = [
   {
     value: 'Chambre simple',
     labelDzd: '75 000 DA',
-    labelEur: '480 €',
+    labelEur: '960 €',
     desc: '1 personne — chambre individuelle',
   },
   {
     value: 'Chambre double — Motard',
     labelDzd: '65 000 DA / motard',
-    labelEur: '400 € / motard',
+    labelEur: '880 € / motard',
     desc: '2 motards — chambre partagée',
   },
   {
     value: 'Chambre double couple',
     labelDzd: '125 000 DA',
-    labelEur: '780 €',
+    labelEur: '1 740 €',
     desc: '2 personnes en couple',
   },
 ]
+
+const EUR_INCLUDES_NOTE = 'Tarif tout compris : traversée par bateau en classe cabine, demi-pension, moto incluse.'
 
 function formatAmount(cents: number, currency: string) {
   if (currency === 'DZD') {
@@ -233,6 +235,12 @@ export default function PaiementClient() {
                 )
               })}
             </div>
+            {isAilleurs && (
+              <div className="mt-4 border border-orange/10 bg-bg3 px-4 py-3 flex gap-2">
+                <span className="text-orange/60 text-[11px] mt-[1px]">★</span>
+                <p className="text-muted text-[11px] leading-relaxed">{EUR_INCLUDES_NOTE}</p>
+              </div>
+            )}
             <button
               type="submit"
               disabled={loading || !selectedAccommodation}
