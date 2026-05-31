@@ -356,18 +356,36 @@ function createApp() {
           await sendMail({
             subject: `Nouvelle inscription — ${userFullName}`,
             replyTo: userEmail,
+            html: buildAdminRegistrationEmailHtml({
+              prenom: String(body.prenom).trim(),
+              nom: String(body.nom).trim(),
+              sexe: String(body.sexe).trim(),
+              email: userEmail,
+              phoneCountryIso2: String(body.phoneCountryIso2).trim().toUpperCase(),
+              phoneNumber: String(body.phoneNumber).trim(),
+              adresse: String(body.adresse).trim(),
+              ville: String(body.ville).trim(),
+              paysIso2: String(body.paysIso2).trim().toUpperCase(),
+              nationalite: String(body.nationalite).trim(),
+              nationaliteAutre: body.nationaliteAutre ? String(body.nationaliteAutre).trim() : '',
+              residenceZone: rz,
+              profil: String(body.profil).trim(),
+              profilGroupe: body.profilGroupe ? String(body.profilGroupe).trim() : '',
+              tailleTshirt: String(body.tailleTshirt).trim(),
+              permisNum: String(body.permisNum).trim(),
+              immatriculation: String(body.immatriculation).trim(),
+              passportNum: String(body.passportNum).trim(),
+              derivedPaymentMode,
+              registrationId,
+              paymentUrl,
+              filesCount: storedFiles.length,
+            }),
             text:
               `Nouvelle inscription H.O.G Tour 2026\n\n` +
-              `Nom: ${String(body.nom).trim()}\n` +
-              `Prénom: ${String(body.prenom).trim()}\n` +
-              `Email: ${userEmail}\n` +
-              `Téléphone: ${String(body.phoneCountryIso2).trim().toUpperCase()} ${String(body.phoneNumber).trim()}\n` +
-              `Pays: ${String(body.paysIso2).trim().toUpperCase()}\n` +
-              `Nationalité: ${String(body.nationalite).trim()}${body.nationalite === 'Autre' ? ` (${String(body.nationaliteAutre || '').trim()})` : ''}\n` +
-              `Résidence: ${rz}\n` +
-              `Paiement: ${derivedPaymentMode}\n` +
+              `${userFullName} — ${userEmail}\n` +
+              `Résidence: ${rz} | Paiement: ${derivedPaymentMode}\n` +
               `Passeport: ${String(body.passportNum).trim()}\n` +
-              `Lien paiement: ${paymentUrl}\n\n` +
+              `Lien paiement: ${paymentUrl}\n` +
               `ID: ${registrationId}\n`,
           })
         } catch (e) {
@@ -1803,6 +1821,109 @@ async function buildBadgePdf({ prenom, nom, passportNum, zone, issuedDate, badge
 
     doc.end()
   })
+}
+
+function buildAdminRegistrationEmailHtml({
+  prenom, nom, sexe, email, phoneCountryIso2, phoneNumber,
+  adresse, ville, paysIso2, nationalite, nationaliteAutre,
+  residenceZone, profil, profilGroupe, tailleTshirt,
+  permisNum, immatriculation, passportNum,
+  derivedPaymentMode, registrationId, paymentUrl, filesCount,
+}) {
+  const h = escapeHtml
+  const payMode = derivedPaymentMode === 'on_site' ? 'Sur place (espèces)' : 'En ligne — Yassir'
+  const field = (label, value) => value ? `
+    <tr>
+      <td style="padding:9px 16px 9px 0;border-bottom:1px solid rgba(255,107,0,.07);width:38%;vertical-align:top;">
+        <span style="font-size:8px;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,107,0,.55);">${h(label)}</span>
+      </td>
+      <td style="padding:9px 0 9px 12px;border-bottom:1px solid rgba(255,107,0,.07);vertical-align:top;">
+        <span style="font-size:13px;color:rgba(255,255,255,.82);font-weight:600;">${h(String(value))}</span>
+      </td>
+    </tr>` : ''
+
+  const nationaliteDisplay = nationalite === 'Autre' && nationaliteAutre
+    ? `Autre (${nationaliteAutre})`
+    : nationalite
+  const profilDisplay = profil === "Membre d'un groupe de Motards" && profilGroupe
+    ? `Groupe — ${profilGroupe}`
+    : profil
+
+  return `<!doctype html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#0A0A08;font-family:Arial,Helvetica,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0A0A08;padding:40px 16px;">
+<tr><td align="center">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;">
+
+  <tr><td style="background:#FF6B00;height:3px;font-size:0;">&nbsp;</td></tr>
+
+  <!-- Header -->
+  <tr><td style="background:#111009;border:1px solid rgba(255,107,0,.14);border-top:none;padding:32px 40px 24px;">
+    <p style="margin:0 0 6px;font-size:8px;letter-spacing:5px;text-transform:uppercase;color:rgba(255,107,0,.6);">Nouvelle inscription</p>
+    <h1 style="margin:0 0 4px;font-size:28px;font-weight:900;letter-spacing:4px;text-transform:uppercase;color:#FF6B00;line-height:1;">H.O.G TOUR 2026</h1>
+    <p style="margin:0 0 20px;font-size:18px;font-weight:900;letter-spacing:3px;color:rgba(255,255,255,.12);">ALGIERS CHAPTER ALGERIA</p>
+    <hr style="border:none;border-top:1px solid rgba(255,107,0,.15);margin:0 0 20px;">
+    <p style="margin:0;font-size:20px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.9);">${h(prenom)} ${h(nom)}</p>
+    <p style="margin:4px 0 0;font-size:12px;color:rgba(255,107,0,.7);">${h(email)}</p>
+  </td></tr>
+
+  <!-- Lien paiement -->
+  <tr><td style="background:#0f0e0a;border:1px solid rgba(255,107,0,.14);border-top:none;padding:20px 40px;">
+    <p style="margin:0 0 12px;font-size:8px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.3);">Lien paiement (étape 2 — hébergement)</p>
+    <table cellpadding="0" cellspacing="0" border="0">
+      <tr>
+        <td style="background:#FF6B00;padding:12px 28px;">
+          <a href="${h(paymentUrl)}" style="color:#000;font-weight:700;font-size:10px;letter-spacing:3px;text-transform:uppercase;text-decoration:none;">OUVRIR LE LIEN &rarr;</a>
+        </td>
+      </tr>
+    </table>
+    <p style="margin:10px 0 0;font-size:10px;color:rgba(255,255,255,.2);word-break:break-all;">${h(paymentUrl)}</p>
+  </td></tr>
+
+  <!-- Données personnelles -->
+  <tr><td style="background:#0D0C09;border:1px solid rgba(255,107,0,.09);border-top:none;padding:24px 40px;">
+    <p style="margin:0 0 16px;font-size:8px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,107,0,.5);">Données personnelles</p>
+    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+      ${field('Sexe', sexe)}
+      ${field('Téléphone', `+${phoneCountryIso2} ${phoneNumber}`)}
+      ${field('Adresse', adresse)}
+      ${field('Ville', ville)}
+      ${field('Pays', paysIso2)}
+      ${field('Nationalité', nationaliteDisplay)}
+      ${field('Zone de résidence', residenceZone)}
+    </table>
+  </td></tr>
+
+  <!-- Moto & inscription -->
+  <tr><td style="background:#0A0A08;border:1px solid rgba(255,107,0,.09);border-top:none;padding:24px 40px;">
+    <p style="margin:0 0 16px;font-size:8px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,107,0,.5);">Moto &amp; inscription</p>
+    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+      ${field('N° passeport', passportNum)}
+      ${field('N° permis', permisNum)}
+      ${field('Immatriculation', immatriculation)}
+      ${field('Profil', profilDisplay)}
+      ${field('Taille T-shirt', tailleTshirt)}
+      ${field('Mode paiement', payMode)}
+      ${field('Hébergement', 'À choisir (étape 2)')}
+      ${filesCount ? field('Fichiers joints', `${filesCount} fichier${filesCount > 1 ? 's' : ''}`) : ''}
+    </table>
+  </td></tr>
+
+  <!-- Footer -->
+  <tr><td style="background:#0A0A08;border:1px solid rgba(255,107,0,.06);border-top:none;padding:18px 40px;text-align:center;">
+    <p style="margin:0;font-size:9px;color:rgba(255,255,255,.15);letter-spacing:2px;">ID — ${h(registrationId)}</p>
+    <p style="margin:8px 0 0;font-size:9px;color:rgba(255,255,255,.12);letter-spacing:1px;">H.O.G ALGIERS CHAPTER ALGERIA &middot; 2026</p>
+  </td></tr>
+
+  <tr><td style="background:rgba(255,107,0,.35);height:1px;font-size:0;">&nbsp;</td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>`
 }
 
 function buildConfirmationEmailHtml({ prenom, fullName, registrationId, mode, paymentUrl, badgeUrl }) {
