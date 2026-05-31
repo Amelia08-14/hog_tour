@@ -376,16 +376,18 @@ function createApp() {
               immatriculation: String(body.immatriculation).trim(),
               passportNum: String(body.passportNum).trim(),
               derivedPaymentMode,
+              hebergement: '',
+              amountCents: null,
+              currency: null,
               registrationId,
-              paymentUrl,
-              filesCount: storedFiles.length,
+              baseUrl,
+              files: storedFiles.map(f => ({ id: f.id, originalName: f.originalName, mime: f.mime || '' })),
             }),
             text:
               `Nouvelle inscription H.O.G Tour 2026\n\n` +
               `${userFullName} — ${userEmail}\n` +
               `Résidence: ${rz} | Paiement: ${derivedPaymentMode}\n` +
               `Passeport: ${String(body.passportNum).trim()}\n` +
-              `Lien paiement: ${paymentUrl}\n` +
               `ID: ${registrationId}\n`,
           })
         } catch (e) {
@@ -950,6 +952,40 @@ function createApp() {
       await db.run(`UPDATE payments SET amount_cents = ?, currency = ?, updated_at = ?, updated_by = 'user_choice' WHERE id = ?`,
         [pricing.amountCents, pricing.currency, nowIso(), paymentIdParam])
 
+      const mailDisabled = ['1', 'true', 'yes'].includes(String(process.env.MAIL_DISABLED || '').toLowerCase().trim())
+      if (!mailDisabled) {
+        try {
+          const baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${Number(process.env.PORT) || 4000}`
+          const amountDisplay = pricing.currency === 'DZD'
+            ? `${(pricing.amountCents / 100).toLocaleString('fr-DZ')} DZD`
+            : `${(pricing.amountCents / 100).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €`
+          const payMode = String(row.residence_zone || '').toLowerCase() === 'ailleurs' ? 'En ligne — Yassir (ou sur place)' : 'Sur place (espèces)'
+          await sendMail({
+            subject: `Hébergement choisi — ${String(row.prenom || '')} ${String(row.nom || '')}`,
+            html: `<!doctype html><html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:32px 16px;background:#0A0A08;font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto;">
+  <tr><td style="background:#FF6B00;height:3px;font-size:0;">&nbsp;</td></tr>
+  <tr><td style="background:#111009;border:1px solid rgba(255,107,0,.14);border-top:none;padding:28px 36px;">
+    <p style="margin:0 0 4px;font-size:8px;letter-spacing:4px;text-transform:uppercase;color:rgba(255,107,0,.6);">Hébergement confirmé</p>
+    <h2 style="margin:0 0 20px;font-size:22px;font-weight:900;letter-spacing:2px;color:#FF6B00;">${escapeHtml(String(row.prenom || ''))} ${escapeHtml(String(row.nom || ''))}</h2>
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr><td style="padding:8px 0;border-bottom:1px solid rgba(255,107,0,.08);"><span style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,107,0,.5);">Hébergement</span><br><span style="font-size:14px;font-weight:700;color:rgba(255,255,255,.85);">${escapeHtml(hebergement)}</span></td></tr>
+      <tr><td style="padding:8px 0;border-bottom:1px solid rgba(255,107,0,.08);"><span style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,107,0,.5);">Montant</span><br><span style="font-size:16px;font-weight:700;color:#FF6B00;">${escapeHtml(amountDisplay)}</span></td></tr>
+      <tr><td style="padding:8px 0;border-bottom:1px solid rgba(255,107,0,.08);"><span style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,107,0,.5);">Mode paiement</span><br><span style="font-size:13px;font-weight:600;color:rgba(255,255,255,.8);">${escapeHtml(payMode)}</span></td></tr>
+      <tr><td style="padding:8px 0;"><span style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,107,0,.5);">Référence</span><br><span style="font-size:11px;color:rgba(255,255,255,.4);font-family:monospace;">${escapeHtml(paymentIdParam)}</span></td></tr>
+    </table>
+  </td></tr>
+  <tr><td style="background:rgba(255,107,0,.35);height:1px;font-size:0;">&nbsp;</td></tr>
+</table>
+</body></html>`,
+            text: `Hébergement choisi — ${String(row.prenom || '')} ${String(row.nom || '')}\n${hebergement} — ${amountDisplay}\nMode: ${payMode}\nRéf: ${paymentIdParam}\n`,
+          })
+        } catch (mailErr) {
+          console.error('choose-accommodation admin email failed', mailErr && mailErr.message ? String(mailErr.message) : mailErr)
+        }
+      }
+
       return res.json({ ok: true, hebergement, amountCents: pricing.amountCents, currency: pricing.currency })
     } catch (e) {
       return res.status(500).json({ error: 'server_error' })
@@ -1150,6 +1186,24 @@ function createApp() {
       }
 
       return res.json({ payment: { status: finalStatus }, badgeUrl })
+    } catch (e) {
+      return res.status(500).json({ error: 'server_error' })
+    }
+  })
+
+  app.get('/v1/files/download/:id', async (req, res) => {
+    try {
+      const id = req.params.id || ''
+      const sig = typeof req.query.sig === 'string' ? req.query.sig.trim() : ''
+      if (!id || !sig) return res.status(400).json({ error: 'missing_params' })
+      if (!safeEqual(sig, signToken(id))) return res.status(401).json({ error: 'invalid_signature' })
+
+      const db = await getDb()
+      const f = await db.get(`SELECT original_name, mime, storage_path FROM registration_files WHERE id = ?`, [id])
+      if (!f) return res.status(404).json({ error: 'not_found' })
+      const abs = resolveStoragePath(f.storage_path)
+      if (!abs) return res.status(404).json({ error: 'not_found' })
+      return res.download(abs, String(f.original_name || 'file'))
     } catch (e) {
       return res.status(500).json({ error: 'server_error' })
     }
@@ -1828,7 +1882,8 @@ function buildAdminRegistrationEmailHtml({
   adresse, ville, paysIso2, nationalite, nationaliteAutre,
   residenceZone, profil, profilGroupe, tailleTshirt,
   permisNum, immatriculation, passportNum,
-  derivedPaymentMode, registrationId, paymentUrl, filesCount,
+  derivedPaymentMode, hebergement, amountCents, currency,
+  registrationId, baseUrl, files,
 }) {
   const h = escapeHtml
   const payMode = derivedPaymentMode === 'on_site' ? 'Sur place (espèces)' : 'En ligne — Yassir'
@@ -1843,11 +1898,25 @@ function buildAdminRegistrationEmailHtml({
     </tr>` : ''
 
   const nationaliteDisplay = nationalite === 'Autre' && nationaliteAutre
-    ? `Autre (${nationaliteAutre})`
-    : nationalite
+    ? `Autre (${nationaliteAutre})` : nationalite
   const profilDisplay = profil === "Membre d'un groupe de Motards" && profilGroupe
-    ? `Groupe — ${profilGroupe}`
-    : profil
+    ? `Groupe — ${profilGroupe}` : profil
+  const hebergementDisplay = hebergement || 'À choisir (étape 2)'
+  const amountDisplay = amountCents != null
+    ? new Intl.NumberFormat('fr-FR', { style: 'currency', currency: currency || 'EUR', maximumFractionDigits: currency === 'DZD' ? 0 : 2 }).format(amountCents / 100)
+    : null
+
+  const filesHtml = files && files.length ? files.map(f => {
+    const dlUrl = `${baseUrl}/v1/files/download/${encodeURIComponent(f.id)}?sig=${encodeURIComponent(signToken(f.id))}`
+    const ext = String(f.originalName || '').split('.').pop().toLowerCase()
+    const icon = ['jpg','jpeg','png','webp'].includes(ext) ? '🖼' : '📄'
+    return `<tr>
+      <td style="padding:7px 0;border-bottom:1px solid rgba(255,107,0,.06);">
+        <a href="${h(dlUrl)}" style="color:#FF6B00;font-size:12px;text-decoration:none;font-weight:600;">${icon} ${h(f.originalName || 'fichier')}</a>
+        <span style="margin-left:8px;font-size:10px;color:rgba(255,255,255,.3);">(${h(f.mime || '')})</span>
+      </td>
+    </tr>`
+  }).join('') : ''
 
   return `<!doctype html>
 <html>
@@ -1867,19 +1936,6 @@ function buildAdminRegistrationEmailHtml({
     <hr style="border:none;border-top:1px solid rgba(255,107,0,.15);margin:0 0 20px;">
     <p style="margin:0;font-size:20px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.9);">${h(prenom)} ${h(nom)}</p>
     <p style="margin:4px 0 0;font-size:12px;color:rgba(255,107,0,.7);">${h(email)}</p>
-  </td></tr>
-
-  <!-- Lien paiement -->
-  <tr><td style="background:#0f0e0a;border:1px solid rgba(255,107,0,.14);border-top:none;padding:20px 40px;">
-    <p style="margin:0 0 12px;font-size:8px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.3);">Lien paiement (étape 2 — hébergement)</p>
-    <table cellpadding="0" cellspacing="0" border="0">
-      <tr>
-        <td style="background:#FF6B00;padding:12px 28px;">
-          <a href="${h(paymentUrl)}" style="color:#000;font-weight:700;font-size:10px;letter-spacing:3px;text-transform:uppercase;text-decoration:none;">OUVRIR LE LIEN &rarr;</a>
-        </td>
-      </tr>
-    </table>
-    <p style="margin:10px 0 0;font-size:10px;color:rgba(255,255,255,.2);word-break:break-all;">${h(paymentUrl)}</p>
   </td></tr>
 
   <!-- Données personnelles -->
@@ -1906,10 +1962,16 @@ function buildAdminRegistrationEmailHtml({
       ${field('Profil', profilDisplay)}
       ${field('Taille T-shirt', tailleTshirt)}
       ${field('Mode paiement', payMode)}
-      ${field('Hébergement', 'À choisir (étape 2)')}
-      ${filesCount ? field('Fichiers joints', `${filesCount} fichier${filesCount > 1 ? 's' : ''}`) : ''}
+      ${field('Hébergement', hebergementDisplay)}
+      ${amountDisplay ? field('Montant', amountDisplay) : ''}
     </table>
   </td></tr>
+
+  ${filesHtml ? `<!-- Fichiers joints -->
+  <tr><td style="background:#0f0e0a;border:1px solid rgba(255,107,0,.09);border-top:none;padding:24px 40px;">
+    <p style="margin:0 0 14px;font-size:8px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,107,0,.5);">Fichiers joints</p>
+    <table width="100%" cellpadding="0" cellspacing="0" border="0">${filesHtml}</table>
+  </td></tr>` : ''}
 
   <!-- Footer -->
   <tr><td style="background:#0A0A08;border:1px solid rgba(255,107,0,.06);border-top:none;padding:18px 40px;text-align:center;">
