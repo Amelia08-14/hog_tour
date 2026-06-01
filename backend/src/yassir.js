@@ -186,7 +186,7 @@ async function ensureCustomer({ phoneE164, email, firstName, lastName }) {
 
 async function listPaymentMethods({ country, amountCents }) {
   const c = iso2ToIso3(country)
-  return yassirRequest('GET', `/api/v1/payment-methods`, {
+  return yassirRequest('GET', `/api/v1/payment-methods/available`, {
     query: { countryCode: c || undefined, amount: amountCents != null ? Number(amountCents) : undefined },
   })
 }
