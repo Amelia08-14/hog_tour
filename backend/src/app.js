@@ -44,7 +44,7 @@ const HEBERGEMENT_PRICES = {
   'Chambre double couple': { dzd: 12500000, eur: 174000 },
   'Pack test': { dzd: 100, eur: 100 },
 }
-const ON_SITE_ZONES = ['Algérie', 'Lybie', 'Tunisie']
+const ON_SITE_ZONES = ['Algérie']
 
 function hebergementPrice(hebergement, residenceZone) {
   const prices = HEBERGEMENT_PRICES[hebergement]
@@ -240,7 +240,7 @@ function createApp() {
       }
 
       const rz = String(body.residenceZone).trim()
-      if (!['Algérie', 'Lybie', 'Tunisie', 'Ailleurs'].includes(rz)) {
+      if (!['Algérie', 'Ailleurs'].includes(rz)) {
         return res.status(400).json({ error: 'invalid_fields', fields: ['residenceZone'] })
       }
 
