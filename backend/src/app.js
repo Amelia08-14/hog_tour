@@ -542,17 +542,14 @@ function createApp() {
         'intent.url': intent && intent.url,
       }))
 
-      // Filtre : exclure notre propre domaine et le site principal Yassir (pas une page de paiement)
+      // Filtre : exclure uniquement notre propre domaine (évite fausse confirmation immédiate)
+      // yassir.com est conservé — c'est la page de checkout hébergée pour CIB/Dahabia
       const ownBase = (process.env.PUBLIC_BASE_URL || '').replace(/\/$/, '').toLowerCase()
       function isValidYassirCheckout(u) {
         if (!u) return false
         const s = String(u).trim()
         if (!s.startsWith('http')) return false
         if (ownBase && s.toLowerCase().startsWith(ownBase)) return false
-        try {
-          const h = new URL(s).hostname.toLowerCase()
-          if (h === 'yassir.com' || h === 'www.yassir.com') return false
-        } catch { return false }
         return true
       }
 
