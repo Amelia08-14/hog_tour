@@ -892,14 +892,18 @@ function createApp() {
         body: payload,
       }, null, 2))
 
-      // Extract intent/payment ID — format unknown until Shabrina confirms
+      // Le payload webhook utilise actionId (= notre payment_id) et orderId (= réf Yassir).
+      // Pas de champ paymentId/intentId — on couvre tous les cas.
       const data = (payload && payload.data) || payload
-      const intentId =
-        firstString(data, ['paymentId', 'intentId', 'intent_id', 'payment_id', 'transactionId', 'paymentIntentId']) ||
-        firstString(payload, ['paymentId', 'intentId', 'intent_id', 'payment_id', 'transactionId', 'paymentIntentId'])
+      const actionId =
+        firstString(data, ['actionId', 'action_id']) ||
+        firstString(payload, ['actionId', 'action_id'])
+      const orderRef =
+        firstString(data, ['orderId', 'order_id', 'paymentId', 'intentId', 'intent_id', 'payment_id', 'transactionId', 'paymentIntentId']) ||
+        firstString(payload, ['orderId', 'order_id', 'paymentId', 'intentId', 'intent_id', 'payment_id', 'transactionId', 'paymentIntentId'])
 
-      if (!intentId) {
-        console.warn('yassir webhook: no intentId in payload', JSON.stringify(payload))
+      if (!actionId && !orderRef) {
+        console.warn('yassir webhook: no actionId/orderId in payload', JSON.stringify(payload))
         return
       }
 
@@ -910,16 +914,18 @@ function createApp() {
       }
 
       const db = await getDb()
+      // actionId = notre payment.id ; orderRef = peut être notre reference (intentId stocké)
       const row = await db.get(
         `SELECT p.id as payment_id, p.registration_id, p.status as payment_status
-         FROM payments p WHERE p.reference = ?`,
-        [intentId],
+         FROM payments p WHERE p.id = ? OR p.reference = ? OR p.id = ?`,
+        [actionId || '', orderRef || '', orderRef || ''],
       )
 
       if (!row) {
-        console.warn('yassir webhook: no payment found for intentId', intentId)
+        console.warn('yassir webhook: no payment found for actionId/orderId', actionId, orderRef)
         return
       }
+      const intentId = actionId || orderRef
 
       if (mappedStatus === String(row.payment_status || '').trim()) return
 
