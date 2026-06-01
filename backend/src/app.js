@@ -540,8 +540,14 @@ function createApp() {
       const failRedirectUrl = String(process.env.YASSIR_FAIL_REDIRECT_URL || '').trim() || undefined
       const baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${Number(process.env.PORT) || 4000}`
       const successRedirectBase = String(process.env.YASSIR_SUCCESS_REDIRECT_URL || '').trim() || `${baseUrl.replace(/\/$/, '')}/payment-success`
-      const successRedirectUrl = `${successRedirectBase}${successRedirectBase.includes('?') ? '&' : '?'}internalId=${encodeURIComponent(String(row.payment_id))}`
-      const countryIso2 = String(row.pays_iso2 || '').trim()
+      const successRedirectUrl = `${successRedirectBase}${successRedirectBase.includes('?') ? '&' : '?'}internalId=${encodeURIComponent(String(row.payment_id))}&status=success`
+
+      // Pour les résidents "Ailleurs" payant en EUR : si leur pays est local (DZ/LY/TN),
+      // on utilise FR pour que Yassir propose Stripe (les méthodes DZD ne fonctionnent pas en EUR)
+      const LOCAL_PAYS = ['DZ', 'LY', 'TN', 'LIB']
+      const isAilleursPaying = !ON_SITE_ZONES.includes(String(row.residence_zone || ''))
+      const rawCountry = String(row.pays_iso2 || '').trim().toUpperCase()
+      const countryIso2 = isAilleursPaying && LOCAL_PAYS.includes(rawCountry) ? 'FR' : (rawCountry || 'DZ')
       if (!countryIso2) return res.status(400).json({ error: 'missing_fields' })
       if (!iso2ToIso3(countryIso2)) return res.status(400).json({ error: 'invalid_country' })
 
@@ -942,9 +948,14 @@ function createApp() {
       if (!row) return res.status(404).json({ error: 'not_found' })
       if (!row.amount_cents) return res.status(400).json({ error: 'accommodation_not_chosen' })
 
+      const LOCAL_PAYS_M = ['DZ', 'LY', 'TN', 'LIB']
+      const isAilleursM = !ON_SITE_ZONES.includes(String(row.residence_zone || ''))
+      const rawCountryM = String(row.pays_iso2 || '').trim().toUpperCase()
+      const effectiveCountry = isAilleursM && LOCAL_PAYS_M.includes(rawCountryM) ? 'FR' : (rawCountryM || 'DZ')
+
       let methods = []
       try {
-        const resp = await listPaymentMethods({ country: String(row.pays_iso2 || ''), amountCents: Number(row.amount_cents) })
+        const resp = await listPaymentMethods({ country: effectiveCountry, amountCents: Number(row.amount_cents) })
         if (isTrue(process.env.YASSIR_DEBUG)) console.log('payments/methods raw:', JSON.stringify(resp))
         methods =
           (resp && Array.isArray(resp.items) && resp.items) ||
