@@ -42,7 +42,7 @@ const HEBERGEMENT_PRICES = {
   'Chambre simple': { dzd: 7500000, eur: 96000 },
   'Chambre double — Motard': { dzd: 6500000, eur: 88000 },
   'Chambre double couple': { dzd: 12500000, eur: 174000 },
-  'Pack test': { dzd: 100, eur: 100 },
+  'Pack test': { dzd: 1000, eur: 100 },
 }
 const ON_SITE_ZONES = ['Algérie']
 
@@ -345,55 +345,10 @@ function createApp() {
 
       const baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${Number(process.env.PORT) || 4000}`
       const paymentSig = signToken(paymentId)
-      const paymentUrl = `${baseUrl.replace(/\/$/, '')}/paiement?paymentId=${encodeURIComponent(paymentId)}&sig=${encodeURIComponent(paymentSig)}`
+      const isTestMode = body.testMode === '1'
+      const paymentUrl = `${baseUrl.replace(/\/$/, '')}/paiement?paymentId=${encodeURIComponent(paymentId)}&sig=${encodeURIComponent(paymentSig)}${isTestMode ? '&test=1' : ''}`
 
-      const mailDisabled = ['1', 'true', 'yes'].includes(String(process.env.MAIL_DISABLED || '').toLowerCase().trim())
-      const userEmail = String(body.email).trim()
-      const userFullName = `${String(body.prenom).trim()} ${String(body.nom).trim()}`
-
-      if (!mailDisabled) {
-        try {
-          await sendMail({
-            subject: `Nouvelle inscription — ${userFullName}`,
-            replyTo: userEmail,
-            html: buildAdminRegistrationEmailHtml({
-              prenom: String(body.prenom).trim(),
-              nom: String(body.nom).trim(),
-              sexe: String(body.sexe).trim(),
-              email: userEmail,
-              phoneCountryIso2: String(body.phoneCountryIso2).trim().toUpperCase(),
-              phoneNumber: String(body.phoneNumber).trim(),
-              adresse: String(body.adresse).trim(),
-              ville: String(body.ville).trim(),
-              paysIso2: String(body.paysIso2).trim().toUpperCase(),
-              nationalite: String(body.nationalite).trim(),
-              nationaliteAutre: body.nationaliteAutre ? String(body.nationaliteAutre).trim() : '',
-              residenceZone: rz,
-              profil: String(body.profil).trim(),
-              profilGroupe: body.profilGroupe ? String(body.profilGroupe).trim() : '',
-              tailleTshirt: String(body.tailleTshirt).trim(),
-              permisNum: String(body.permisNum).trim(),
-              immatriculation: String(body.immatriculation).trim(),
-              passportNum: String(body.passportNum).trim(),
-              derivedPaymentMode,
-              hebergement: '',
-              amountCents: null,
-              currency: null,
-              registrationId,
-              baseUrl,
-              files: storedFiles.map(f => ({ id: f.id, originalName: f.originalName, mime: f.mime || '' })),
-            }),
-            text:
-              `Nouvelle inscription H.O.G Tour 2026\n\n` +
-              `${userFullName} — ${userEmail}\n` +
-              `Résidence: ${rz} | Paiement: ${derivedPaymentMode}\n` +
-              `Passeport: ${String(body.passportNum).trim()}\n` +
-              `ID: ${registrationId}\n`,
-          })
-        } catch (e) {
-          console.error('registration admin email failed', e)
-        }
-      }
+      // L'email admin est envoyé en une seule fois lors du choix d'hébergement (étape 2)
 
       return res.status(201).json({
         id: registrationId,
@@ -984,7 +939,10 @@ function createApp() {
         id: String(m.id || m.paymentMethodId || ''),
       })).filter(m => m.code)
 
-      return res.json({ methods: normalized, residenceZone: String(row.residence_zone || '') })
+      // Pour les locaux (DZ) : exclure Stripe — uniquement Cash + CIB
+      const isStripe = (c) => String(c || '').toUpperCase().includes('STRIPE')
+      const finalMethods = normalized.filter(m => !isStripe(m.code))
+      return res.json({ methods: finalMethods, residenceZone: String(row.residence_zone || '') })
     } catch (e) {
       return res.status(500).json({ error: 'server_error' })
     }
@@ -1002,7 +960,7 @@ function createApp() {
 
       const db = await getDb()
       const row = await db.get(
-        `SELECT r.id, r.prenom, r.nom, r.residence_zone, p.id as payment_id, p.status as payment_status
+        `SELECT r.*, p.id as payment_id, p.status as payment_status
          FROM payments p JOIN registrations r ON r.id = p.registration_id WHERE p.id = ?`,
         [paymentIdParam],
       )
@@ -1016,34 +974,48 @@ function createApp() {
       await db.run(`UPDATE payments SET amount_cents = ?, currency = ?, updated_at = ?, updated_by = 'user_choice' WHERE id = ?`,
         [pricing.amountCents, pricing.currency, nowIso(), paymentIdParam])
 
+      // Email admin unique — toutes les infos inscription + hébergement + fichiers
       const mailDisabled = ['1', 'true', 'yes'].includes(String(process.env.MAIL_DISABLED || '').toLowerCase().trim())
       if (!mailDisabled) {
         try {
           const baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${Number(process.env.PORT) || 4000}`
-          const amountDisplay = pricing.currency === 'DZD'
-            ? `${(pricing.amountCents / 100).toLocaleString('fr-DZ')} DZD`
-            : `${(pricing.amountCents / 100).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €`
-          const payMode = String(row.residence_zone || '').toLowerCase() === 'ailleurs' ? 'En ligne — Yassir (ou sur place)' : 'Sur place (espèces)'
+          const regFiles = await db.all(
+            `SELECT id, original_name, mime FROM registration_files WHERE registration_id = ?`,
+            [String(row.id)],
+          )
+          const fileList = regFiles.map(f => ({ id: f.id, originalName: f.original_name, mime: f.mime || '' }))
+          const fullName = `${String(row.prenom || '')} ${String(row.nom || '')}`
           await sendMail({
-            subject: `Hébergement choisi — ${String(row.prenom || '')} ${String(row.nom || '')}`,
-            html: `<!doctype html><html><head><meta charset="utf-8"></head>
-<body style="margin:0;padding:32px 16px;background:#0A0A08;font-family:Arial,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto;">
-  <tr><td style="background:#FF6B00;height:3px;font-size:0;">&nbsp;</td></tr>
-  <tr><td style="background:#111009;border:1px solid rgba(255,107,0,.14);border-top:none;padding:28px 36px;">
-    <p style="margin:0 0 4px;font-size:8px;letter-spacing:4px;text-transform:uppercase;color:rgba(255,107,0,.6);">Hébergement confirmé</p>
-    <h2 style="margin:0 0 20px;font-size:22px;font-weight:900;letter-spacing:2px;color:#FF6B00;">${escapeHtml(String(row.prenom || ''))} ${escapeHtml(String(row.nom || ''))}</h2>
-    <table width="100%" cellpadding="0" cellspacing="0">
-      <tr><td style="padding:8px 0;border-bottom:1px solid rgba(255,107,0,.08);"><span style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,107,0,.5);">Hébergement</span><br><span style="font-size:14px;font-weight:700;color:rgba(255,255,255,.85);">${escapeHtml(hebergement)}</span></td></tr>
-      <tr><td style="padding:8px 0;border-bottom:1px solid rgba(255,107,0,.08);"><span style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,107,0,.5);">Montant</span><br><span style="font-size:16px;font-weight:700;color:#FF6B00;">${escapeHtml(amountDisplay)}</span></td></tr>
-      <tr><td style="padding:8px 0;border-bottom:1px solid rgba(255,107,0,.08);"><span style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,107,0,.5);">Mode paiement</span><br><span style="font-size:13px;font-weight:600;color:rgba(255,255,255,.8);">${escapeHtml(payMode)}</span></td></tr>
-      <tr><td style="padding:8px 0;"><span style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,107,0,.5);">Référence</span><br><span style="font-size:11px;color:rgba(255,255,255,.4);font-family:monospace;">${escapeHtml(paymentIdParam)}</span></td></tr>
-    </table>
-  </td></tr>
-  <tr><td style="background:rgba(255,107,0,.35);height:1px;font-size:0;">&nbsp;</td></tr>
-</table>
-</body></html>`,
-            text: `Hébergement choisi — ${String(row.prenom || '')} ${String(row.nom || '')}\n${hebergement} — ${amountDisplay}\nMode: ${payMode}\nRéf: ${paymentIdParam}\n`,
+            subject: `Nouvelle inscription — ${fullName}`,
+            replyTo: String(row.email || ''),
+            html: buildAdminRegistrationEmailHtml({
+              prenom: String(row.prenom || ''),
+              nom: String(row.nom || ''),
+              sexe: String(row.sexe || ''),
+              email: String(row.email || ''),
+              phoneCountryIso2: String(row.phone_country_iso2 || '').toUpperCase(),
+              phoneNumber: String(row.phone_number || ''),
+              adresse: String(row.adresse || ''),
+              ville: String(row.ville || ''),
+              paysIso2: String(row.pays_iso2 || '').toUpperCase(),
+              nationalite: String(row.nationalite || ''),
+              nationaliteAutre: String(row.nationalite_autre || ''),
+              residenceZone: String(row.residence_zone || ''),
+              profil: String(row.profil || ''),
+              profilGroupe: String(row.profil_groupe || ''),
+              tailleTshirt: String(row.taille_tshirt || ''),
+              permisNum: String(row.permis_num || ''),
+              immatriculation: String(row.immatriculation || ''),
+              passportNum: String(row.passport_num || ''),
+              derivedPaymentMode: String(row.paiement_mode || ''),
+              hebergement,
+              amountCents: pricing.amountCents,
+              currency: pricing.currency,
+              registrationId: String(row.id || ''),
+              baseUrl,
+              files: fileList,
+            }),
+            text: `Nouvelle inscription H.O.G Tour 2026\n\n${fullName} — ${String(row.email || '')}\nRésidence: ${row.residence_zone}\nHébergement: ${hebergement}\nMontant: ${pricing.amountCents / 100} ${pricing.currency}\nPasseport: ${row.passport_num}\nID: ${row.id}\n`,
           })
         } catch (mailErr) {
           console.error('choose-accommodation admin email failed', mailErr && mailErr.message ? String(mailErr.message) : mailErr)
