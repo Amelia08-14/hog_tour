@@ -184,10 +184,10 @@ async function ensureCustomer({ phoneE164, email, firstName, lastName }) {
   }
 }
 
-async function listPaymentMethods({ country }) {
+async function listPaymentMethods({ country, amountCents }) {
   const c = iso2ToIso3(country)
-  return yassirRequest('GET', `/api/v1/payment-methods/available`, {
-    query: { countryCode: c || undefined },
+  return yassirRequest('GET', `/api/v1/payment-methods`, {
+    query: { countryCode: c || undefined, amount: amountCents != null ? Number(amountCents) : undefined },
   })
 }
 
@@ -205,14 +205,6 @@ async function createPaymentIntent({ phoneE164, country, amountCents, currency, 
     actionId: actionId || undefined,
     amount,
     userId: String(phoneE164 || '').trim() || undefined,
-    // Redirect URLs — Yassir uses these to redirect after payment completion
-    successRedirectUrl: successRedirectUrl || undefined,
-    failRedirectUrl: failRedirectUrl || undefined,
-    callbackUrl: callbackUrl || undefined,
-    // Common field name variants across Yassir API versions
-    successUrl: successRedirectUrl || undefined,
-    failUrl: failRedirectUrl || undefined,
-    webhookUrl: callbackUrl || undefined,
   }
   return yassirRequest('POST', `/api/v1/payments/intents`, { query: { countryCode }, body })
 }

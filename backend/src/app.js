@@ -580,14 +580,13 @@ function createApp() {
         }
         const extractRedirectFromProceed = (p) => {
           const pd = (p && p.data) || {}
-          const raw =
-            firstString(p, ['payUrl', 'redirectUrl', 'paymentUrl', 'checkoutUrl', 'redirect_url', 'payment_url']) ||
-            firstString(pd, ['payUrl', 'redirectUrl', 'checkoutUrl']) ||
-            (pd.metadata && firstString(pd.metadata, ['payUrl', 'redirectUrl'])) ||
-            firstString(p && p.nextAction, ['redirectUrl', 'payUrl']) ||
+          return (
+            firstString(p, ['payUrl', 'redirectUrl', 'paymentUrl', 'url', 'checkoutUrl', 'redirect_url', 'payment_url']) ||
+            firstString(pd, ['payUrl', 'redirectUrl', 'url', 'checkoutUrl']) ||
+            (pd.metadata && firstString(pd.metadata, ['payUrl', 'redirectUrl', 'url'])) ||
+            firstString(p && p.nextAction, ['url', 'redirectUrl', 'payUrl']) ||
             null
-          if (raw) console.log('yassir proceed redirect candidate:', raw)
-          return isValidYassirCheckout(raw) ? raw : null
+          )
         }
 
         try {
@@ -2059,14 +2058,14 @@ function buildConfirmationEmailHtml({ prenom, fullName, registrationId, mode, pa
   const isPaid = mode === 'paid'
   const isPending = mode === 'payment_pending'
   const isOnSite = mode === 'on_site'
-  const ctaUrl = isPaid ? (badgeUrl || null) : null
-  const ctaLabel = isPaid ? 'ACCÉDER À MON BADGE' : null
+  const ctaUrl = (isPaid || isOnSite) ? (badgeUrl || null) : null
+  const ctaLabel = (isPaid || isOnSite) ? 'ACCÉDER À MON BADGE' : null
   const mainMsg = isPaid
     ? `Votre inscription au <strong style="color:#FF6B00;">H.O.G Tour 2026</strong> est confirmée. Votre badge officiel est disponible — conservez-le précieusement, il vous sera demandé lors de l'événement.`
     : isPending
       ? `Votre paiement pour le <strong style="color:#FF6B00;">H.O.G Tour 2026</strong> est en cours de traitement. Vous recevrez votre badge de participation par email dès que le paiement sera confirmé.`
       : isOnSite
-        ? `Votre inscription au <strong style="color:#FF6B00;">H.O.G Tour 2026</strong> est bien enregistrée. Vous avez choisi le <strong style="color:#FF6B00;">paiement sur place</strong> — réglez votre inscription lors de l'événement.`
+        ? `Votre inscription au <strong style="color:#FF6B00;">H.O.G Tour 2026</strong> est confirmée. Vous avez choisi le <strong style="color:#FF6B00;">paiement sur place</strong> — réglez votre inscription lors de l'événement. Votre badge officiel est disponible ci-dessous.`
         : `Votre inscription au <strong style="color:#FF6B00;">H.O.G Tour 2026</strong> a bien été reçue. Vous allez recevoir un lien de paiement par email.`
 
   return `<!doctype html>
