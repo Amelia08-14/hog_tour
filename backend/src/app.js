@@ -1191,24 +1191,6 @@ function createApp() {
              FROM payments p WHERE p.reference = ? OR p.id = ?`,
             [ref, ref],
           )
-      if (!row && urlStatus === 'success') {
-        // Yassir's redirect paymentId doesn't match our stored IDs — find most recently updated pending payment
-        const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-        row = await db.get(
-          `SELECT p.id as payment_id, p.registration_id, p.status as payment_status, p.reference, p.client_secret
-           FROM payments p
-           WHERE p.status = 'pending' AND (p.method LIKE 'yassir%')
-             AND p.updated_at >= ?
-           ORDER BY p.updated_at DESC LIMIT 1`,
-          [twoHoursAgo],
-        )
-        if (row) {
-          console.log(`yassir result: matched ref=${ref} to payment_id=${row.payment_id} via recent-pending fallback`)
-        } else {
-          console.log(`yassir result: no record found for ref=${ref} and no recent pending payment, trusting urlStatus=success without DB update`)
-          return res.json({ payment: { status: 'paid' }, badgeUrl: null })
-        }
-      }
       if (!row) return res.status(404).json({ error: 'not_found' })
 
       let finalStatus = String(row.payment_status || 'pending')

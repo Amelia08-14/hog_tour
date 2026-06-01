@@ -6,9 +6,19 @@ type State = 'loading' | 'paid' | 'pending' | 'failed'
 
 export default function PaymentSuccessClient() {
   const sp = useSearchParams()
+  // Yassir redirige avec statusCode (2=payé, 3=échec). Ancien param status conservé en secours.
+  const urlStatusCode = sp.get('statusCode') || ''
   const urlStatus = sp.get('status') || ''
   const yassirRef = sp.get('paymentId') || ''
   const internalId = sp.get('internalId') || ''
+
+  // Indice d'affichage uniquement — le statut réel vient de checkIntent/webhook côté backend
+  const codeHint: '' | 'paid' | 'failed' =
+    urlStatusCode === '2' ? 'paid'
+    : urlStatusCode === '3' ? 'failed'
+    : urlStatus === 'success' ? 'paid'
+    : urlStatus === 'failed' || urlStatus === 'cancelled' ? 'failed'
+    : ''
 
   const [state, setState] = useState<State>('loading')
   const [badgeUrl, setBadgeUrl] = useState<string | null>(null)
@@ -23,24 +33,26 @@ export default function PaymentSuccessClient() {
       ? `internalId=${encodeURIComponent(internalId)}`
       : yassirRef ? `ref=${encodeURIComponent(yassirRef)}` : ''
     if (!lookupParam) {
-      setState(urlStatus === 'success' ? 'pending' : 'failed')
+      setState(codeHint === 'failed' ? 'failed' : codeHint === 'paid' ? 'pending' : 'pending')
       return
     }
-    fetch(`${apiBase}/v1/payments/yassir/result?${lookupParam}&urlStatus=${encodeURIComponent(urlStatus)}`)
+    fetch(`${apiBase}/v1/payments/yassir/result?${lookupParam}`)
       .then(r => r.json().then(data => ({ ok: r.ok, data })))
       .then(({ ok, data }) => {
         const s = data.payment?.status
         if (s === 'paid') {
           setBadgeUrl(data.badgeUrl || null)
           setState('paid')
-        } else if (s === 'cancelled') {
+        } else if (s === 'cancelled' || codeHint === 'failed') {
+          // checkIntent confirme l'échec, ou Yassir a redirigé avec statusCode=3
           setState('failed')
         } else {
+          // Paiement en cours — le webhook confirmera et enverra le badge par email
           setState('pending')
         }
       })
-      .catch(() => setState('pending'))
-  }, [yassirRef, urlStatus, apiBase])
+      .catch(() => setState(codeHint === 'failed' ? 'failed' : 'pending'))
+  }, [yassirRef, internalId, codeHint, apiBase])
 
   if (state === 'loading') return <Screen icon="⟳" title="Vérification…" muted="Confirmation du paiement en cours." />
 
