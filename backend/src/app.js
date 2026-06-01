@@ -531,11 +531,40 @@ function createApp() {
         }))
       }
 
+      // Log intent response pour diagnostiquer les URLs retournées
+      console.log('yassir intent raw fields:', JSON.stringify({
+        'intentData.redirectUrl': intentData.redirectUrl,
+        'intentData.checkoutUrl': intentData.checkoutUrl,
+        'intentData.payUrl': intentData.payUrl,
+        'intentData.url': intentData.url,
+        'intentData.status': intentData.status,
+        'intent.redirectUrl': intent && intent.redirectUrl,
+        'intent.url': intent && intent.url,
+      }))
+
+      // Filtre : exclure notre propre domaine et le site principal Yassir (pas une page de paiement)
+      const ownBase = (process.env.PUBLIC_BASE_URL || '').replace(/\/$/, '').toLowerCase()
+      function isValidYassirCheckout(u) {
+        if (!u) return false
+        const s = String(u).trim()
+        if (!s.startsWith('http')) return false
+        if (ownBase && s.toLowerCase().startsWith(ownBase)) return false
+        try {
+          const h = new URL(s).hostname.toLowerCase()
+          if (h === 'yassir.com' || h === 'www.yassir.com') return false
+        } catch { return false }
+        return true
+      }
+
       // Check if createPaymentIntent already provided a hosted checkout URL (production Yassir flow)
-      const intentRedirectUrl =
-        firstString(intentData, ['redirectUrl', 'checkoutUrl', 'payUrl', 'paymentUrl', 'url', 'redirect_url', 'checkout_url']) ||
+      const intentRedirectUrlRaw =
+        firstString(intentData, ['redirectUrl', 'checkoutUrl', 'payUrl', 'paymentUrl', 'redirect_url', 'checkout_url']) ||
         (intentData.metadata && firstString(intentData.metadata, ['payUrl', 'redirectUrl', 'url'])) ||
-        firstString(intent, ['redirectUrl', 'checkoutUrl', 'payUrl', 'paymentUrl', 'url', 'redirect_url'])
+        firstString(intent, ['redirectUrl', 'checkoutUrl', 'payUrl', 'paymentUrl', 'redirect_url'])
+      const intentRedirectUrl = isValidYassirCheckout(intentRedirectUrlRaw) ? intentRedirectUrlRaw : null
+      if (intentRedirectUrlRaw && !intentRedirectUrl) {
+        console.log('yassir intent: ignoring invalid redirect URL:', intentRedirectUrlRaw)
+      }
 
       let proceed = null
       let mappedStatus = extractYassirStatus(intent) || 'pending'
@@ -551,13 +580,14 @@ function createApp() {
         }
         const extractRedirectFromProceed = (p) => {
           const pd = (p && p.data) || {}
-          return (
-            firstString(p, ['payUrl', 'redirectUrl', 'paymentUrl', 'url', 'checkoutUrl', 'redirect_url', 'payment_url']) ||
-            firstString(pd, ['payUrl', 'redirectUrl', 'url', 'checkoutUrl']) ||
-            (pd.metadata && firstString(pd.metadata, ['payUrl', 'redirectUrl', 'url'])) ||
-            firstString(p && p.nextAction, ['url', 'redirectUrl', 'payUrl']) ||
+          const raw =
+            firstString(p, ['payUrl', 'redirectUrl', 'paymentUrl', 'checkoutUrl', 'redirect_url', 'payment_url']) ||
+            firstString(pd, ['payUrl', 'redirectUrl', 'checkoutUrl']) ||
+            (pd.metadata && firstString(pd.metadata, ['payUrl', 'redirectUrl'])) ||
+            firstString(p && p.nextAction, ['redirectUrl', 'payUrl']) ||
             null
-          )
+          if (raw) console.log('yassir proceed redirect candidate:', raw)
+          return isValidYassirCheckout(raw) ? raw : null
         }
 
         try {
