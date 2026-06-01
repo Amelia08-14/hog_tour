@@ -30,10 +30,15 @@ function formatAmount(cents: number, currency: string) {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: currency || 'EUR' }).format(cents / 100)
 }
 
+function isYassirCash(code: string) {
+  const c = (code || '').toLowerCase()
+  return c === 'wallet_v2' || c.includes('cash') || c === 'yassir'
+}
+
 function methodDisplay(code: string, name: string): { label: string; sub: string } {
   const c = (code || '').toLowerCase()
   if (c.includes('stripe'))                                               return { label: 'Carte bancaire',  sub: 'Stripe' }
-  if (c === 'wallet_v2' || c.includes('cash') || c === 'yassir')         return { label: 'Espèces',         sub: 'Yassir Cash' }
+  if (isYassirCash(code))                                                  return { label: 'Yassir Cash',     sub: '' }
   if (c.includes('cib') || c.includes('dahabia') || c.includes('satim')) return { label: 'CIB / Dahabia',   sub: 'via SATIM' }
   if (c.includes('wallet'))                                               return { label: 'Paiement mobile', sub: 'Yassir Wallet' }
   return { label: name || code, sub: '' }
@@ -287,13 +292,15 @@ export default function PaiementClient() {
                 ) : methods.length > 0 ? (
                   methods.map(m => {
                     const { label, sub } = methodDisplay(m.code, m.name)
+                    const yassirCash = isYassirCash(m.code)
                     return (
                       <button
                         key={m.code}
                         type="button"
                         disabled={loading}
                         onClick={() => handlePayOnline(m.code)}
-                        className="w-full bg-orange text-black font-condensed font-bold text-[13px] tracking-[0.15em] uppercase px-9 py-4 hover:bg-white transition-colors disabled:opacity-60 flex items-center justify-center gap-3"
+                        style={yassirCash ? { backgroundColor: '#4c0fad', color: '#fff' } : undefined}
+                        className={`w-full font-condensed font-bold text-[13px] tracking-[0.15em] uppercase px-9 py-4 transition-colors disabled:opacity-60 flex items-center justify-center gap-3 ${yassirCash ? 'hover:brightness-110' : 'bg-orange text-black hover:bg-white'}`}
                       >
                         <span>{loading ? 'Redirection…' : label}</span>
                         {sub && <span className="opacity-60 font-normal text-[11px] normal-case tracking-normal">— {sub}</span>}
