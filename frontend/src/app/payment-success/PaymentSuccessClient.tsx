@@ -23,6 +23,7 @@ export default function PaymentSuccessClient() {
 
   const [state, setState] = useState<State>('loading')
   const [badgeUrl, setBadgeUrl] = useState<string | null>(null)
+  const [failReason, setFailReason] = useState<string | null>(null)
 
   const apiBase = useMemo(() => {
     const v = process.env.NEXT_PUBLIC_API_BASE_URL?.trim()
@@ -46,6 +47,7 @@ export default function PaymentSuccessClient() {
           setState('paid')
         } else if (s === 'cancelled' || codeHint === 'failed') {
           // checkIntent confirme l'échec, ou Yassir a redirigé avec statusCode=3
+          if (data.reason) setFailReason(String(data.reason))
           setState('failed')
         } else {
           // Paiement en cours — le webhook confirmera et enverra le badge par email
@@ -74,7 +76,7 @@ export default function PaymentSuccessClient() {
       icon="✕"
       iconColor="rgba(255,80,80,.8)"
       title="Paiement échoué"
-      muted="Le paiement n'a pas abouti. Vous pouvez réessayer depuis votre email d'inscription."
+      muted={failReason || "Le paiement n'a pas abouti. Vous pouvez réessayer depuis votre email d'inscription."}
       cta={{ label: 'RETOUR À L\'ACCUEIL', href: '/' }}
     />
   )

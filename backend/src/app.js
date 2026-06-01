@@ -107,6 +107,14 @@ function extractYassirStatus(obj) {
   )
 }
 
+function mapFailureReason(rawReason) {
+  const r = String(rawReason || '').toLowerCase()
+  if (r.includes('insufficient')) return 'Le paiement n\'a pas abouti : crédit insuffisant sur Yassir Cash.'
+  if (r.includes('cancel')) return 'Le paiement a été annulé.'
+  if (r.includes('expired') || r.includes('timeout')) return 'Le paiement a expiré. Veuillez réessayer.'
+  return rawReason ? `Le paiement n'a pas abouti : ${rawReason}.` : 'Le paiement n\'a pas abouti.'
+}
+
 function callingCodeFromIso2(iso2) {
   const k = String(iso2 || '').trim().toUpperCase()
   const map = {
@@ -931,11 +939,7 @@ function createApp() {
           firstString(payload, ['remoteStatus', 'message', 'statusMessage']) ||
           ''
         )
-        // Traduction des motifs techniques Yassir en message clair
-        const r = rawReason.toLowerCase()
-        const reason = r.includes('insufficient')
-          ? 'Le paiement n\'a pas abouti : crédit insuffisant sur Yassir Cash.'
-          : rawReason || 'Le paiement n\'a pas abouti.'
+        const reason = mapFailureReason(rawReason)
         const mailDisabled = ['1', 'true', 'yes'].includes(String(process.env.MAIL_DISABLED || '').toLowerCase().trim())
         if (!mailDisabled) {
           try {
@@ -1243,12 +1247,13 @@ function createApp() {
 
       let finalStatus = String(row.payment_status || 'pending')
       let justPaid = false
+      let failureReason = null
 
       const intentId = String(row.reference || ref || '').trim()
       try {
         const chk = intentId ? await checkIntent({ intentId, clientSecret: row.client_secret || undefined }) : null
         const mappedStatus = chk ? extractYassirStatus(chk) : null
-        console.log(`yassir result check: ref=${intentId} raw=${JSON.stringify(chk && chk.data ? { statusCode: chk.data.statusCode, status: chk.data.status } : chk)} mapped=${mappedStatus}`)
+        console.log(`yassir result check: ref=${intentId} raw=${JSON.stringify(chk && chk.data ? { statusCode: chk.data.statusCode, status: chk.data.status, remoteStatus: chk.data.remoteStatus } : chk)} mapped=${mappedStatus}`)
         if (mappedStatus && mappedStatus !== finalStatus) {
           await db.run(
             `UPDATE payments SET status = ?, updated_at = ?, updated_by = ? WHERE id = ?`,
@@ -1256,6 +1261,12 @@ function createApp() {
           )
           if (mappedStatus === 'paid') justPaid = true
           finalStatus = mappedStatus
+        }
+        // Motif d'échec si paiement rejeté
+        if (finalStatus === 'cancelled' && chk) {
+          const cd = (chk && chk.data) || chk
+          const rawReason = firstString(cd, ['remoteStatus', 'message', 'statusMessage']) || firstString(chk, ['remoteStatus', 'message']) || ''
+          failureReason = mapFailureReason(rawReason)
         }
       } catch (chkErr) {
         console.error(`yassir result checkIntent failed: ref=${ref}`, chkErr && chkErr.message ? String(chkErr.message) : chkErr, chkErr && chkErr.body ? JSON.stringify(chkErr.body) : '')
@@ -1281,7 +1292,7 @@ function createApp() {
         }
       }
 
-      return res.json({ payment: { status: finalStatus }, badgeUrl })
+      return res.json({ payment: { status: finalStatus }, badgeUrl, reason: failureReason })
     } catch (e) {
       return res.status(500).json({ error: 'server_error' })
     }
