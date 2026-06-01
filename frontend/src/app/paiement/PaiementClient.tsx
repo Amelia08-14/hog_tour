@@ -13,51 +13,45 @@ type Info = {
   paymentMethod: string
 }
 
+type PaymentMethod = { code: string; name: string; id: string }
 type Step = 'accommodation' | 'payment'
 
 const ACCOMMODATIONS = [
-  {
-    value: 'Chambre simple',
-    labelDzd: '75 000 DA',
-    labelEur: '960 €',
-    desc: '1 personne — chambre individuelle',
-  },
-  {
-    value: 'Chambre double — Motard',
-    labelDzd: '65 000 DA / motard',
-    labelEur: '880 € / motard',
-    desc: '2 motards — chambre partagée',
-  },
-  {
-    value: 'Chambre double couple',
-    labelDzd: '125 000 DA',
-    labelEur: '1 740 €',
-    desc: '2 personnes en couple',
-  },
+  { value: 'Chambre simple',          labelDzd: '75 000 DA',         labelEur: '960 €',         desc: '1 personne — chambre individuelle' },
+  { value: 'Chambre double — Motard', labelDzd: '65 000 DA / motard', labelEur: '880 € / motard', desc: '2 motards — chambre partagée' },
+  { value: 'Chambre double couple',   labelDzd: '125 000 DA',        labelEur: '1 740 €',        desc: '2 personnes en couple' },
 ]
 
 const EUR_INCLUDES_NOTE = 'Tarif tout compris : traversée par bateau en classe cabine, demi-pension, moto incluse.'
 
 function formatAmount(cents: number, currency: string) {
-  if (currency === 'DZD') {
+  if (currency === 'DZD')
     return new Intl.NumberFormat('fr-DZ', { style: 'currency', currency: 'DZD', maximumFractionDigits: 0 }).format(cents / 100)
-  }
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: currency || 'EUR' }).format(cents / 100)
+}
+
+function methodDisplay(code: string, name: string): { label: string; sub: string } {
+  const c = (code || '').toLowerCase()
+  if (c.includes('stripe'))                              return { label: 'Carte bancaire',  sub: 'Stripe' }
+  if (c.includes('cash'))                                return { label: 'Espèces',         sub: 'Yassir Cash' }
+  if (c.includes('cib') || c.includes('dahabia') || c.includes('satim')) return { label: 'CIB / Dahabia', sub: 'via SATIM' }
+  return { label: name || code, sub: '' }
 }
 
 export default function PaiementClient() {
   const sp = useSearchParams()
-  const token = sp.get('token') || ''
+  const token    = sp.get('token')    || ''
   const paymentId = sp.get('paymentId') || ''
-  const sig = sp.get('sig') || ''
+  const sig      = sp.get('sig')      || ''
   const isTestMode = sp.get('test') === '1'
 
-  const [info, setInfo] = useState<Info | null>(null)
+  const [info, setInfo]       = useState<Info | null>(null)
   const [infoError, setInfoError] = useState<string | null>(null)
-  const [step, setStep] = useState<Step>('accommodation')
+  const [step, setStep]       = useState<Step>('accommodation')
   const [selectedAccommodation, setSelectedAccommodation] = useState('')
+  const [methods, setMethods] = useState<PaymentMethod[] | null>(null)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError]     = useState<string | null>(null)
   const [onSiteDone, setOnSiteDone] = useState(false)
 
   const apiBase = useMemo(() => {
@@ -66,12 +60,10 @@ export default function PaiementClient() {
     return base ? base.replace(/\/$/, '') : ''
   }, [])
 
-  function apiUrl(path: string) {
-    return apiBase ? `${apiBase}${path}` : path
-  }
+  function apiUrl(path: string) { return apiBase ? `${apiBase}${path}` : path }
 
   const qs = useMemo(() => {
-    if (token) return `token=${encodeURIComponent(token)}&sig=${encodeURIComponent(sig)}`
+    if (token)     return `token=${encodeURIComponent(token)}&sig=${encodeURIComponent(sig)}`
     if (paymentId) return `paymentId=${encodeURIComponent(paymentId)}&sig=${encodeURIComponent(sig)}`
     return ''
   }, [token, paymentId, sig])
@@ -87,10 +79,20 @@ export default function PaiementClient() {
         if (d.hebergement && d.amountCents != null) {
           setSelectedAccommodation(d.hebergement)
           setStep('payment')
+          fetchMethods()
         }
       })
       .catch(() => setInfoError('Impossible de charger les informations.'))
   }, [qs])
+
+  async function fetchMethods() {
+    if (!paymentId || !sig) return
+    try {
+      const res = await fetch(apiUrl(`/v1/payments/methods?paymentId=${encodeURIComponent(paymentId)}&sig=${encodeURIComponent(sig)}`))
+      const data = await res.json().catch(() => ({}))
+      if (data.methods) setMethods(data.methods as PaymentMethod[])
+    } catch { /* methods stay null — on-site fallback always shown */ }
+  }
 
   const isAilleurs = info?.residenceZone?.toLowerCase() === 'ailleurs'
 
@@ -103,7 +105,7 @@ export default function PaiementClient() {
   async function handleConfirmAccommodation(e: FormEvent) {
     e.preventDefault()
     if (!selectedAccommodation) { setError('Choisissez un hébergement.'); return }
-    if (!paymentId || !sig) { setError('Lien de paiement invalide.'); return }
+    if (!paymentId || !sig)     { setError('Lien de paiement invalide.'); return }
     setError(null)
     setLoading(true)
     try {
@@ -114,19 +116,14 @@ export default function PaiementClient() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) { setError(String(data?.message || data?.error || 'Erreur.')); return }
-      setInfo(prev => prev ? {
-        ...prev,
-        hebergement: data.hebergement,
-        amountCents: data.amountCents,
-        currency: data.currency,
-      } : prev)
+      setInfo(prev => prev ? { ...prev, hebergement: data.hebergement, amountCents: data.amountCents, currency: data.currency } : prev)
       setStep('payment')
+      fetchMethods()
     } catch { setError('Impossible de contacter le serveur.') }
     finally { setLoading(false) }
   }
 
-  async function handlePayOnline(e: FormEvent) {
-    e.preventDefault()
+  async function handlePayOnline(methodCode: string) {
     setError(null)
     if ((!token && !paymentId) || !sig) { setError('Lien de paiement invalide.'); return }
     setLoading(true)
@@ -134,7 +131,7 @@ export default function PaiementClient() {
       const res = await fetch(apiUrl('/v1/payments/yassir/start'), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ token: token || undefined, paymentId: paymentId || undefined, sig, paymentMethodPreference: 'card' }),
+        body: JSON.stringify({ token: token || undefined, paymentId: paymentId || undefined, sig, paymentMethodCode: methodCode }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) { setError(String(data?.message || data?.error || 'Paiement impossible.')); return }
@@ -173,7 +170,7 @@ export default function PaiementClient() {
           <div style={{ height: 1, background: 'linear-gradient(to right,transparent,rgba(255,107,0,.3),transparent)', margin: '16px 0' }} />
           <p className="text-muted text-[14px] leading-relaxed">
             Vous avez choisi le <strong className="text-htext">paiement sur place</strong>.<br />
-            Un email de confirmation avec votre badge vous a été envoyé. Réglez votre inscription lors de l&apos;événement.
+            Un email de confirmation avec votre badge vous a été envoyé.
           </p>
           <a href="/" className="inline-block mt-8 text-[11px] font-condensed font-bold uppercase tracking-[3px] text-orange/70 hover:text-orange transition-colors">
             Retour à l&apos;accueil →
@@ -188,22 +185,17 @@ export default function PaiementClient() {
       <div className="max-w-container mx-auto px-6 md:px-10 w-full">
         <div className="section-tag">Paiement</div>
         <h1 className="font-display leading-[.88] tracking-wide mt-3" style={{ fontSize: 'clamp(34px,4vw,56px)' }}>
-          {step === 'accommodation' ? 'Choix de l’hébergement' : isAilleurs ? 'Finaliser mon inscription' : 'Confirmer mon inscription'}
+          {step === 'accommodation' ? 'Choix de l’hébergement' : 'Finaliser mon inscription'}
         </h1>
 
         {infoError && (
-          <div className="mt-6 max-w-[560px] border border-orange/20 bg-bg3 px-5 py-4 text-[13px] text-orange">
-            {infoError}
-          </div>
+          <div className="mt-6 max-w-[560px] border border-orange/20 bg-bg3 px-5 py-4 text-[13px] text-orange">{infoError}</div>
         )}
-
         {error && (
-          <div className="mt-4 max-w-[560px] border border-orange/20 bg-bg3 px-5 py-4 text-[13px] text-orange">
-            {error}
-          </div>
+          <div className="mt-4 max-w-[560px] border border-orange/20 bg-bg3 px-5 py-4 text-[13px] text-orange">{error}</div>
         )}
 
-        {/* Step 1 — choose accommodation */}
+        {/* Step 1 — hébergement */}
         {step === 'accommodation' && (
           <form onSubmit={handleConfirmAccommodation} className="mt-8 max-w-[600px]">
             {info && (
@@ -251,7 +243,7 @@ export default function PaiementClient() {
           </form>
         )}
 
-        {/* Step 2 — payment */}
+        {/* Step 2 — paiement */}
         {step === 'payment' && info && (
           <div className="mt-8 max-w-[560px]">
             {/* Recap */}
@@ -277,59 +269,67 @@ export default function PaiementClient() {
                   </div>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setStep('accommodation')}
-                className="mt-4 text-[11px] text-muted hover:text-htext transition-colors"
-              >
+              <button type="button" onClick={() => setStep('accommodation')} className="mt-4 text-[11px] text-muted hover:text-htext transition-colors">
                 ← Modifier le choix d&apos;hébergement
               </button>
             </div>
 
             {/* Payment options */}
-            {isAilleurs ? (
-              <div className="border border-orange/12 bg-bg3 p-8">
-                <p className="text-muted text-[13px] mb-6 leading-relaxed">
-                  Choisissez votre mode de paiement pour finaliser votre inscription.
-                </p>
-                <div className="flex flex-col gap-4">
-                  <form onSubmit={handlePayOnline}>
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="w-full bg-orange text-black font-condensed font-bold text-[13px] tracking-[0.2em] uppercase px-9 py-4 hover:bg-white transition-colors disabled:opacity-60"
-                    >
-                      {loading ? 'Redirection…' : 'Payer en ligne — Carte bancaire (Yassir)'}
-                    </button>
-                  </form>
+            <div className="border border-orange/12 bg-bg3 p-8">
+              <p className="text-muted text-[12px] mb-6 leading-relaxed uppercase tracking-[2px]">Mode de paiement</p>
+              <div className="flex flex-col gap-3">
+
+                {/* Boutons Yassir dynamiques */}
+                {methods && methods.length > 0 ? (
+                  methods.map(m => {
+                    const { label, sub } = methodDisplay(m.code, m.name)
+                    return (
+                      <button
+                        key={m.code}
+                        type="button"
+                        disabled={loading}
+                        onClick={() => handlePayOnline(m.code)}
+                        className="w-full bg-orange text-black font-condensed font-bold text-[13px] tracking-[0.15em] uppercase px-9 py-4 hover:bg-white transition-colors disabled:opacity-60 flex items-center justify-center gap-3"
+                      >
+                        <span>{loading ? 'Redirection…' : label}</span>
+                        {sub && <span className="opacity-60 font-normal text-[11px] normal-case tracking-normal">— {sub}</span>}
+                      </button>
+                    )
+                  })
+                ) : methods === null ? (
+                  /* En cours de chargement des méthodes */
+                  <div className="text-muted text-[12px] py-2">Chargement des méthodes de paiement…</div>
+                ) : (
+                  /* Aucune méthode retournée par Yassir — bouton générique */
                   <button
                     type="button"
                     disabled={loading}
-                    onClick={handlePayOnSite}
-                    className="w-full bg-transparent border border-orange/30 text-htext font-condensed font-bold text-[13px] tracking-[0.2em] uppercase px-9 py-4 hover:border-orange/60 transition-colors disabled:opacity-60"
+                    onClick={() => handlePayOnline('')}
+                    className="w-full bg-orange text-black font-condensed font-bold text-[13px] tracking-[0.2em] uppercase px-9 py-4 hover:bg-white transition-colors disabled:opacity-60"
                   >
-                    {loading ? 'Traitement…' : "Payer sur place lors de l'événement"}
+                    {loading ? 'Redirection…' : 'Payer en ligne'}
                   </button>
+                )}
+
+                {/* Séparateur */}
+                <div className="flex items-center gap-3 my-1">
+                  <div className="flex-1 h-px bg-orange/10" />
+                  <span className="text-[9px] uppercase tracking-[2px] text-muted">ou</span>
+                  <div className="flex-1 h-px bg-orange/10" />
                 </div>
-              </div>
-            ) : (
-              <div className="border border-orange/12 bg-bg3 p-8">
-                <p className="text-muted text-[13px] mb-2 leading-relaxed">
-                  Règlement sur place lors de l&apos;événement — <strong className="text-htext">espèces uniquement</strong>.
-                </p>
-                <p className="text-muted text-[12px] mb-6">
-                  Votre badge de participation vous sera envoyé par email à la confirmation.
-                </p>
+
+                {/* Toujours disponible */}
                 <button
                   type="button"
                   disabled={loading}
                   onClick={handlePayOnSite}
-                  className="w-full bg-orange text-black font-condensed font-bold text-[13px] tracking-[0.2em] uppercase px-9 py-4 hover:bg-white transition-colors disabled:opacity-60"
+                  className="w-full bg-transparent border border-orange/25 text-htext font-condensed font-bold text-[13px] tracking-[0.2em] uppercase px-9 py-4 hover:border-orange/50 transition-colors disabled:opacity-60"
                 >
-                  {loading ? 'Traitement…' : 'Confirmer mon inscription'}
+                  {loading ? 'Traitement…' : "Payer sur place lors de l'événement"}
                 </button>
+
               </div>
-            )}
+            </div>
           </div>
         )}
       </div>
