@@ -944,7 +944,7 @@ function createApp() {
       // Pour les locaux (DZ) : récupérer les méthodes depuis Yassir (codes réels)
       let methods = []
       try {
-        const resp = await listPaymentMethods({ country: 'DZ' })
+        const resp = await listPaymentMethods({ country: 'DZ', amountCents: Number(row.amount_cents) })
         console.log('payments/methods raw:', JSON.stringify(resp))
         methods =
           (resp && Array.isArray(resp.data) && resp.data) ||
@@ -956,11 +956,8 @@ function createApp() {
           (Array.isArray(resp) ? resp : [])
       } catch (e) {
         console.error('payments/methods failed:', e && e.message ? String(e.message) : e, e && e.body ? JSON.stringify(e.body) : '')
-        // Fallback si l'API échoue : Cash + valeur brute pour CIB
-        methods = [
-          { code: 'WALLET_V2', name: 'Yassir Cash' },
-          { code: 'DAHABIA', name: 'CIB / Dahabia' },
-        ]
+        // Fallback minimal si l'API échoue
+        methods = [{ code: 'WALLET_V2', name: 'Yassir Cash' }]
       }
 
       const normalized = methods.map(m => ({
