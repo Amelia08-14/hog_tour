@@ -140,7 +140,7 @@ function toE164FromRegistration(iso2, phoneNumber) {
 }
 
 async function ensureBadgeForRegistration(db, registrationId) {
-  const existing = await db.get(`SELECT token, issued_at FROM badges WHERE registration_id = ?`, [registrationId])
+  const existing = await db.get(`SELECT id, token, issued_at FROM badges WHERE registration_id = ?`, [registrationId])
   if (existing && existing.token) return existing
   const badgeId = require('uuid').v4()
   const token = newToken()
@@ -150,12 +150,83 @@ async function ensureBadgeForRegistration(db, registrationId) {
       `INSERT INTO badges (id, registration_id, token, issued_at) VALUES (?, ?, ?, ?);`,
       [badgeId, registrationId, token, issuedAt],
     )
-    return { token, issued_at: issuedAt }
+    return { id: badgeId, token, issued_at: issuedAt }
   } catch {
-    const again = await db.get(`SELECT token, issued_at FROM badges WHERE registration_id = ?`, [registrationId])
+    const again = await db.get(`SELECT id, token, issued_at FROM badges WHERE registration_id = ?`, [registrationId])
     if (again && again.token) return again
     throw new Error('badge_issue_failed')
   }
+}
+
+// Envoie l'email de confirmation + badge PDF UNE SEULE FOIS (garde anti-doublon via confirmation_sent).
+// Appelé depuis le webhook ET /result — le premier qui confirme 'paid' envoie, l'autre est ignoré.
+async function sendPaidConfirmation(db, paymentId, registrationId) {
+  // Garde atomique : ne traite que si confirmation_sent = 0
+  let already = false
+  try {
+    const p = await db.get(`SELECT confirmation_sent FROM payments WHERE id = ?`, [paymentId])
+    already = p && Number(p.confirmation_sent) === 1
+  } catch { /* colonne absente sur vieux déploiement — on continue */ }
+  if (already) {
+    console.log(`sendPaidConfirmation: already sent for payment ${paymentId}, skipping`)
+    return null
+  }
+
+  const badge = await ensureBadgeForRegistration(db, String(registrationId))
+  const baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${Number(process.env.PORT) || 4000}`
+  const badgeUrl = `${baseUrl.replace(/\/$/, '')}/v1/badge?token=${encodeURIComponent(String(badge.token))}&sig=${encodeURIComponent(signToken(String(badge.token)))}`
+
+  // Marque immédiatement comme envoyé pour éviter une course webhook/result
+  try {
+    await db.run(`UPDATE payments SET confirmation_sent = 1 WHERE id = ?`, [paymentId])
+  } catch { /* colonne absente — best effort */ }
+
+  const mailDisabled = ['1', 'true', 'yes'].includes(String(process.env.MAIL_DISABLED || '').toLowerCase().trim())
+  if (mailDisabled) return { badgeUrl }
+
+  try {
+    const reg = await db.get(`SELECT * FROM registrations WHERE id = ?`, [registrationId])
+    if (reg) {
+      const fullName = `${String(reg.prenom || '')} ${String(reg.nom || '')}`
+      const issuedDate = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
+      let pdfAttachment
+      try {
+        const pdfBuffer = await buildBadgePdf({
+          prenom: String(reg.prenom || ''),
+          nom: String(reg.nom || ''),
+          passportNum: String(reg.passport_num || ''),
+          zone: String(reg.residence_zone || ''),
+          issuedDate,
+          badgeId: String(badge.id || ''),
+        })
+        const safeNom = String(reg.nom || '').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()
+        pdfAttachment = { filename: `badge-hog2026-${safeNom}.pdf`, content: pdfBuffer, contentType: 'application/pdf' }
+      } catch (pdfErr) {
+        console.error('sendPaidConfirmation badge PDF failed', pdfErr && pdfErr.message ? String(pdfErr.message) : pdfErr)
+      }
+      await sendMail({
+        to: String(reg.email || ''),
+        subject: `Paiement confirmé — H.O.G Tour 2026`,
+        replyTo: String(process.env.MAIL_TO || process.env.MAIL_FROM || 'contact@hogalgierschapteralgeria.com'),
+        html: buildConfirmationEmailHtml({
+          prenom: String(reg.prenom || ''),
+          fullName,
+          registrationId: String(reg.id || ''),
+          mode: 'paid',
+          paymentUrl: null,
+          badgeUrl,
+        }),
+        text: `Bonjour ${fullName},\n\nVotre paiement est confirmé. Accédez à votre badge : ${badgeUrl}\nRéférence : ${reg.id}\n`,
+        attachments: pdfAttachment ? [pdfAttachment] : undefined,
+      })
+      console.log(`sendPaidConfirmation: email sent to ${reg.email} for payment ${paymentId}`)
+    }
+  } catch (mailErr) {
+    console.error('sendPaidConfirmation email failed', mailErr && mailErr.message ? String(mailErr.message) : mailErr)
+    // Rollback du flag pour permettre une nouvelle tentative
+    try { await db.run(`UPDATE payments SET confirmation_sent = 0 WHERE id = ?`, [paymentId]) } catch {}
+  }
+  return { badgeUrl }
 }
 
 function requireApiKey(req, res, next) {
@@ -850,51 +921,7 @@ function createApp() {
       )
 
       if (mappedStatus === 'paid') {
-        const badge = await ensureBadgeForRegistration(db, String(row.registration_id))
-        const mailDisabled = ['1', 'true', 'yes'].includes(String(process.env.MAIL_DISABLED || '').toLowerCase().trim())
-        if (!mailDisabled) {
-          try {
-            const reg = await db.get(`SELECT * FROM registrations WHERE id = ?`, [row.registration_id])
-            if (reg) {
-              const baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${Number(process.env.PORT) || 4000}`
-              const badgeUrl = `${baseUrl.replace(/\/$/, '')}/v1/badge?token=${encodeURIComponent(String(badge.token))}&sig=${encodeURIComponent(signToken(String(badge.token)))}`
-              const fullName = `${String(reg.prenom || '')} ${String(reg.nom || '')}`
-              const issuedDate = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
-              let pdfAttachment
-              try {
-                const pdfBuffer = await buildBadgePdf({
-                  prenom: String(reg.prenom || ''),
-                  nom: String(reg.nom || ''),
-                  passportNum: String(reg.passport_num || ''),
-                  zone: String(reg.residence_zone || ''),
-                  issuedDate,
-                  badgeId: String(badge.id || ''),
-                })
-                const safeNom = String(reg.nom || '').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()
-                pdfAttachment = { filename: `badge-hog2026-${safeNom}.pdf`, content: pdfBuffer, contentType: 'application/pdf' }
-              } catch (pdfErr) {
-                console.error('webhook badge PDF generation failed', pdfErr && pdfErr.message ? String(pdfErr.message) : pdfErr)
-              }
-              await sendMail({
-                to: String(reg.email || ''),
-                subject: `Paiement confirmé — H.O.G Tour 2026`,
-                replyTo: String(process.env.MAIL_TO || process.env.MAIL_FROM || 'contact@hogalgierschapteralgeria.com'),
-                html: buildConfirmationEmailHtml({
-                  prenom: String(reg.prenom || ''),
-                  fullName,
-                  registrationId: String(reg.id || ''),
-                  mode: 'paid',
-                  paymentUrl: null,
-                  badgeUrl,
-                }),
-                text: `Bonjour ${fullName},\n\nVotre paiement est confirmé. Accédez à votre badge : ${badgeUrl}\nRéférence : ${reg.id}\n`,
-                attachments: pdfAttachment ? [pdfAttachment] : undefined,
-              })
-            }
-          } catch (mailErr) {
-            console.error('webhook confirmation email failed', mailErr && mailErr.message ? String(mailErr.message) : mailErr)
-          }
-        }
+        await sendPaidConfirmation(db, String(row.payment_id), String(row.registration_id))
       }
 
       // Paiement échoué (ex: crédit insuffisant) — prévenir le participant + l'admin
@@ -1237,53 +1264,15 @@ function createApp() {
 
       let badgeUrl = null
       if (finalStatus === 'paid') {
-        const b = await ensureBadgeForRegistration(db, String(row.registration_id))
-        const baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${Number(process.env.PORT) || 4000}`
-        badgeUrl = `${baseUrl.replace(/\/$/, '')}/v1/badge?token=${encodeURIComponent(String(b.token))}&sig=${encodeURIComponent(signToken(String(b.token)))}`
-
-        if (justPaid) {
-          const mailDisabled = ['1', 'true', 'yes'].includes(String(process.env.MAIL_DISABLED || '').toLowerCase().trim())
-          if (!mailDisabled) {
-            try {
-              const reg = await db.get(`SELECT * FROM registrations WHERE id = ?`, [row.registration_id])
-              if (reg) {
-                const fullName = `${String(reg.prenom || '')} ${String(reg.nom || '')}`
-                const issuedDate = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
-                let pdfAttachment
-                try {
-                  const pdfBuffer = await buildBadgePdf({
-                    prenom: String(reg.prenom || ''),
-                    nom: String(reg.nom || ''),
-                    passportNum: String(reg.passport_num || ''),
-                    zone: String(reg.residence_zone || ''),
-                    issuedDate,
-                    badgeId: String(b.id || ''),
-                  })
-                  const safeNom = String(reg.nom || '').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()
-                  pdfAttachment = { filename: `badge-hog2026-${safeNom}.pdf`, content: pdfBuffer, contentType: 'application/pdf' }
-                } catch (pdfErr) {
-                  console.error('badge PDF generation failed', pdfErr && pdfErr.message ? String(pdfErr.message) : pdfErr)
-                }
-                await sendMail({
-                  to: String(reg.email || ''),
-                  subject: `Paiement confirmé — H.O.G Tour 2026`,
-                  replyTo: String(process.env.MAIL_TO || process.env.MAIL_FROM || 'contact@hogalgierschapteralgeria.com'),
-                  html: buildConfirmationEmailHtml({
-                    prenom: String(reg.prenom || ''),
-                    fullName,
-                    registrationId: String(reg.id || ''),
-                    mode: 'paid',
-                    paymentUrl: null,
-                    badgeUrl,
-                  }),
-                  text: `Bonjour ${fullName},\n\nVotre paiement est confirmé. Accédez à votre badge : ${badgeUrl}\nRéférence : ${reg.id}\n`,
-                  attachments: pdfAttachment ? [pdfAttachment] : undefined,
-                })
-              }
-            } catch (mailErr) {
-              console.error('result confirmation email failed', mailErr && mailErr.message ? String(mailErr.message) : mailErr)
-            }
-          }
+        // Envoi idempotent — n'envoie que si pas déjà fait par le webhook
+        const result = await sendPaidConfirmation(db, String(row.payment_id), String(row.registration_id))
+        if (result && result.badgeUrl) {
+          badgeUrl = result.badgeUrl
+        } else {
+          // Déjà envoyé : régénérer juste l'URL badge pour la réponse
+          const b = await ensureBadgeForRegistration(db, String(row.registration_id))
+          const baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${Number(process.env.PORT) || 4000}`
+          badgeUrl = `${baseUrl.replace(/\/$/, '')}/v1/badge?token=${encodeURIComponent(String(b.token))}&sig=${encodeURIComponent(signToken(String(b.token)))}`
         }
       }
 

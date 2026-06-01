@@ -286,10 +286,17 @@ async function initDb() {
     } catch (e) {
       if (!(e && (e.code === 'ER_DUP_FIELDNAME' || String(e.message || '').toLowerCase().includes('duplicate column')))) throw e
     }
+    try {
+      await db.exec(`ALTER TABLE payments ADD COLUMN confirmation_sent TINYINT DEFAULT 0;`)
+    } catch (e) {
+      if (!(e && (e.code === 'ER_DUP_FIELDNAME' || String(e.message || '').toLowerCase().includes('duplicate column')))) throw e
+    }
   } else {
     const paymentCols = await db.all(`PRAGMA table_info(payments);`)
     const hasClientSecret = paymentCols.some(c => c.name === 'client_secret')
     if (!hasClientSecret) await db.exec(`ALTER TABLE payments ADD COLUMN client_secret TEXT;`)
+    const hasConfirmationSent = paymentCols.some(c => c.name === 'confirmation_sent')
+    if (!hasConfirmationSent) await db.exec(`ALTER TABLE payments ADD COLUMN confirmation_sent INTEGER DEFAULT 0;`)
   }
 }
 
