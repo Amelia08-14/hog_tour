@@ -926,11 +926,16 @@ function createApp() {
 
       // Paiement échoué (ex: crédit insuffisant) — prévenir le participant + l'admin
       if (mappedStatus === 'cancelled') {
-        const reason = String(
+        const rawReason = String(
           firstString(data, ['remoteStatus', 'message', 'statusMessage']) ||
           firstString(payload, ['remoteStatus', 'message', 'statusMessage']) ||
-          'Paiement non abouti'
+          ''
         )
+        // Traduction des motifs techniques Yassir en message clair
+        const r = rawReason.toLowerCase()
+        const reason = r.includes('insufficient')
+          ? 'Le paiement n\'a pas abouti : crédit insuffisant sur Yassir Cash.'
+          : rawReason || 'Le paiement n\'a pas abouti.'
         const mailDisabled = ['1', 'true', 'yes'].includes(String(process.env.MAIL_DISABLED || '').toLowerCase().trim())
         if (!mailDisabled) {
           try {
