@@ -32,9 +32,10 @@ function formatAmount(cents: number, currency: string) {
 
 function methodDisplay(code: string, name: string): { label: string; sub: string } {
   const c = (code || '').toLowerCase()
-  if (c.includes('stripe'))                              return { label: 'Carte bancaire',  sub: 'Stripe' }
-  if (c.includes('cash'))                                return { label: 'Espèces',         sub: 'Yassir Cash' }
-  if (c.includes('cib') || c.includes('dahabia') || c.includes('satim')) return { label: 'CIB / Dahabia', sub: 'via SATIM' }
+  if (c.includes('stripe'))                                               return { label: 'Carte bancaire',  sub: 'Stripe' }
+  if (c === 'wallet_v2' || c.includes('cash') || c === 'yassir')         return { label: 'Espèces',         sub: 'Yassir Cash' }
+  if (c.includes('cib') || c.includes('dahabia') || c.includes('satim')) return { label: 'CIB / Dahabia',   sub: 'via SATIM' }
+  if (c.includes('wallet'))                                               return { label: 'Paiement mobile', sub: 'Yassir Wallet' }
   return { label: name || code, sub: '' }
 }
 
@@ -86,12 +87,13 @@ export default function PaiementClient() {
   }, [qs])
 
   async function fetchMethods() {
-    if (!paymentId || !sig) return
+    if (!paymentId || !sig) { setMethods([]); return }
     try {
       const res = await fetch(apiUrl(`/v1/payments/methods?paymentId=${encodeURIComponent(paymentId)}&sig=${encodeURIComponent(sig)}`))
       const data = await res.json().catch(() => ({}))
-      if (data.methods) setMethods(data.methods as PaymentMethod[])
-    } catch { /* methods stay null — on-site fallback always shown */ }
+      if (Array.isArray(data.methods)) setMethods(data.methods as PaymentMethod[])
+      else setMethods([])
+    } catch { setMethods([]) }
   }
 
   const isAilleurs = info?.residenceZone?.toLowerCase() === 'ailleurs'
@@ -280,7 +282,9 @@ export default function PaiementClient() {
               <div className="flex flex-col gap-3">
 
                 {/* Boutons Yassir dynamiques */}
-                {methods && methods.length > 0 ? (
+                {methods === null ? (
+                  <div className="text-muted text-[12px] py-2 animate-pulse">Chargement des méthodes de paiement…</div>
+                ) : methods.length > 0 ? (
                   methods.map(m => {
                     const { label, sub } = methodDisplay(m.code, m.name)
                     return (
@@ -296,18 +300,14 @@ export default function PaiementClient() {
                       </button>
                     )
                   })
-                ) : methods === null ? (
-                  /* En cours de chargement des méthodes */
-                  <div className="text-muted text-[12px] py-2">Chargement des méthodes de paiement…</div>
                 ) : (
-                  /* Aucune méthode retournée par Yassir — bouton générique */
                   <button
                     type="button"
                     disabled={loading}
-                    onClick={() => handlePayOnline('')}
+                    onClick={() => handlePayOnline(isAilleurs ? 'STRIPE' : 'WALLET_V2')}
                     className="w-full bg-orange text-black font-condensed font-bold text-[13px] tracking-[0.2em] uppercase px-9 py-4 hover:bg-white transition-colors disabled:opacity-60"
                   >
-                    {loading ? 'Redirection…' : 'Payer en ligne'}
+                    {loading ? 'Redirection…' : isAilleurs ? 'Payer par carte — Stripe' : 'Payer en ligne'}
                   </button>
                 )}
 
