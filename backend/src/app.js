@@ -504,15 +504,17 @@ function createApp() {
       let resolvedPaymentMethodCode = paymentMethodCode || null
       try {
         const methodsResp = await listPaymentMethods({
-          country: String(row.pays_iso2 || ''),
+          country: countryIso2,
           amountCents: Number(row.amount_cents),
         })
-        if (isTrue(process.env.YASSIR_DEBUG)) {
-          console.log('yassir listPaymentMethods raw:', JSON.stringify(methodsResp))
-        }
+        console.log('yassir listPaymentMethods raw:', JSON.stringify(methodsResp))
         const list =
+          (methodsResp && Array.isArray(methodsResp.data) && methodsResp.data) ||
           (methodsResp && Array.isArray(methodsResp.items) && methodsResp.items) ||
           (methodsResp && Array.isArray(methodsResp.paymentMethods) && methodsResp.paymentMethods) ||
+          (methodsResp && Array.isArray(methodsResp.methods) && methodsResp.methods) ||
+          (methodsResp && Array.isArray(methodsResp.result) && methodsResp.result) ||
+          (methodsResp && methodsResp.data && Array.isArray(methodsResp.data.items) && methodsResp.data.items) ||
           (Array.isArray(methodsResp) ? methodsResp : [])
         if (Array.isArray(list) && list.length) {
           const wanted = String(paymentMethodCode || '').toLowerCase()
@@ -711,13 +713,14 @@ function createApp() {
         yassir: { intent, proceed },
       })
     } catch (e) {
-      const debug = isTrue(process.env.YASSIR_DEBUG)
-      if (debug) console.error('yassir start failed', e)
-      else console.error('yassir start failed', e && e.message ? String(e.message) : e)
+      console.error('yassir start failed', e && e.message ? String(e.message) : e, e && e.body ? JSON.stringify(e.body) : '')
+      const userMessage = e && e.body && (e.body.message || e.body.error || (Array.isArray(e.body.errors) && e.body.errors.join(', ')))
+        ? String(e.body.message || e.body.error || e.body.errors.join(', '))
+        : e && e.message ? String(e.message) : 'Erreur serveur.'
       return res.status(500).json({
         error: 'server_error',
-        message: e && e.message ? String(e.message) : undefined,
-        details: debug ? (e && e.body ? e.body : null) : undefined,
+        message: userMessage,
+        details: isTrue(process.env.YASSIR_DEBUG) ? (e && e.body ? e.body : null) : undefined,
       })
     }
   })
@@ -963,18 +966,23 @@ function createApp() {
       let methods = []
       try {
         const resp = await listPaymentMethods({ country: effectiveCountry, amountCents: Number(row.amount_cents) })
-        if (isTrue(process.env.YASSIR_DEBUG)) console.log('payments/methods raw:', JSON.stringify(resp))
+        // Log toujours pour déboguer le format de réponse du nouvel endpoint
+        console.log('payments/methods raw:', JSON.stringify(resp))
         methods =
+          (resp && Array.isArray(resp.data) && resp.data) ||
           (resp && Array.isArray(resp.items) && resp.items) ||
           (resp && Array.isArray(resp.paymentMethods) && resp.paymentMethods) ||
+          (resp && Array.isArray(resp.methods) && resp.methods) ||
+          (resp && Array.isArray(resp.result) && resp.result) ||
+          (resp && resp.data && Array.isArray(resp.data.items) && resp.data.items) ||
           (Array.isArray(resp) ? resp : [])
       } catch (e) {
-        console.error('payments/methods listPaymentMethods failed', e && e.message ? String(e.message) : e)
+        console.error('payments/methods listPaymentMethods failed', e && e.message ? String(e.message) : e, e && e.body ? JSON.stringify(e.body) : '')
       }
 
       const normalized = methods.map(m => ({
-        code: String(m.code || m.paymentMethodCode || m.payment_method_code || ''),
-        name: String(m.name || m.label || m.displayName || ''),
+        code: String(m.code || m.paymentMethodCode || m.payment_method_code || m.type || ''),
+        name: String(m.name || m.label || m.displayName || m.title || ''),
         id: String(m.id || m.paymentMethodId || ''),
       })).filter(m => m.code)
 
