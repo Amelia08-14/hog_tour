@@ -100,7 +100,7 @@ export default function PaiementClient() {
 
   const accommodationOptions = useMemo(() => {
     const base = [...ACCOMMODATIONS]
-    if (isTestMode) base.push({ value: 'Pack test', labelDzd: '1 DA', labelEur: '1 €', desc: 'Test — 1 unité' })
+    if (isTestMode) base.push({ value: 'Pack test', labelDzd: '500 DA', labelEur: '1 €', desc: 'Test' })
     return base
   }, [isTestMode])
 
