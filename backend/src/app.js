@@ -941,14 +941,35 @@ function createApp() {
         })
       }
 
-      // Pour les locaux (DZ) : Cash + CIB hardcodés (méthodes confirmées actives sur ce compte)
-      return res.json({
-        methods: [
-          { code: 'WALLET_V2', name: 'Yassir Cash', id: '' },
-          { code: 'CIB', name: 'CIB / Dahabia', id: '' },
-        ],
-        residenceZone: String(row.residence_zone || ''),
-      })
+      // Pour les locaux (DZ) : récupérer les méthodes depuis Yassir (codes réels)
+      let methods = []
+      try {
+        const resp = await listPaymentMethods({ country: 'DZ' })
+        console.log('payments/methods raw:', JSON.stringify(resp))
+        methods =
+          (resp && Array.isArray(resp.data) && resp.data) ||
+          (resp && Array.isArray(resp.items) && resp.items) ||
+          (resp && Array.isArray(resp.paymentMethods) && resp.paymentMethods) ||
+          (resp && Array.isArray(resp.methods) && resp.methods) ||
+          (resp && Array.isArray(resp.result) && resp.result) ||
+          (resp && resp.data && Array.isArray(resp.data.items) && resp.data.items) ||
+          (Array.isArray(resp) ? resp : [])
+      } catch (e) {
+        console.error('payments/methods failed:', e && e.message ? String(e.message) : e, e && e.body ? JSON.stringify(e.body) : '')
+        // Fallback si l'API échoue : Cash + valeur brute pour CIB
+        methods = [
+          { code: 'WALLET_V2', name: 'Yassir Cash' },
+          { code: 'DAHABIA', name: 'CIB / Dahabia' },
+        ]
+      }
+
+      const normalized = methods.map(m => ({
+        code: String(m.code || m.paymentMethodCode || m.payment_method_code || m.type || ''),
+        name: String(m.name || m.label || m.displayName || m.title || ''),
+        id: String(m.id || m.paymentMethodId || ''),
+      })).filter(m => m.code && !String(m.code).toUpperCase().includes('STRIPE'))
+
+      return res.json({ methods: normalized, residenceZone: String(row.residence_zone || '') })
     } catch (e) {
       return res.status(500).json({ error: 'server_error' })
     }
