@@ -178,6 +178,7 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
       out.set('permisNum', payload.permisNum)
       out.set('immatriculation', payload.immatriculation)
       out.set('passportNum', payload.passportNum)
+      if (isTestMode) out.set('testMode', '1')
 
       for (const v of fd.getAll('files')) {
         if (typeof File !== 'undefined' && v instanceof File && v.size > 0) {
