@@ -503,10 +503,7 @@ function createApp() {
       let resolvedPaymentMethodId = null
       let resolvedPaymentMethodCode = paymentMethodCode || null
       try {
-        const methodsResp = await listPaymentMethods({
-          country: countryIso2,
-          amountCents: Number(row.amount_cents),
-        })
+        const methodsResp = await listPaymentMethods({ country: 'DZ' })
         console.log('yassir listPaymentMethods raw:', JSON.stringify(methodsResp))
         const list =
           (methodsResp && Array.isArray(methodsResp.data) && methodsResp.data) ||
@@ -544,14 +541,9 @@ function createApp() {
       const successRedirectBase = String(process.env.YASSIR_SUCCESS_REDIRECT_URL || '').trim() || `${baseUrl.replace(/\/$/, '')}/payment-success`
       const successRedirectUrl = `${successRedirectBase}${successRedirectBase.includes('?') ? '&' : '?'}internalId=${encodeURIComponent(String(row.payment_id))}&status=success`
 
-      // Pour les résidents "Ailleurs" payant en EUR : si leur pays est local (DZ/LY/TN),
-      // on utilise FR pour que Yassir propose Stripe (les méthodes DZD ne fonctionnent pas en EUR)
-      const LOCAL_PAYS = ['DZ', 'LY', 'TN', 'LIB']
-      const isAilleursPaying = !ON_SITE_ZONES.includes(String(row.residence_zone || ''))
-      const rawCountry = String(row.pays_iso2 || '').trim().toUpperCase()
-      const countryIso2 = isAilleursPaying && LOCAL_PAYS.includes(rawCountry) ? 'FR' : (rawCountry || 'DZ')
-      if (!countryIso2) return res.status(400).json({ error: 'missing_fields' })
-      if (!iso2ToIso3(countryIso2)) return res.status(400).json({ error: 'invalid_country' })
+      // Ce compte Yassir est configuré uniquement pour DZA
+      // Stripe (EUR) et Cash/CIB (DZD) passent tous via DZA
+      const countryIso2 = 'DZ'
 
       const intent = await createPaymentIntent({
         phoneE164,
@@ -958,14 +950,20 @@ function createApp() {
       if (!row) return res.status(404).json({ error: 'not_found' })
       if (!row.amount_cents) return res.status(400).json({ error: 'accommodation_not_chosen' })
 
-      const LOCAL_PAYS_M = ['DZ', 'LY', 'TN', 'LIB']
       const isAilleursM = !ON_SITE_ZONES.includes(String(row.residence_zone || ''))
-      const rawCountryM = String(row.pays_iso2 || '').trim().toUpperCase()
-      const effectiveCountry = isAilleursM && LOCAL_PAYS_M.includes(rawCountryM) ? 'FR' : (rawCountryM || 'DZ')
 
+      // Pour les résidents "Ailleurs" : Stripe uniquement (compte Yassir DZA avec EUR)
+      if (isAilleursM) {
+        return res.json({
+          methods: [{ code: 'STRIPE', name: 'Carte bancaire', id: '' }],
+          residenceZone: String(row.residence_zone || ''),
+        })
+      }
+
+      // Pour les locaux (DZ/LY/TN) : récupérer depuis Yassir (toujours DZA)
       let methods = []
       try {
-        const resp = await listPaymentMethods({ country: effectiveCountry, amountCents: Number(row.amount_cents) })
+        const resp = await listPaymentMethods({ country: 'DZ' })
         // Log toujours pour déboguer le format de réponse du nouvel endpoint
         console.log('payments/methods raw:', JSON.stringify(resp))
         methods =
