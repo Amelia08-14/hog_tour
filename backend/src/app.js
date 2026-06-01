@@ -628,6 +628,15 @@ function createApp() {
         }
       }
 
+      // IMPORTANT : "status:success" dans proceed = l'étape a réussi, PAS le paiement capturé.
+      // S'il y a une payUrl à compléter (OTP / SATIM / 3DS), le paiement reste PENDING.
+      // Le vrai statut "paid" viendra du webhook ou de checkIntent après que l'utilisateur ait payé.
+      const proceedData = (proceed && proceed.data) || {}
+      const requires3DS = proceedData.require3DS === true || proceedData.requires3DS === true
+      if (redirectUrl || requires3DS) {
+        mappedStatus = 'pending'
+      }
+
       const updatedAt = nowIso()
       await db.run(
         `UPDATE payments
