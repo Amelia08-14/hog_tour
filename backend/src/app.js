@@ -244,10 +244,10 @@ function createApp() {
         return res.status(400).json({ error: 'invalid_fields', fields: ['residenceZone'] })
       }
 
-      const derivedPaymentMode = ['Algérie', 'Lybie', 'Tunisie'].includes(rz) ? 'on_site' : 'online_yassir'
+      const derivedPaymentMode = 'online_yassir'
       const phoneE164 = body.phoneE164 ? String(body.phoneE164).trim() : ''
       const normalizedPhoneE164 = phoneE164 && /^\+\d{6,20}$/.test(phoneE164.replace(/\s+/g, '')) ? phoneE164.replace(/\s+/g, '') : ''
-      if (derivedPaymentMode === 'online_yassir' && !normalizedPhoneE164) {
+      if (!normalizedPhoneE164) {
         return res.status(400).json({ error: 'phone_missing' })
       }
 
@@ -474,9 +474,9 @@ function createApp() {
             [token],
           )
       if (!row) return res.status(404).json({ error: 'not_found' })
-      if (String(row.paiement_mode || '') !== 'online_yassir') return res.status(400).json({ error: 'not_online_payment' })
       if (!row.amount_cents || !row.currency) return res.status(400).json({ error: 'payment_amount_missing' })
       if (String(row.payment_status || '') === 'paid') return res.status(409).json({ error: 'already_paid' })
+      if (String(row.method || '') === 'on_site') return res.status(400).json({ error: 'already_chose_onsite' })
 
       const phoneE164 =
         (msisdn && msisdn.trim()) ||
@@ -921,6 +921,46 @@ function createApp() {
         paymentStatus: String(row.payment_status || 'pending'),
         paymentMethod: String(row.method || ''),
       })
+    } catch (e) {
+      return res.status(500).json({ error: 'server_error' })
+    }
+  })
+
+  app.get('/v1/payments/methods', async (req, res) => {
+    try {
+      const paymentIdParam = typeof req.query.paymentId === 'string' ? req.query.paymentId.trim() : ''
+      const sig = typeof req.query.sig === 'string' ? req.query.sig.trim() : ''
+      if (!paymentIdParam || !sig) return res.status(400).json({ error: 'missing_params' })
+      if (!safeEqual(sig, signToken(paymentIdParam))) return res.status(401).json({ error: 'invalid_signature' })
+
+      const db = await getDb()
+      const row = await db.get(
+        `SELECT r.pays_iso2, r.residence_zone, p.amount_cents, p.currency
+         FROM payments p JOIN registrations r ON r.id = p.registration_id WHERE p.id = ?`,
+        [paymentIdParam],
+      )
+      if (!row) return res.status(404).json({ error: 'not_found' })
+      if (!row.amount_cents) return res.status(400).json({ error: 'accommodation_not_chosen' })
+
+      let methods = []
+      try {
+        const resp = await listPaymentMethods({ country: String(row.pays_iso2 || ''), amountCents: Number(row.amount_cents) })
+        if (isTrue(process.env.YASSIR_DEBUG)) console.log('payments/methods raw:', JSON.stringify(resp))
+        methods =
+          (resp && Array.isArray(resp.items) && resp.items) ||
+          (resp && Array.isArray(resp.paymentMethods) && resp.paymentMethods) ||
+          (Array.isArray(resp) ? resp : [])
+      } catch (e) {
+        console.error('payments/methods listPaymentMethods failed', e && e.message ? String(e.message) : e)
+      }
+
+      const normalized = methods.map(m => ({
+        code: String(m.code || m.paymentMethodCode || m.payment_method_code || ''),
+        name: String(m.name || m.label || m.displayName || ''),
+        id: String(m.id || m.paymentMethodId || ''),
+      })).filter(m => m.code)
+
+      return res.json({ methods: normalized, residenceZone: String(row.residence_zone || '') })
     } catch (e) {
       return res.status(500).json({ error: 'server_error' })
     }
