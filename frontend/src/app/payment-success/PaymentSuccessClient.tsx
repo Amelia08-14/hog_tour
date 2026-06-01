@@ -13,9 +13,10 @@ export default function PaymentSuccessClient() {
   const internalId = sp.get('internalId') || ''
 
   // Indice d'affichage uniquement — le statut réel vient de checkIntent/webhook côté backend
+  // Codes Yassir : 2=succès, 3=échec, 10=annulé, 12=OTP requis, 13=pré-autorisé
   const codeHint: '' | 'paid' | 'failed' =
     urlStatusCode === '2' ? 'paid'
-    : urlStatusCode === '3' ? 'failed'
+    : urlStatusCode === '3' || urlStatusCode === '10' ? 'failed'
     : urlStatus === 'success' ? 'paid'
     : urlStatus === 'failed' || urlStatus === 'cancelled' ? 'failed'
     : ''

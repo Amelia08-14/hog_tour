@@ -77,14 +77,17 @@ function normalizeYassirStatus(v) {
 }
 
 function normalizeYassirStatusCode(code) {
+  // Codes officiels Yassir (https://stg-docs.payment.yassir.io/guides/payment-flow#payment-states)
   const n = Number(code)
   if (!Number.isFinite(n)) return null
-  if (n === 2) return 'paid'
-  if (n === 3) return 'cancelled'
-  if (n === 13) return 'pending'
-  if (n === 12 || n === 11 || n === 0) return 'pending'
-  if (n >= 4 && n <= 9) return 'pending'
-  if (n >= 20) return 'cancelled'
+  if (n === 2) return 'paid'        // SUCCEEDED
+  if (n === 3) return 'cancelled'   // FAILED (terminal)
+  if (n === 10) return 'cancelled'  // CANCELED — pré-autorisation libérée (terminal)
+  if (n === 4) return 'refunded'    // REFUNDED (terminal)
+  if (n === 16) return 'refunded'   // PARTIALLY_REFUNDED
+  if (n === 12) return 'pending'    // REQUIRES_ACTION — OTP requis
+  if (n === 13) return 'pending'    // PRE_AUTHORIZED — fonds réservés
+  if (n === 11 || n === 0) return 'pending' // CREATED / PROCESSING
   return null
 }
 
@@ -558,12 +561,24 @@ function createApp() {
         return true
       }
 
+      // Doc Yassir : il faut appender returnUrl au payUrl pour que l'utilisateur revienne après OTP/SATIM
+      // Yassir ajoutera ensuite ?paymentId=...&statusCode=... à ce returnUrl
+      const returnUrl = `${successRedirectBase}${successRedirectBase.includes('?') ? '&' : '?'}internalId=${encodeURIComponent(String(row.payment_id))}`
+      function appendReturnUrl(payUrl) {
+        if (!payUrl) return payUrl
+        try {
+          const u = new URL(payUrl)
+          u.searchParams.set('returnUrl', returnUrl)
+          return u.toString()
+        } catch { return payUrl }
+      }
+
       // Check if createPaymentIntent already provided a hosted checkout URL (production Yassir flow)
       const intentRedirectUrlRaw =
         firstString(intentData, ['redirectUrl', 'checkoutUrl', 'payUrl', 'paymentUrl', 'redirect_url', 'checkout_url']) ||
         (intentData.metadata && firstString(intentData.metadata, ['payUrl', 'redirectUrl', 'url'])) ||
         firstString(intent, ['redirectUrl', 'checkoutUrl', 'payUrl', 'paymentUrl', 'redirect_url'])
-      const intentRedirectUrl = isValidYassirCheckout(intentRedirectUrlRaw) ? intentRedirectUrlRaw : null
+      const intentRedirectUrl = isValidYassirCheckout(intentRedirectUrlRaw) ? appendReturnUrl(intentRedirectUrlRaw) : null
       if (intentRedirectUrlRaw && !intentRedirectUrl) {
         console.log('yassir intent: ignoring invalid redirect URL:', intentRedirectUrlRaw)
       }
@@ -582,13 +597,14 @@ function createApp() {
         }
         const extractRedirectFromProceed = (p) => {
           const pd = (p && p.data) || {}
-          return (
+          const raw =
             firstString(p, ['payUrl', 'redirectUrl', 'paymentUrl', 'url', 'checkoutUrl', 'redirect_url', 'payment_url']) ||
             firstString(pd, ['payUrl', 'redirectUrl', 'url', 'checkoutUrl']) ||
             (pd.metadata && firstString(pd.metadata, ['payUrl', 'redirectUrl', 'url'])) ||
             firstString(p && p.nextAction, ['url', 'redirectUrl', 'payUrl']) ||
             null
-          )
+          if (raw) console.log('yassir proceed redirect candidate:', raw)
+          return isValidYassirCheckout(raw) ? appendReturnUrl(raw) : null
         }
 
         try {
