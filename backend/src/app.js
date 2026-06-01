@@ -941,34 +941,14 @@ function createApp() {
         })
       }
 
-      // Pour les locaux (DZ/LY/TN) : récupérer depuis Yassir (toujours DZA)
-      let methods = []
-      try {
-        const resp = await listPaymentMethods({ country: 'DZ' })
-        // Log toujours pour déboguer le format de réponse du nouvel endpoint
-        console.log('payments/methods raw:', JSON.stringify(resp))
-        methods =
-          (resp && Array.isArray(resp.data) && resp.data) ||
-          (resp && Array.isArray(resp.items) && resp.items) ||
-          (resp && Array.isArray(resp.paymentMethods) && resp.paymentMethods) ||
-          (resp && Array.isArray(resp.methods) && resp.methods) ||
-          (resp && Array.isArray(resp.result) && resp.result) ||
-          (resp && resp.data && Array.isArray(resp.data.items) && resp.data.items) ||
-          (Array.isArray(resp) ? resp : [])
-      } catch (e) {
-        console.error('payments/methods listPaymentMethods failed', e && e.message ? String(e.message) : e, e && e.body ? JSON.stringify(e.body) : '')
-      }
-
-      const normalized = methods.map(m => ({
-        code: String(m.code || m.paymentMethodCode || m.payment_method_code || m.type || ''),
-        name: String(m.name || m.label || m.displayName || m.title || ''),
-        id: String(m.id || m.paymentMethodId || ''),
-      })).filter(m => m.code)
-
-      // Pour les locaux (DZ) : exclure Stripe — uniquement Cash + CIB
-      const isStripe = (c) => String(c || '').toUpperCase().includes('STRIPE')
-      const finalMethods = normalized.filter(m => !isStripe(m.code))
-      return res.json({ methods: finalMethods, residenceZone: String(row.residence_zone || '') })
+      // Pour les locaux (DZ) : Cash + CIB hardcodés (méthodes confirmées actives sur ce compte)
+      return res.json({
+        methods: [
+          { code: 'WALLET_V2', name: 'Yassir Cash', id: '' },
+          { code: 'CIB', name: 'CIB / Dahabia', id: '' },
+        ],
+        residenceZone: String(row.residence_zone || ''),
+      })
     } catch (e) {
       return res.status(500).json({ error: 'server_error' })
     }
