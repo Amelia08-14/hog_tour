@@ -594,6 +594,9 @@ function createApp() {
 
       if (!intentRedirectUrl) {
         // No hosted checkout URL from intent — try proceedIntent
+        // Yassir Cash uses WALLET_V2 regardless of the code returned by listPaymentMethods
+        const isCashCode = (c) => { const u = String(c || '').toUpperCase(); return u.includes('CASH') || u.includes('WALLET') || u === 'YASSIR' }
+        if (isCashCode(resolvedPaymentMethodCode)) resolvedPaymentMethodCode = 'WALLET_V2'
         if (!resolvedPaymentMethodCode && !resolvedPaymentMethodId && !msisdn) {
           resolvedPaymentMethodCode = 'WALLET_V2'
         }
@@ -780,6 +783,10 @@ function createApp() {
         details: debug ? (e && e.body ? e.body : null) : undefined,
       })
     }
+  })
+
+  app.get('/v1/payments/yassir/webhook', (req, res) => {
+    res.status(200).json({ ok: true, endpoint: 'yassir-webhook' })
   })
 
   app.post('/v1/payments/yassir/webhook', async (req, res) => {
