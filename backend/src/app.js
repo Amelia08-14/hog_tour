@@ -1182,15 +1182,10 @@ function createApp() {
         console.error(`yassir result checkIntent failed: ref=${ref}`, chkErr && chkErr.message ? String(chkErr.message) : chkErr, chkErr && chkErr.body ? JSON.stringify(chkErr.body) : '')
       }
 
-      // Fallback: trust Yassir's redirect status=success when checkIntent fails or returns non-paid
+      // Per Yassir: redirect URL is NOT a payment confirmation — use checkIntent or webhook only
+      // On ne marque paid que si checkIntent le confirme ou si le webhook l'a déjà fait
       if (finalStatus !== 'paid' && urlStatus === 'success') {
-        console.log(`yassir result: checkIntent inconclusive, trusting urlStatus=success for ref=${ref}`)
-        await db.run(
-          `UPDATE payments SET status = 'paid', updated_at = ?, updated_by = 'yassir_redirect' WHERE id = ?`,
-          [nowIso(), String(row.payment_id)],
-        )
-        justPaid = true
-        finalStatus = 'paid'
+        console.log(`yassir result: redirected with status=success but checkIntent returned ${finalStatus} — waiting for webhook`)
       }
 
       let badgeUrl = null

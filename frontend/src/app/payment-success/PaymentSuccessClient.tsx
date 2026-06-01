@@ -30,7 +30,7 @@ export default function PaymentSuccessClient() {
       .then(r => r.json().then(data => ({ ok: r.ok, data })))
       .then(({ ok, data }) => {
         const s = data.payment?.status
-        if (s === 'paid' || (!ok && urlStatus === 'success') || (urlStatus === 'success' && s !== 'cancelled')) {
+        if (s === 'paid') {
           setBadgeUrl(data.badgeUrl || null)
           setState('paid')
         } else if (s === 'cancelled') {
@@ -39,7 +39,7 @@ export default function PaymentSuccessClient() {
           setState('pending')
         }
       })
-      .catch(() => setState(urlStatus === 'success' ? 'paid' : 'failed'))
+      .catch(() => setState('pending'))
   }, [yassirRef, urlStatus, apiBase])
 
   if (state === 'loading') return <Screen icon="⟳" title="Vérification…" muted="Confirmation du paiement en cours." />

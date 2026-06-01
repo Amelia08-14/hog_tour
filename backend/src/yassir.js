@@ -184,10 +184,10 @@ async function ensureCustomer({ phoneE164, email, firstName, lastName }) {
   }
 }
 
-async function listPaymentMethods({ country, amountCents }) {
+async function listPaymentMethods({ country }) {
   const c = iso2ToIso3(country)
-  return yassirRequest('GET', `/api/v1/payment-methods`, {
-    query: { countryCode: c || undefined, amount: amountCents != null ? Number(amountCents) : undefined },
+  return yassirRequest('GET', `/api/v1/payment-methods/available`, {
+    query: { countryCode: c || undefined },
   })
 }
 
