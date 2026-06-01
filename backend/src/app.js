@@ -42,7 +42,7 @@ const HEBERGEMENT_PRICES = {
   'Chambre simple': { dzd: 7500000, eur: 96000 },
   'Chambre double — Motard': { dzd: 6500000, eur: 88000 },
   'Chambre double couple': { dzd: 12500000, eur: 174000 },
-  'Pack test': { dzd: 1000, eur: 100 },
+  'Pack test': { dzd: 50000, eur: 100 },
 }
 const ON_SITE_ZONES = ['Algérie']
 
@@ -944,7 +944,7 @@ function createApp() {
       // Pour les locaux (DZ) : récupérer les méthodes depuis Yassir (codes réels)
       let methods = []
       try {
-        const resp = await listPaymentMethods({ country: 'DZ', amountCents: Number(row.amount_cents) })
+        const resp = await listPaymentMethods({ country: 'DZ' })
         console.log('payments/methods raw:', JSON.stringify(resp))
         methods =
           (resp && Array.isArray(resp.data) && resp.data) ||
