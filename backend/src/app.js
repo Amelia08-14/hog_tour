@@ -940,6 +940,10 @@ function createApp() {
           ''
         )
         const reason = mapFailureReason(rawReason)
+        // Stocke le motif pour que /result puisse le renvoyer au front
+        try {
+          await db.run(`UPDATE payments SET failure_reason = ? WHERE id = ?`, [reason, String(row.payment_id)])
+        } catch { /* colonne absente sur vieux déploiement */ }
         const mailDisabled = ['1', 'true', 'yes'].includes(String(process.env.MAIL_DISABLED || '').toLowerCase().trim())
         if (!mailDisabled) {
           try {
@@ -1234,12 +1238,12 @@ function createApp() {
       const db = await getDb()
       let row = internalId
         ? await db.get(
-            `SELECT p.id as payment_id, p.registration_id, p.status as payment_status, p.reference, p.client_secret
+            `SELECT p.id as payment_id, p.registration_id, p.status as payment_status, p.reference, p.client_secret, p.failure_reason
              FROM payments p WHERE p.id = ?`,
             [internalId],
           )
         : await db.get(
-            `SELECT p.id as payment_id, p.registration_id, p.status as payment_status, p.reference, p.client_secret
+            `SELECT p.id as payment_id, p.registration_id, p.status as payment_status, p.reference, p.client_secret, p.failure_reason
              FROM payments p WHERE p.reference = ? OR p.id = ?`,
             [ref, ref],
           )
@@ -1262,14 +1266,19 @@ function createApp() {
           if (mappedStatus === 'paid') justPaid = true
           finalStatus = mappedStatus
         }
-        // Motif d'échec si paiement rejeté
-        if (finalStatus === 'cancelled' && chk) {
-          const cd = (chk && chk.data) || chk
-          const rawReason = firstString(cd, ['remoteStatus', 'message', 'statusMessage']) || firstString(chk, ['remoteStatus', 'message']) || ''
-          failureReason = mapFailureReason(rawReason)
+        // Motif d'échec si paiement rejeté — checkIntent en priorité, sinon motif stocké par le webhook
+        if (finalStatus === 'cancelled') {
+          const cd = (chk && chk.data) || chk || {}
+          const rawReason = firstString(cd, ['remoteStatus', 'message', 'statusMessage']) || firstString(chk || {}, ['remoteStatus', 'message']) || ''
+          failureReason = rawReason ? mapFailureReason(rawReason) : (row.failure_reason || mapFailureReason(''))
         }
       } catch (chkErr) {
         console.error(`yassir result checkIntent failed: ref=${ref}`, chkErr && chkErr.message ? String(chkErr.message) : chkErr, chkErr && chkErr.body ? JSON.stringify(chkErr.body) : '')
+      }
+
+      // Si échec confirmé sans motif (checkIntent KO), utiliser le motif stocké par le webhook
+      if (finalStatus === 'cancelled' && !failureReason) {
+        failureReason = row.failure_reason || mapFailureReason('')
       }
 
       // Per Yassir: redirect URL is NOT a payment confirmation — use checkIntent or webhook only

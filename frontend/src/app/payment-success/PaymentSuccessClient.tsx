@@ -35,26 +35,35 @@ export default function PaymentSuccessClient() {
       ? `internalId=${encodeURIComponent(internalId)}`
       : yassirRef ? `ref=${encodeURIComponent(yassirRef)}` : ''
     if (!lookupParam) {
-      setState(codeHint === 'failed' ? 'failed' : codeHint === 'paid' ? 'pending' : 'pending')
+      setState(codeHint === 'failed' ? 'failed' : 'pending')
       return
     }
-    fetch(`${apiBase}/v1/payments/yassir/result?${lookupParam}`)
-      .then(r => r.json().then(data => ({ ok: r.ok, data })))
-      .then(({ ok, data }) => {
-        const s = data.payment?.status
-        if (s === 'paid') {
-          setBadgeUrl(data.badgeUrl || null)
-          setState('paid')
-        } else if (s === 'cancelled' || codeHint === 'failed') {
-          // checkIntent confirme l'échec, ou Yassir a redirigé avec statusCode=3
-          if (data.reason) setFailReason(String(data.reason))
-          setState('failed')
-        } else {
-          // Paiement en cours — le webhook confirmera et enverra le badge par email
-          setState('pending')
-        }
-      })
-      .catch(() => setState(codeHint === 'failed' ? 'failed' : 'pending'))
+
+    let cancelled = false
+    const poll = (attempt: number) => {
+      fetch(`${apiBase}/v1/payments/yassir/result?${lookupParam}`)
+        .then(r => r.json().then(data => ({ ok: r.ok, data })))
+        .then(({ ok, data }) => {
+          if (cancelled) return
+          const s = data.payment?.status
+          if (s === 'paid') {
+            setBadgeUrl(data.badgeUrl || null)
+            setState('paid')
+          } else if (s === 'cancelled' || codeHint === 'failed') {
+            if (data.reason) setFailReason(String(data.reason))
+            setState('failed')
+            // Si pas encore de motif et échec connu, le webhook arrive peut-être après — réessayer
+            if (!data.reason && attempt < 3) {
+              setTimeout(() => { if (!cancelled) poll(attempt + 1) }, 2500)
+            }
+          } else {
+            setState('pending')
+          }
+        })
+        .catch(() => { if (!cancelled) setState(codeHint === 'failed' ? 'failed' : 'pending') })
+    }
+    poll(0)
+    return () => { cancelled = true }
   }, [yassirRef, internalId, codeHint, apiBase])
 
   if (state === 'loading') return <Screen icon="⟳" title="Vérification…" muted="Confirmation du paiement en cours." />
