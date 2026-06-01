@@ -91,11 +91,16 @@ function normalizeYassirStatusCode(code) {
 function extractYassirStatus(obj) {
   if (!obj) return null
   const data = (obj && obj.data) || obj
-  const byCode = normalizeYassirStatusCode(data.statusCode)
+  // Webhook utilise remoteStatusCode/remoteStatus ; proceed/check utilisent statusCode/status
+  const byCode =
+    normalizeYassirStatusCode(data.remoteStatusCode) ||
+    normalizeYassirStatusCode(obj.remoteStatusCode) ||
+    normalizeYassirStatusCode(data.statusCode) ||
+    normalizeYassirStatusCode(obj.statusCode)
   if (byCode) return byCode
   return normalizeYassirStatus(
-    firstString(data, ['status', 'paymentStatus', 'payment_status']) ||
-    firstString(obj, ['status', 'paymentStatus', 'payment_status'])
+    firstString(data, ['remoteStatus', 'status', 'paymentStatus', 'payment_status']) ||
+    firstString(obj, ['remoteStatus', 'status', 'paymentStatus', 'payment_status'])
   )
 }
 
@@ -872,6 +877,41 @@ function createApp() {
             }
           } catch (mailErr) {
             console.error('webhook confirmation email failed', mailErr && mailErr.message ? String(mailErr.message) : mailErr)
+          }
+        }
+      }
+
+      // Paiement échoué (ex: crédit insuffisant) — prévenir le participant + l'admin
+      if (mappedStatus === 'cancelled') {
+        const reason = String(
+          firstString(data, ['remoteStatus', 'message', 'statusMessage']) ||
+          firstString(payload, ['remoteStatus', 'message', 'statusMessage']) ||
+          'Paiement non abouti'
+        )
+        const mailDisabled = ['1', 'true', 'yes'].includes(String(process.env.MAIL_DISABLED || '').toLowerCase().trim())
+        if (!mailDisabled) {
+          try {
+            const reg = await db.get(`SELECT * FROM registrations WHERE id = ?`, [row.registration_id])
+            if (reg) {
+              const baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${Number(process.env.PORT) || 4000}`
+              const retryUrl = `${baseUrl.replace(/\/$/, '')}/paiement?paymentId=${encodeURIComponent(String(row.payment_id))}&sig=${encodeURIComponent(signToken(String(row.payment_id)))}`
+              const fullName = `${String(reg.prenom || '')} ${String(reg.nom || '')}`
+              // Email au participant
+              await sendMail({
+                to: String(reg.email || ''),
+                subject: `Paiement non abouti — H.O.G Tour 2026`,
+                replyTo: String(process.env.MAIL_TO || process.env.MAIL_FROM || 'contact@hogalgierschapteralgeria.com'),
+                html: buildPaymentFailedEmailHtml({ prenom: String(reg.prenom || ''), reason, retryUrl }),
+                text: `Bonjour ${reg.prenom},\n\nVotre paiement n'a pas abouti (${reason}).\nVous pouvez réessayer ici : ${retryUrl}\nRéférence : ${reg.id}\n`,
+              })
+              // Notification admin
+              await sendMail({
+                subject: `Paiement échoué — ${fullName} (${reason})`,
+                text: `Paiement échoué\n\n${fullName} — ${reg.email}\nRaison: ${reason}\nRéférence: ${row.payment_id}\n`,
+              })
+            }
+          } catch (mailErr) {
+            console.error('webhook failure email failed', mailErr && mailErr.message ? String(mailErr.message) : mailErr)
           }
         }
       }
@@ -2045,6 +2085,46 @@ function buildAdminRegistrationEmailHtml({
 
   <tr><td style="background:rgba(255,107,0,.35);height:1px;font-size:0;">&nbsp;</td></tr>
 
+</table>
+</td></tr>
+</table>
+</body>
+</html>`
+}
+
+function buildPaymentFailedEmailHtml({ prenom, reason, retryUrl }) {
+  const h = escapeHtml
+  return `<!doctype html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#0A0A08;font-family:Arial,Helvetica,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0A0A08;padding:48px 20px;">
+<tr><td align="center">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
+  <tr><td style="background:#FF6B00;height:3px;font-size:0;line-height:0;">&nbsp;</td></tr>
+  <tr><td style="background:#111009;border:1px solid rgba(255,107,0,.14);border-top:none;padding:40px 44px 32px;">
+    <p style="margin:0 0 10px;font-size:9px;letter-spacing:5px;text-transform:uppercase;color:rgba(255,107,0,.7);">H.O.G Algiers Chapter Algeria</p>
+    <h1 style="margin:0 0 4px;font-size:34px;font-weight:900;letter-spacing:4px;text-transform:uppercase;color:#FF6B00;line-height:1;">H.O.G TOUR</h1>
+    <p style="margin:0 0 28px;font-size:20px;font-weight:900;letter-spacing:4px;color:rgba(255,255,255,.15);">2026</p>
+    <hr style="border:none;border-top:1px solid rgba(255,107,0,.18);margin:0 0 28px;">
+    <p style="margin:0 0 16px;font-size:16px;color:rgba(255,255,255,.85);line-height:1.5;">Bonjour <strong style="color:#FF6B00;">${h(prenom)}</strong>,</p>
+    <p style="margin:0 0 8px;font-size:14px;color:rgba(255,255,255,.6);line-height:1.9;">
+      Votre paiement pour le <strong style="color:#FF6B00;">H.O.G Tour 2026</strong> n'a pas abouti.
+    </p>
+    <p style="margin:0 0 28px;font-size:13px;color:rgba(255,255,255,.45);line-height:1.7;">
+      Motif : <span style="color:rgba(255,255,255,.7);">${h(reason)}</span>
+    </p>
+    <table cellpadding="0" cellspacing="0" border="0">
+      <tr><td style="background:#FF6B00;padding:16px 38px;">
+        <a href="${h(retryUrl)}" style="color:#000;font-weight:700;font-size:11px;letter-spacing:3px;text-transform:uppercase;text-decoration:none;">RÉESSAYER LE PAIEMENT &rarr;</a>
+      </td></tr>
+    </table>
+  </td></tr>
+  <tr><td style="background:#0A0A08;border:1px solid rgba(255,107,0,.06);border-top:none;padding:22px 44px;text-align:center;">
+    <p style="margin:0 0 6px;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.2);">Pour toute question</p>
+    <a href="mailto:contact@hogalgierschapteralgeria.com" style="color:rgba(255,107,0,.65);font-size:12px;text-decoration:none;">contact@hogalgierschapteralgeria.com</a>
+  </td></tr>
+  <tr><td style="background:rgba(255,107,0,.4);height:1px;font-size:0;line-height:0;">&nbsp;</td></tr>
 </table>
 </td></tr>
 </table>
