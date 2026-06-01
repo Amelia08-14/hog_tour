@@ -205,6 +205,14 @@ async function createPaymentIntent({ phoneE164, country, amountCents, currency, 
     actionId: actionId || undefined,
     amount,
     userId: String(phoneE164 || '').trim() || undefined,
+    // Redirect URLs — Yassir uses these to redirect after payment completion
+    successRedirectUrl: successRedirectUrl || undefined,
+    failRedirectUrl: failRedirectUrl || undefined,
+    callbackUrl: callbackUrl || undefined,
+    // Common field name variants across Yassir API versions
+    successUrl: successRedirectUrl || undefined,
+    failUrl: failRedirectUrl || undefined,
+    webhookUrl: callbackUrl || undefined,
   }
   return yassirRequest('POST', `/api/v1/payments/intents`, { query: { countryCode }, body })
 }
