@@ -7,7 +7,7 @@ export const messages: Record<Lang, Msg> = {
     nav: {
       home: 'Accueil',
       about: 'À propos',
-      event: 'Algeria H.O.G.® Tour 2026',
+      event: 'L’Événement',
       contact: 'Contactez-nous',
       register: 'Inscription',
       registerCta: 'Inscrivez-vous',
@@ -188,7 +188,7 @@ export const messages: Record<Lang, Msg> = {
     nav: {
       home: 'Home',
       about: 'About',
-      event: 'Algeria H.O.G.® Tour 2026',
+      event: 'The Event',
       contact: 'Contact',
       register: 'Registration',
       registerCta: 'Register',
@@ -369,7 +369,7 @@ export const messages: Record<Lang, Msg> = {
     nav: {
       home: 'الرئيسية',
       about: 'من نحن',
-      event: 'جولة Algeria H.O.G.® 2026',
+      event: 'الحدث',
       contact: 'تواصل معنا',
       register: 'التسجيل',
       registerCta: 'سجّل الآن',

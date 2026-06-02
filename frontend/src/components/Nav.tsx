@@ -71,7 +71,7 @@ export default function Nav({ lang }: { lang: Lang }) {
           <li key={l.href}>
             <Link
               href={l.href}
-              className={`text-[12.5px] tracking-[0.22em] uppercase transition-colors duration-200
+              className={`text-[12.5px] tracking-[0.22em] uppercase whitespace-nowrap transition-colors duration-200
                 ${pathname === l.href ? 'text-orange' : 'text-white/60 hover:text-white'}`}
             >
               {l.label}

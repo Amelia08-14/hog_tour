@@ -87,9 +87,9 @@ export default function Hero({ lang }: { lang: Lang }) {
         <h1
           className="au2 font-display m-0"
           style={{
-            fontSize: isAr ? 'clamp(34px, 6vw, 76px)' : 'clamp(40px, 8.5vw, 132px)',
-            lineHeight: isAr ? '1.30' : '0.94',
-            letterSpacing: isAr ? '0px' : '1.5px',
+            fontSize: isAr ? 'clamp(28px, 4.4vw, 60px)' : 'clamp(26px, 5vw, 72px)',
+            lineHeight: isAr ? '1.30' : '0.98',
+            letterSpacing: isAr ? '0px' : '1px',
           }}
         >
           <span className="block text-white">{titleLines?.[0] || 'ALGERIA H.O.G.® TOUR 2026'}</span>
