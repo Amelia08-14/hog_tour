@@ -237,14 +237,33 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
         const err = String((data as any)?.error || '')
+        const fields = Array.isArray((data as any)?.fields) ? (data as any).fields as string[] : []
         if (res.status === 409 && err === 'duplicate_passport') {
-          setError(String(t(lang, 'registration.errors.duplicatePassport')))
-        } else if (res.status === 400 && err === 'missing_fields') {
-          setError(String(t(lang, 'registration.errors.required')))
+          setError('Ce numéro de passeport est déjà utilisé pour une inscription. Si vous pensez qu\'il s\'agit d\'une erreur, contactez-nous à contact@hogalgierschapteralgeria.com.')
+        } else if (res.status === 403 && err === 'not_harley_owner') {
+          setError('Les inscriptions sont réservées aux propriétaires d\'une Harley-Davidson pour le moment. Merci pour votre compréhension.')
+        } else if (res.status === 400 && err === 'invalid_email') {
+          setError('L\'adresse email saisie n\'est pas valide. Vérifiez le format (exemple : nom@domaine.com).')
+        } else if (res.status === 400 && err === 'invalid_alnum') {
+          setError('Les numéros de permis, passeport et immatriculation ne doivent contenir que des lettres et des chiffres, sans espaces ni symboles.')
         } else if (res.status === 400 && err === 'phone_missing') {
-          setError(String(t(lang, 'registration.errors.invalidPhone')))
+          setError('Le numéro de téléphone est invalide. Vérifiez l\'indicatif du pays et le numéro saisi.')
+        } else if (res.status === 400 && err === 'invalid_fields' && fields.includes('residenceZone')) {
+          setError('Le lieu de résidence sélectionné n\'est pas valide. Merci de choisir Algérie ou Ailleurs.')
+        } else if (res.status === 400 && err === 'missing_fields') {
+          const labelFor: Record<string, string> = {
+            prenom: 'prénom', nom: 'nom', sexe: 'sexe', adresse: 'adresse', ville: 'ville',
+            paysIso2: 'pays', phoneNumber: 'téléphone', email: 'email', nationalite: 'nationalité',
+            nationaliteAutre: 'précision de nationalité', residenceZone: 'lieu de résidence',
+            profil: 'profil', profilGroupe: 'nom du groupe', tailleTshirt: 'taille de t-shirt',
+            permisNum: 'numéro de permis', immatriculation: 'immatriculation', passportNum: 'numéro de passeport',
+          }
+          const human = fields.map(f => labelFor[f] || f)
+          setError(human.length
+            ? `Merci de compléter les champs suivants : ${human.join(', ')}.`
+            : 'Merci de compléter tous les champs obligatoires.')
         } else {
-          setError(String(t(lang, 'registration.errors.failed')))
+          setError('Une erreur est survenue lors de l\'envoi. Merci de réessayer dans un instant ou de nous contacter à contact@hogalgierschapteralgeria.com.')
         }
         return
       }

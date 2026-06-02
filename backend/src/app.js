@@ -421,7 +421,7 @@ function createApp() {
             motoModele || null,
             String(body.profil).trim(),
             body.profilGroupe ? String(body.profilGroupe).trim() : null,
-            null,
+            '',
             String(body.tailleTshirt).trim(),
             derivedPaymentMode,
             permisV,
@@ -474,6 +474,7 @@ function createApp() {
         },
       })
     } catch (e) {
+      console.error('registration failed:', e && e.message ? String(e.message) : e, e && e.code ? `(code: ${e.code})` : '', e && e.sqlMessage ? `sql: ${e.sqlMessage}` : '')
       return res.status(500).json({ error: 'server_error' })
     }
   })
