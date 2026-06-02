@@ -27,6 +27,8 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
   const [profil, setProfil] = useState('')
   const [profilGroupe, setProfilGroupe] = useState('')
   const [taille, setTaille] = useState('')
+  const [hasPermisFile, setHasPermisFile] = useState(false)
+  const [hasCarteFile, setHasCarteFile] = useState(false)
   const [paiement, setPaiement] = useState('')
   const [pays, setPays] = useState('')
   const [phoneCountry, setPhoneCountry] = useState('DZ')
@@ -196,6 +198,16 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
       return
     }
 
+    // Pièces jointes obligatoires
+    if (!hasPermisFile) {
+      setError('Veuillez joindre une photo de votre permis de conduire.')
+      return
+    }
+    if (!hasCarteFile) {
+      setError('Veuillez joindre une photo de la carte grise de la moto.')
+      return
+    }
+
     const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL?.trim()
     const base = apiBase || (process.env.NODE_ENV === 'development' ? 'http://localhost:4000' : '')
     const url = base ? `${base.replace(/\/$/, '')}/v1/registrations` : '/v1/registrations'
@@ -246,6 +258,8 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
           setError('L\'adresse email saisie n\'est pas valide. Vérifiez le format (exemple : nom@domaine.com).')
         } else if (res.status === 400 && err === 'invalid_alnum') {
           setError('Les numéros de permis, passeport et immatriculation ne doivent contenir que des lettres et des chiffres, sans espaces ni symboles.')
+        } else if (res.status === 400 && err === 'missing_attachments') {
+          setError('Merci de joindre les deux pièces obligatoires : photo du permis et photo de la carte grise.')
         } else if (res.status === 400 && err === 'phone_missing') {
           setError('Le numéro de téléphone est invalide. Vérifiez l\'indicatif du pays et le numéro saisi.')
         } else if (res.status === 400 && err === 'invalid_fields' && fields.includes('residenceZone')) {
@@ -519,14 +533,14 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <F id="permis" label={`${t(lang, 'registration.fields.license')} *`} type="text" ph={String(t(lang, 'registration.placeholders.license'))} clean />
-                    <UF id="up-permis" label={String(t(lang, 'registration.fields.uploadLicense'))} lang={lang} />
+                    <UF id="up-permis" label={String(t(lang, 'registration.fields.uploadLicense'))} lang={lang} onPicked={setHasPermisFile} />
                   </div>
 
                   <F id="passport" label={`${t(lang, 'registration.fields.passport')} *`} type="text" ph={String(t(lang, 'registration.placeholders.passport'))} clean />
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <F id="immat" label={`${t(lang, 'registration.fields.plate')} *`} type="text" ph={String(t(lang, 'registration.placeholders.plate'))} clean />
-                    <UF id="up-carte" label={String(t(lang, 'registration.fields.uploadRegistration'))} lang={lang} />
+                    <UF id="up-carte" label={String(t(lang, 'registration.fields.uploadRegistration'))} lang={lang} onPicked={setHasCarteFile} />
                   </div>
 
                   <G label={`${t(lang, 'registration.fields.profile')} *`}>
@@ -659,11 +673,11 @@ function CB({
   )
 }
 
-function UF({ id, label, lang }: { id: string; label: string; lang: Lang }) {
+function UF({ id, label, lang, onPicked }: { id: string; label: string; lang: Lang; onPicked?: (has: boolean) => void }) {
   const [name, setName] = useState(String(t(lang, 'registration.upload.none')))
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-htext text-[14px]">{label}</p>
+      <p className="text-htext text-[14px]">{label} *</p>
       <div className="flex items-center gap-3 flex-wrap">
         <label
           htmlFor={id}
@@ -679,7 +693,11 @@ function UF({ id, label, lang }: { id: string; label: string; lang: Lang }) {
         type="file"
         accept=".jpg,.jpeg,.png,.pdf,.webp"
         className="hidden"
-        onChange={e => setName(e.target.files?.[0]?.name ?? String(t(lang, 'registration.upload.none')))}
+        onChange={e => {
+          const f = e.target.files?.[0]
+          setName(f?.name ?? String(t(lang, 'registration.upload.none')))
+          onPicked?.(Boolean(f))
+        }}
       />
     </div>
   )

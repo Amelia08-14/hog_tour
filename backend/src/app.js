@@ -373,6 +373,10 @@ function createApp() {
       }
 
       const incomingFiles = Array.isArray(req.files) ? req.files : []
+      // Pièces jointes obligatoires : photo permis + photo carte grise (2 fichiers)
+      if (incomingFiles.length < 2) {
+        return res.status(400).json({ error: 'missing_attachments' })
+      }
       let storedFiles = []
       if (incomingFiles.length) {
         if (!multer) return res.status(500).json({ error: 'uploads_not_available' })
