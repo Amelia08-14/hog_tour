@@ -74,7 +74,7 @@ export default function PaymentSuccessClient() {
       iconColor="#FF6B00"
       title="Paiement confirmé"
       muted={badgeUrl
-        ? "Votre inscription au H.O.G. Tour 2026 est validée. Un email de confirmation vous a été envoyé."
+        ? "Votre inscription au Algeria H.O.G.® Tour 2026 est validée. Un email de confirmation vous a été envoyé."
         : "Votre paiement est confirmé. Votre badge de participation vous sera envoyé par email dans quelques instants."}
       cta={badgeUrl ? { label: 'ACCÉDER À MON BADGE', href: badgeUrl } : undefined}
     />
@@ -144,7 +144,7 @@ function Screen({ icon, iconColor, title, muted, cta }: {
             {/* Eyebrow */}
             <div className="flex items-center justify-center gap-3 mb-8">
               <div className="w-6 h-px bg-orange/50" />
-              <span className="text-orange/70 text-[9px] uppercase tracking-[0.4em]">H.O.G. Tour 2026</span>
+              <span className="text-orange/70 text-[9px] uppercase tracking-[0.4em]">Algeria H.O.G.® Tour 2026</span>
               <div className="w-6 h-px bg-orange/50" />
             </div>
 

@@ -7,7 +7,7 @@ export const messages: Record<Lang, Msg> = {
     nav: {
       home: 'Accueil',
       about: 'À propos',
-      event: 'H.O.G. Tour 2026',
+      event: 'Algeria H.O.G.® Tour 2026',
       contact: 'Contactez-nous',
       register: 'Inscription',
       registerCta: 'Inscrivez-vous',
@@ -15,7 +15,7 @@ export const messages: Record<Lang, Msg> = {
     },
     hero: {
       eyebrow: 'H.O.G. Algiers Chapter Algeria · Accréditation #8062',
-      titleLines: ['H.O.G. TOUR 2026 ®', 'PREMIÈRE FOIS EN', 'ALGÉRIE'],
+      titleLines: ['ALGERIA H.O.G.® TOUR 2026', 'PREMIÈRE FOIS EN', 'ALGÉRIE'],
       subtitleStrong: "Ne ratez pas l'occasion",
       subtitleRest: 'et soyez les bienvenus pour cette première édition.',
       ctaRegister: 'Inscrivez-vous',
@@ -32,7 +32,7 @@ export const messages: Record<Lang, Msg> = {
       aboutTag: 'À propos',
       aboutTitle: 'Une aventure Harley-Davidson au cœur du Sahara',
       aboutP1:
-        "Le H.O.G. Tour 2026 en Algérie est une première : quatre jours de route entre l’océan de sable, les oasis et les villes du Sud.",
+        "Le Algeria H.O.G.® Tour 2026 en Algérie est une première : quatre jours de route entre l’océan de sable, les oasis et les villes du Sud.",
       aboutP2:
         "Un rendez-vous pensé pour les passionnés, avec un itinéraire iconique et une organisation premium de bout en bout.",
       aboutMore: 'En savoir plus',
@@ -56,7 +56,7 @@ export const messages: Record<Lang, Msg> = {
       programmeTag: 'Programme',
       programmeTitle: 'Itinéraire & temps forts',
       ticketTag: 'Inscription',
-      ticketTitle: 'Rejoindre le H.O.G. Tour 2026',
+      ticketTitle: 'Rejoindre le Algeria H.O.G.® Tour 2026',
       ticketSubtitle: 'Alger → Ghardaïa · 29 oct — 1er nov 2026',
       ticketCta: 'S’inscrire',
       galleryTag: 'Galerie',
@@ -66,12 +66,12 @@ export const messages: Record<Lang, Msg> = {
     },
     about: {
       tag: 'À propos',
-      title: 'H.O.G. Tour 2026 — Algérie',
+      title: 'Algeria H.O.G.® Tour 2026 — Algérie',
       lead:
         "Une première édition exceptionnelle, entre routes désertiques, hospitalité algérienne et esprit Harley-Davidson.",
     },
     hogtour: {
-      tag: 'H.O.G. Tour 2026',
+      tag: 'Algeria H.O.G.® Tour 2026',
       title: 'L’événement',
       lead:
         "Quatre jours d’aventure et de fraternité, sur un tracé conçu pour vivre l’Algérie autrement.",
@@ -97,9 +97,9 @@ export const messages: Record<Lang, Msg> = {
     registration: {
       tag: 'Inscription',
       titleA: 'Inscription',
-      titleB: 'H.O.G. Tour 2026',
+      titleB: 'Algeria H.O.G.® Tour 2026',
       dates: '29 Octobre — 1er Novembre 2026 · Alger → Ghardaïa',
-      frameTitle: 'HOG TOUR 2026 ®',
+      frameTitle: 'ALGERIA H.O.G.® TOUR 2026',
       frameSub: '29 Oct — 1er Nov · Algiers Chapter · #8062',
       fields: {
         firstName: 'Prénom',
@@ -188,7 +188,7 @@ export const messages: Record<Lang, Msg> = {
     nav: {
       home: 'Home',
       about: 'About',
-      event: 'H.O.G. Tour 2026',
+      event: 'Algeria H.O.G.® Tour 2026',
       contact: 'Contact',
       register: 'Registration',
       registerCta: 'Register',
@@ -196,7 +196,7 @@ export const messages: Record<Lang, Msg> = {
     },
     hero: {
       eyebrow: 'H.O.G. Algiers Chapter Algeria · Accreditation #8062',
-      titleLines: ['H.O.G. TOUR 2026 ®', 'FIRST TIME IN', 'ALGERIA'],
+      titleLines: ['ALGERIA H.O.G.® TOUR 2026', 'FIRST TIME IN', 'ALGERIA'],
       subtitleStrong: "Don’t miss the chance",
       subtitleRest: 'and be part of this first edition.',
       ctaRegister: 'Register',
@@ -213,7 +213,7 @@ export const messages: Record<Lang, Msg> = {
       aboutTag: 'About',
       aboutTitle: 'A Harley-Davidson adventure in the heart of the Sahara',
       aboutP1:
-        'H.O.G. Tour 2026 in Algeria is a first: four days on the road across dunes, oases, and southern cities.',
+        'Algeria H.O.G.® Tour 2026 in Algeria is a first: four days on the road across dunes, oases, and southern cities.',
       aboutP2:
         'A premium ride designed for passionate riders, with an iconic itinerary and end‑to‑end organization.',
       aboutMore: 'Learn more',
@@ -237,7 +237,7 @@ export const messages: Record<Lang, Msg> = {
       programmeTag: 'Schedule',
       programmeTitle: 'Route & highlights',
       ticketTag: 'Registration',
-      ticketTitle: 'Join H.O.G. Tour 2026',
+      ticketTitle: 'Join Algeria H.O.G.® Tour 2026',
       ticketSubtitle: 'Algiers → Ghardaïa · Oct 29 — Nov 1, 2026',
       ticketCta: 'Register now',
       galleryTag: 'Gallery',
@@ -247,12 +247,12 @@ export const messages: Record<Lang, Msg> = {
     },
     about: {
       tag: 'About',
-      title: 'H.O.G. Tour 2026 — Algeria',
+      title: 'Algeria H.O.G.® Tour 2026 — Algeria',
       lead:
         'A unique first edition combining desert roads, Algerian hospitality, and the Harley-Davidson spirit.',
     },
     hogtour: {
-      tag: 'H.O.G. Tour 2026',
+      tag: 'Algeria H.O.G.® Tour 2026',
       title: 'The event',
       lead:
         'Four days of riding and brotherhood, on a route designed to experience Algeria differently.',
@@ -278,9 +278,9 @@ export const messages: Record<Lang, Msg> = {
     registration: {
       tag: 'Registration',
       titleA: 'Registration',
-      titleB: 'H.O.G. Tour 2026',
+      titleB: 'Algeria H.O.G.® Tour 2026',
       dates: 'Oct 29 — Nov 1, 2026 · Algiers → Ghardaïa',
-      frameTitle: 'HOG TOUR 2026 ®',
+      frameTitle: 'ALGERIA H.O.G.® TOUR 2026',
       frameSub: 'Oct 29 — Nov 1 · Algiers Chapter · #8062',
       fields: {
         firstName: 'First name',
@@ -369,7 +369,7 @@ export const messages: Record<Lang, Msg> = {
     nav: {
       home: 'الرئيسية',
       about: 'من نحن',
-      event: 'جولة H.O.G. 2026',
+      event: 'جولة Algeria H.O.G.® 2026',
       contact: 'تواصل معنا',
       register: 'التسجيل',
       registerCta: 'سجّل الآن',
@@ -377,7 +377,7 @@ export const messages: Record<Lang, Msg> = {
     },
     hero: {
       eyebrow: 'H.O.G. فرع الجزائر · اعتماد #8062',
-      titleLines: ['H.O.G. TOUR 2026 ®', 'لأول مرة في', 'الجزائر'],
+      titleLines: ['ALGERIA H.O.G.® TOUR 2026', 'لأول مرة في', 'الجزائر'],
       subtitleStrong: 'لا تفوّت الفرصة',
       subtitleRest: 'وكن جزءًا من هذه النسخة الأولى.',
       ctaRegister: 'سجّل الآن',
@@ -394,7 +394,7 @@ export const messages: Record<Lang, Msg> = {
       aboutTag: 'من نحن',
       aboutTitle: 'مغامرة هارلي ديفيدسون في قلب الصحراء',
       aboutP1:
-        'جولة H.O.G. 2026 في الجزائر هي الأولى من نوعها: أربعة أيام على الطريق بين الرمال والواحات ومدن الجنوب.',
+        'جولة Algeria H.O.G.® 2026 في الجزائر هي الأولى من نوعها: أربعة أيام على الطريق بين الرمال والواحات ومدن الجنوب.',
       aboutP2:
         'تجربة راقية لعشّاق القيادة، بخط سير مميز وتنظيم متكامل من البداية إلى النهاية.',
       aboutMore: 'اعرف المزيد',
@@ -418,7 +418,7 @@ export const messages: Record<Lang, Msg> = {
       programmeTag: 'البرنامج',
       programmeTitle: 'المسار وأبرز المحطات',
       ticketTag: 'التسجيل',
-      ticketTitle: 'انضم إلى جولة H.O.G. 2026',
+      ticketTitle: 'انضم إلى جولة Algeria H.O.G.® 2026',
       ticketSubtitle: 'الجزائر → غرداية · 29 أكتوبر — 1 نوفمبر 2026',
       ticketCta: 'سجّل الآن',
       galleryTag: 'الصور',
@@ -428,12 +428,12 @@ export const messages: Record<Lang, Msg> = {
     },
     about: {
       tag: 'من نحن',
-      title: 'جولة H.O.G. 2026 — الجزائر',
+      title: 'جولة Algeria H.O.G.® 2026 — الجزائر',
       lead:
         'نسخة أولى استثنائية تجمع طرق الصحراء وكرم الضيافة وروح هارلي ديفيدسون.',
     },
     hogtour: {
-      tag: 'جولة H.O.G. 2026',
+      tag: 'جولة Algeria H.O.G.® 2026',
       title: 'الحدث',
       lead:
         'أربعة أيام من المغامرة والأخوّة على مسار صُمم لاكتشاف الجزائر بطريقة مختلفة.',
@@ -459,9 +459,9 @@ export const messages: Record<Lang, Msg> = {
     registration: {
       tag: 'التسجيل',
       titleA: 'التسجيل',
-      titleB: 'جولة H.O.G. 2026',
+      titleB: 'جولة Algeria H.O.G.® 2026',
       dates: '29 أكتوبر — 1 نوفمبر 2026 · الجزائر → غرداية',
-      frameTitle: 'HOG TOUR 2026 ®',
+      frameTitle: 'ALGERIA H.O.G.® TOUR 2026',
       frameSub: '29 أكتوبر — 1 نوفمبر · فرع الجزائر · #8062',
       fields: {
         firstName: 'الاسم',

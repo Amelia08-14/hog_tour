@@ -392,7 +392,7 @@ export default function AdminPage() {
     <div className="min-h-screen bg-bg flex items-center justify-center px-6">
       <div className="w-full max-w-[420px]">
         <div className="mb-8">
-          <p className="text-[9px] uppercase tracking-[5px] text-orange/60 mb-2">H.O.G. Tour 2026</p>
+          <p className="text-[9px] uppercase tracking-[5px] text-orange/60 mb-2">Algeria H.O.G.® Tour 2026</p>
           <h1 className="font-display text-[40px] text-htext leading-none tracking-wide">ADMIN</h1>
         </div>
         <div className="border border-orange/12 bg-bg3 p-8">
@@ -428,7 +428,7 @@ export default function AdminPage() {
       {/* Top bar */}
       <div className="border-b border-orange/10 bg-bg2 px-6 md:px-10 py-4 flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-2">
-          <span className="text-[8px] uppercase tracking-[4px] text-orange/60">H.O.G. Tour 2026</span>
+          <span className="text-[8px] uppercase tracking-[4px] text-orange/60">Algeria H.O.G.® Tour 2026</span>
           <span className="text-orange/30 mx-2">|</span>
           <span className="font-display text-[18px] text-htext tracking-wide">ADMIN</span>
         </div>

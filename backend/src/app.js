@@ -214,7 +214,7 @@ async function sendPaidConfirmation(db, paymentId, registrationId) {
       }
       await sendMail({
         to: String(reg.email || ''),
-        subject: `Paiement confirmé — H.O.G. Tour 2026`,
+        subject: `Paiement confirmé — Algeria H.O.G.® Tour 2026`,
         replyTo: String(process.env.MAIL_TO || process.env.MAIL_FROM || 'contact@hogalgierschapteralgeria.com'),
         html: buildConfirmationEmailHtml({
           prenom: String(reg.prenom || ''),
@@ -793,7 +793,7 @@ function createApp() {
             const fullName = `${String(row.prenom || '')} ${String(row.nom || '')}`
             await sendMail({
               to: String(row.email || ''),
-              subject: `Inscription en attente de confirmation — H.O.G. Tour 2026`,
+              subject: `Inscription en attente de confirmation — Algeria H.O.G.® Tour 2026`,
               replyTo: String(process.env.MAIL_TO || process.env.MAIL_FROM || 'contact@hogalgierschapteralgeria.com'),
               html: buildConfirmationEmailHtml({
                 prenom: String(row.prenom || ''),
@@ -985,7 +985,7 @@ function createApp() {
               // Email au participant
               await sendMail({
                 to: String(reg.email || ''),
-                subject: `Paiement non abouti — H.O.G. Tour 2026`,
+                subject: `Paiement non abouti — Algeria H.O.G.® Tour 2026`,
                 replyTo: String(process.env.MAIL_TO || process.env.MAIL_FROM || 'contact@hogalgierschapteralgeria.com'),
                 html: buildPaymentFailedEmailHtml({ prenom: String(reg.prenom || ''), reason, retryUrl }),
                 text: `Bonjour ${reg.prenom},\n\nVotre paiement n'a pas abouti (${reason}).\nVous pouvez réessayer ici : ${retryUrl}\nRéférence : ${reg.id}\n`,
@@ -1174,7 +1174,7 @@ function createApp() {
               baseUrl,
               files: fileList,
             }),
-            text: `Nouvelle inscription H.O.G. Tour 2026\n\n${fullName} — ${String(row.email || '')}\nRésidence: ${row.residence_zone}\nHébergement: ${hebergement}\nMontant: ${pricing.amountCents / 100} ${pricing.currency}\nPasseport: ${row.passport_num}\nID: ${row.id}\n`,
+            text: `Nouvelle inscription Algeria H.O.G.® Tour 2026\n\n${fullName} — ${String(row.email || '')}\nRésidence: ${row.residence_zone}\nHébergement: ${hebergement}\nMontant: ${pricing.amountCents / 100} ${pricing.currency}\nPasseport: ${row.passport_num}\nID: ${row.id}\n`,
           })
         } catch (mailErr) {
           console.error('choose-accommodation admin email failed', mailErr && mailErr.message ? String(mailErr.message) : mailErr)
@@ -1234,7 +1234,7 @@ function createApp() {
           }
           await sendMail({
             to: String(row.email || ''),
-            subject: `Inscription confirmée — H.O.G. Tour 2026`,
+            subject: `Inscription confirmée — Algeria H.O.G.® Tour 2026`,
             replyTo: String(process.env.MAIL_TO || process.env.MAIL_FROM || 'contact@hogalgierschapteralgeria.com'),
             html: buildConfirmationEmailHtml({
               prenom: String(row.prenom || ''),
@@ -1244,7 +1244,7 @@ function createApp() {
               paymentUrl: null,
               badgeUrl,
             }),
-            text: `Bonjour ${fullName},\n\nVotre inscription au H.O.G. Tour 2026 est confirmée. Paiement sur place.\nBadge : ${badgeUrl}\nRéférence : ${row.id}\n`,
+            text: `Bonjour ${fullName},\n\nVotre inscription au Algeria H.O.G.® Tour 2026 est confirmée. Paiement sur place.\nBadge : ${badgeUrl}\nRéférence : ${row.id}\n`,
             attachments: pdfAttachment ? [pdfAttachment] : undefined,
           })
         } catch (mailErr) {
@@ -1779,10 +1779,10 @@ function createApp() {
           const fullName = `${String(reg.prenom || '')} ${String(reg.nom || '')}`
           await sendMail({
             to: String(reg.email),
-            subject: `Annulation de votre inscription — H.O.G. Tour 2026`,
+            subject: `Annulation de votre inscription — Algeria H.O.G.® Tour 2026`,
             replyTo: String(process.env.MAIL_TO || process.env.MAIL_FROM || 'contact@hogalgierschapteralgeria.com'),
             html: buildCancellationEmailHtml({ prenom: String(reg.prenom || '') }),
-            text: `Bonjour ${reg.prenom},\n\nNous vous informons que votre inscription au H.O.G. Tour 2026 n'est pas éligible au règlement de l'événement.\n\nPour toute information, appelez le +213 774 31 87 51 ou écrivez à contact@hogalgierschapteralgeria.com.\n\nMerci pour votre compréhension.`,
+            text: `Bonjour ${reg.prenom},\n\nNous vous informons que votre inscription au Algeria H.O.G.® Tour 2026 n'est pas éligible au règlement de l'événement.\n\nPour toute information, appelez le +213 774 31 87 51 ou écrivez à contact@hogalgierschapteralgeria.com.\n\nMerci pour votre compréhension.`,
           })
           mailSent = true
         } catch (mailErr) {
@@ -1865,7 +1865,7 @@ function buildBadgeHtml({ prenom, nom, email, passportNum, zone, issuedDate, bad
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>${h(prenom)} ${h(nom)} — Badge H.O.G. Tour 2026</title>
+  <title>${h(prenom)} ${h(nom)} — Badge Algeria H.O.G.® Tour 2026</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{background:#0A0A08;color:#F0EBE0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,Arial,sans-serif;min-height:100vh}
@@ -1917,7 +1917,7 @@ function buildBadgeHtml({ prenom, nom, email, passportNum, zone, issuedDate, bad
           <span class="etxt">H.O.G. Algiers Chapter</span>
           <div class="eline"></div>
         </div>
-        <div class="role">Participant · H.O.G. Tour 2026</div>
+        <div class="role">Participant · Algeria H.O.G.® Tour 2026</div>
         <div class="name">${h(prenom)}<br>${h(nom)}</div>
         ${zone ? `<div class="zone-pill">${h(zone)}</div>` : ''}
         <div class="divider"></div>
@@ -1975,7 +1975,7 @@ async function buildBadgePdf({ prenom, nom, passportNum, zone, issuedDate, badge
     const doc = new PDFDocument({
       size: [W, H],
       margins: { top: 0, bottom: 0, left: 0, right: 0 },
-      info: { Title: `Badge H.O.G. Tour 2026 — ${prenom} ${nom}` },
+      info: { Title: `Badge Algeria H.O.G.® Tour 2026 — ${prenom} ${nom}` },
     })
     const chunks = []
     doc.on('data', c => chunks.push(c))
@@ -2208,7 +2208,7 @@ function buildPaymentFailedEmailHtml({ prenom, reason, retryUrl }) {
     <hr style="border:none;border-top:1px solid rgba(255,107,0,.18);margin:0 0 28px;">
     <p style="margin:0 0 16px;font-size:16px;color:rgba(255,255,255,.85);line-height:1.5;">Bonjour <strong style="color:#FF6B00;">${h(prenom)}</strong>,</p>
     <p style="margin:0 0 8px;font-size:14px;color:rgba(255,255,255,.6);line-height:1.9;">
-      Votre paiement pour le <strong style="color:#FF6B00;">H.O.G. Tour 2026</strong> n'a pas abouti.
+      Votre paiement pour le <strong style="color:#FF6B00;">Algeria H.O.G.® Tour 2026</strong> n'a pas abouti.
     </p>
     <p style="margin:0 0 28px;font-size:13px;color:rgba(255,255,255,.45);line-height:1.7;">
       Motif : <span style="color:rgba(255,255,255,.7);">${h(reason)}</span>
@@ -2248,7 +2248,7 @@ function buildCancellationEmailHtml({ prenom }) {
     <hr style="border:none;border-top:1px solid rgba(255,107,0,.18);margin:0 0 28px;">
     <p style="margin:0 0 16px;font-size:16px;color:rgba(255,255,255,.85);line-height:1.5;">Bonjour <strong style="color:#FF6B00;">${h(prenom)}</strong>,</p>
     <p style="margin:0 0 16px;font-size:14px;color:rgba(255,255,255,.6);line-height:1.9;">
-      Nous vous informons que votre inscription au <strong style="color:#FF6B00;">H.O.G. Tour 2026</strong> n'est pas éligible au règlement de l'événement.
+      Nous vous informons que votre inscription au <strong style="color:#FF6B00;">Algeria H.O.G.® Tour 2026</strong> n'est pas éligible au règlement de l'événement.
     </p>
     <p style="margin:0 0 8px;font-size:14px;color:rgba(255,255,255,.6);line-height:1.9;">
       Si vous avez besoin d'informations, contactez-nous :
@@ -2281,16 +2281,16 @@ function buildConfirmationEmailHtml({ prenom, fullName, registrationId, mode, pa
   const ctaUrl = (isPaid || isOnSite) ? (badgeUrl || null) : null
   const ctaLabel = (isPaid || isOnSite) ? 'ACCÉDER À MON BADGE' : null
   const mainMsg = isPaid
-    ? `Votre inscription au <strong style="color:#FF6B00;">H.O.G. Tour 2026</strong> est confirmée. Votre badge officiel est disponible — conservez-le précieusement, il vous sera demandé lors de l'événement.`
+    ? `Votre inscription au <strong style="color:#FF6B00;">Algeria H.O.G.® Tour 2026</strong> est confirmée. Votre badge officiel est disponible — conservez-le précieusement, il vous sera demandé lors de l'événement.`
     : isPending
-      ? `Votre paiement pour le <strong style="color:#FF6B00;">H.O.G. Tour 2026</strong> est en cours de traitement. Vous recevrez votre badge de participation par email dès que le paiement sera confirmé.`
+      ? `Votre paiement pour le <strong style="color:#FF6B00;">Algeria H.O.G.® Tour 2026</strong> est en cours de traitement. Vous recevrez votre badge de participation par email dès que le paiement sera confirmé.`
       : isOnSite
-        ? `Votre inscription au <strong style="color:#FF6B00;">H.O.G. Tour 2026</strong> est confirmée. Vous avez choisi le <strong style="color:#FF6B00;">paiement sur place</strong> — réglez votre inscription lors de l'événement. Votre badge officiel est disponible ci-dessous.`
-        : `Votre inscription au <strong style="color:#FF6B00;">H.O.G. Tour 2026</strong> a bien été reçue. Vous allez recevoir un lien de paiement par email.`
+        ? `Votre inscription au <strong style="color:#FF6B00;">Algeria H.O.G.® Tour 2026</strong> est confirmée. Vous avez choisi le <strong style="color:#FF6B00;">paiement sur place</strong> — réglez votre inscription lors de l'événement. Votre badge officiel est disponible ci-dessous.`
+        : `Votre inscription au <strong style="color:#FF6B00;">Algeria H.O.G.® Tour 2026</strong> a bien été reçue. Vous allez recevoir un lien de paiement par email.`
 
   return `<!doctype html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>H.O.G. Tour 2026</title></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Algeria H.O.G.® Tour 2026</title></head>
 <body style="margin:0;padding:0;background:#0A0A08;font-family:Arial,Helvetica,sans-serif;-webkit-font-smoothing:antialiased;">
 <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0A0A08;padding:48px 20px;">
 <tr><td align="center">

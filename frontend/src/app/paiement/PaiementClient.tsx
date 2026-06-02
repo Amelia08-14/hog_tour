@@ -236,11 +236,10 @@ export default function PaiementClient() {
             </div>
             <div className="mt-4 border border-orange/10 bg-bg3 px-4 py-3 flex gap-2">
               <span className="text-orange/60 text-[11px] mt-[1px]">★</span>
-              <p className="text-muted text-[11px] leading-relaxed">{EUR_INCLUDES_NOTE}</p>
+              <p className="text-muted text-[11px] leading-relaxed">
+                {isAilleurs ? EUR_INCLUDES_NOTE : 'Carburant pris en charge tout au long de l’événement.'}
+              </p>
             </div>
-            {isAilleurs && (
-              <p className="mt-2 text-muted2 text-[10px] px-1">Tarif tout compris pour les participants venant de l’étranger.</p>
-            )}
             <button
               type="submit"
               disabled={loading || !selectedAccommodation}
