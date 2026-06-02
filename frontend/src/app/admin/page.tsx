@@ -27,6 +27,16 @@ const CSV_COLUMNS = [
   { key: 'files_count', label: 'Fichiers' },
 ]
 
+function normHeb(h: any): string {
+  const s = String(h || '').toLowerCase().trim()
+  if (!s || s === 'undefined') return ''
+  if (s.includes('motard')) return 'Chambre double — Motard'
+  if (s.includes('couple')) return 'Chambre double couple'
+  if (s.includes('simple')) return 'Chambre simple'
+  if (s.includes('test')) return 'Pack test'
+  return String(h)
+}
+
 function fmtDate(v: any) {
   const d = new Date(String(v || ''))
   return Number.isFinite(d.getTime()) ? d.toLocaleString('fr-FR') : String(v || '')
@@ -175,7 +185,7 @@ export default function AdminPage() {
     if (filterStatus === 'pending') out = out.filter(r => r.payment_status === 'pending' && r.payment_method !== 'on_site')
     if (filterStatus === 'new')     out = out.filter(r => !r.hebergement)
     if (filterTshirt) out = out.filter(r => r.taille_tshirt === filterTshirt)
-    if (filterHeb)    out = out.filter(r => String(r.hebergement || '') === filterHeb)
+    if (filterHeb)    out = out.filter(r => normHeb(r.hebergement) === filterHeb)
     if (q.trim()) {
       const s = q.trim().toLowerCase()
       const keys = ['prenom', 'nom', 'email', 'phone_number', 'passport_num', 'immatriculation', 'permis_num', 'hebergement']
@@ -184,8 +194,9 @@ export default function AdminPage() {
     return out
   }, [items, q, filterZone, filterStatus, filterTshirt, filterHeb])
 
+  // Hébergements normalisés (fusionne anciens/nouveaux libellés, retire les doublons et "undefined")
   const hebergementValues = useMemo(
-    () => Array.from(new Set(items.map(r => String(r.hebergement || '')).filter(Boolean))).sort(),
+    () => Array.from(new Set(items.map(r => normHeb(r.hebergement)).filter(Boolean))).sort(),
     [items],
   )
 
@@ -224,8 +235,8 @@ export default function AdminPage() {
     if (!window.confirm(warn)) return
     setDeleting(true); setActionMsg(null)
     try {
-      const r = await fetch(api(`/v1/admin/registrations/${encodeURIComponent(id)}`), {
-        method: 'DELETE', credentials: 'include',
+      const r = await fetch(api(`/v1/admin/registrations/${encodeURIComponent(id)}/delete`), {
+        method: 'POST', credentials: 'include',
       })
       const d = await r.json().catch(() => ({}))
       if (!r.ok) { setActionMsg(`Échec de la suppression: ${String(d?.error || '')}`); return }

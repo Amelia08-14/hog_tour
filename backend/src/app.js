@@ -1743,7 +1743,7 @@ function createApp() {
     }
   })
 
-  app.delete('/v1/admin/registrations/:id', requireAdmin, async (req, res) => {
+  const deleteRegistrationHandler = async (req, res) => {
     try {
       const db = await getDb()
       const reg = await db.get(`SELECT * FROM registrations WHERE id = ?`, [req.params.id])
@@ -1792,9 +1792,13 @@ function createApp() {
 
       return res.json({ ok: true, deleted: req.params.id, cancellationEmailSent: mailSent, wasPaid: !!wasPaid })
     } catch (e) {
-      return res.status(500).json({ error: 'server_error' })
+      console.error('delete registration failed:', e && e.message ? String(e.message) : e, e && e.code ? `(code: ${e.code})` : '', e && e.sqlMessage ? `sql: ${e.sqlMessage}` : '')
+      return res.status(500).json({ error: 'server_error', message: e && e.message ? String(e.message) : undefined })
     }
-  })
+  }
+  // Méthode DELETE + alias POST (au cas où le proxy bloque DELETE)
+  app.delete('/v1/admin/registrations/:id', requireAdmin, deleteRegistrationHandler)
+  app.post('/v1/admin/registrations/:id/delete', requireAdmin, deleteRegistrationHandler)
 
   app.post('/v1/admin/registrations/:id/payment/check', requireAdmin, async (req, res) => {
     try {
