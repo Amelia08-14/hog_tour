@@ -7,38 +7,38 @@ export const metadata: Metadata = { title: 'À Propos' }
 export default async function AboutPage() {
   const lang = await getLang()
   const photosMain = [
-    { src: '/images/galeries/hogtour (18).jpeg', alt: 'H.O.G. Algeria — sur la route' },
-    { src: '/images/galeries/hogtour (14).jpeg', alt: 'H.O.G. Algeria — rassemblement' },
+    { src: '/images/galeries/hogtour (18).jpeg', alt: 'H.O.G.® Algeria — sur la route' },
+    { src: '/images/galeries/hogtour (14).jpeg', alt: 'H.O.G.® Algeria — rassemblement' },
   ]
 
   const photosExtra = [
-    { src: '/images/galeries/hogtour (8).jpeg', alt: 'H.O.G. Algeria — moment de ride' },
-    { src: '/images/galeries/hogtour (3).jpeg', alt: 'H.O.G. Algeria — groupe' },
-    { src: '/images/galeries/hogtour (24).jpeg', alt: 'H.O.G. Algeria — paysage' },
+    { src: '/images/galeries/hogtour (8).jpeg', alt: 'H.O.G.® Algeria — moment de ride' },
+    { src: '/images/galeries/hogtour (3).jpeg', alt: 'H.O.G.® Algeria — groupe' },
+    { src: '/images/galeries/hogtour (24).jpeg', alt: 'H.O.G.® Algeria — paysage' },
   ]
 
   const headerTag = lang === 'en' ? 'About' : lang === 'ar' ? 'من نحن' : 'À Propos'
   const headerTitleA = lang === 'en' ? 'More than a club.' : lang === 'ar' ? 'أكثر من نادٍ.' : "Plus qu'un club."
   const headerTitleB = lang === 'en' ? 'A passion.' : lang === 'ar' ? 'شغف.' : 'Une passion !'
-  const directorLabel = lang === 'en' ? 'Director — H.O.G. Algiers Chapter Algeria' : lang === 'ar' ? 'المدير — H.O.G. فرع الجزائر' : 'Directeur — H.O.G. Algiers Chapter Algeria'
+  const directorLabel = lang === 'en' ? 'Director — H.O.G.® Algiers Chapter Algeria' : lang === 'ar' ? 'المدير — H.O.G.® فرع الجزائر' : 'Directeur — H.O.G.® Algiers Chapter Algeria'
   const motto = lang === 'en' ? 'More than a club. A passion.' : lang === 'ar' ? 'أكثر من نادٍ. شغف.' : "Plus qu'un club. une passion !!"
   const paragraphs =
     lang === 'en'
       ? [
-          "My name is Abdelghani Mecheti, Director of H.O.G. Algiers Chapter Algeria. I warmly welcome our members and new visitors to our website.",
+          "My name is Abdelghani Mecheti, Director of H.O.G.® Algiers Chapter Algeria. I warmly welcome our members and new visitors to our website.",
           "I would like to sincerely thank our Staff for their commitment and loyalty. Thank you to everyone who continues the journey with us, and welcome to all newcomers.",
           "Founded on May 15, 2013, our Chapter brings together men and women, younger and older riders, beginners and experienced road captains. This diversity is our strength: experience and new energy side by side.",
           "Our activity leaders are preparing upcoming programs to offer rides suited to all levels, along with charity initiatives and family-friendly activities.",
         ]
       : lang === 'ar'
         ? [
-            'اسمي عبد الغني مشاتي، مدير فرع H.O.G. الجزائر. أرحب بحرارة بأعضائنا وبزوار الموقع الجدد.',
+            'اسمي عبد الغني مشاتي، مدير فرع H.O.G.® الجزائر. أرحب بحرارة بأعضائنا وبزوار الموقع الجدد.',
             'أغتنم الفرصة لأشكر طاقمنا على التزامهم ووفائهم. شكرًا لكل من واصل معنا هذه الرحلة، ومرحبًا بالمنضمين الجدد.',
             'تأسس فرعنا في 15 مايو 2013، ويجمع رجالًا ونساءً، شبابًا وكهولًا، مبتدئين ومحترفين. هذا التنوع مصدر قوة: خبرة الكبار وحماس الجدد.',
             'يعمل مسؤولو الأنشطة على برامج قادمة لتقديم خرجات مناسبة لكل مستويات القيادة، إضافةً إلى المبادرات الخيرية والأنشطة العائلية.',
           ]
         : [
-            "Je m'appelle Abdelghani Mecheti, directeur du H.O.G. Algiers Chapter Algeria. Je souhaite la bienvenue à tous nos membres et nouveaux visiteurs sur notre site.",
+            "Je m'appelle Abdelghani Mecheti, directeur du H.O.G.® Algiers Chapter Algeria. Je souhaite la bienvenue à tous nos membres et nouveaux visiteurs sur notre site.",
             "Je profite de cette occasion pour remercier sincèrement les membres de notre Staff pour leur engagement et la fidélité dont ils ont fait preuve. Je remercie toutes celles et ceux qui ont décidé de poursuivre l'aventure, de nous faire confiance et bienvenue aux nouveaux.",
             "Créé le 15 Mai 2013, notre Chapter est composé d'hommes, de femmes, de jeunes et moins jeunes, novices et rouleurs confirmés. Il faut se réjouir de cette mixité, d'une part, l'expérience des anciens et la jeunesse des nouveaux.",
             "Les responsables des activités travaillent sur les prochains programmes afin de vous proposer des sorties adaptées à tous les niveaux de conduite. Des virées plus ou moins longues, mais aussi, des actions caritatives et des activités en famille.",

@@ -65,7 +65,7 @@ export default function Footer({ lang }: { lang: Lang }) {
 
       {/* Copyright */}
       <div className="px-6 md:px-10 py-4 text-center text-muted2 text-[12px]">
-        H.O.G. ALGIERS CHAPTER ALGERIA © {t(lang, 'footer.developedBy')}{' '}
+        H.O.G.® ALGIERS CHAPTER ALGERIA © {t(lang, 'footer.developedBy')}{' '}
         <a href="https://linkedin.com/in/amel-benelhadj" className="text-orange hover:text-white transition-colors duration-200 font-medium">
           Amélia Benelhadj
         </a>{' '}

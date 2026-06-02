@@ -18,7 +18,7 @@ export default function AboutHOG({ lang }: { lang: Lang }) {
           <div className={`relative min-h-[300px] lg:min-h-0 overflow-hidden ${isAr ? 'order-2' : ''}`}>
             <Image
               src="/images/about-hog.jpeg"
-              alt="H.O.G. (Harley Owners Group)"
+              alt="H.O.G.® (Harley Owners Group)"
               fill priority
               sizes="(max-width: 1024px) 100vw, 58vw"
               className="object-cover about-img-scale"
@@ -57,7 +57,7 @@ export default function AboutHOG({ lang }: { lang: Lang }) {
         <div className="about-sep flex items-center gap-5 py-4">
           <div className="about-sep-line flex-1"/>
           <span className={`about-sep-label font-condensed ${isAr ? '' : 'uppercase tracking-[0.32em]'}`}>
-            H.O.G. Algiers Chapter
+            H.O.G.® Algiers Chapter
           </span>
           <div className="about-sep-line flex-1"/>
         </div>
@@ -104,7 +104,7 @@ export default function AboutHOG({ lang }: { lang: Lang }) {
           <div className={`relative min-h-[300px] lg:min-h-0 overflow-hidden order-1 lg:order-2 ${isAr ? 'order-2 lg:order-1' : ''}`}>
             <Image
               src="/images/about-hog-2.jpeg"
-              alt="H.O.G. Algiers Chapter Algeria"
+              alt="H.O.G.® Algiers Chapter Algeria"
               fill
               sizes="(max-width: 1024px) 100vw, 58vw"
               className="object-cover about-img-scale"

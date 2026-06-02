@@ -1914,7 +1914,7 @@ function buildBadgeHtml({ prenom, nom, email, passportNum, zone, issuedDate, bad
       <div class="header">
         <div class="eyebrow">
           <div class="eline"></div>
-          <span class="etxt">H.O.G. Algiers Chapter</span>
+          <span class="etxt">H.O.G.® Algiers Chapter</span>
           <div class="eline"></div>
         </div>
         <div class="role">Participant · Algeria H.O.G.® Tour 2026</div>
@@ -1994,13 +1994,13 @@ async function buildBadgePdf({ prenom, nom, passportNum, zone, issuedDate, badge
     let y = 28
     doc.moveTo(PAD, y + 4).lineTo(PAD + 16, y + 4).strokeColor('#FF6B00').strokeOpacity(0.55).lineWidth(0.7).stroke()
     doc.font('Helvetica').fontSize(7).fillColor('#FF6B00').fillOpacity(0.75)
-      .text('H.O.G. ALGIERS CHAPTER', PAD + 22, y, { characterSpacing: 2.5, lineBreak: false })
+      .text('H.O.G.® ALGIERS CHAPTER', PAD + 22, y, { characterSpacing: 2.5, lineBreak: false })
     doc.moveTo(W - PAD - 16, y + 4).lineTo(W - PAD, y + 4).strokeColor('#FF6B00').strokeOpacity(0.55).lineWidth(0.7).stroke()
 
     // Role
     y = 48
     doc.fillOpacity(1).font('Helvetica').fontSize(8).fillColor('#666050')
-      .text('PARTICIPANT · H.O.G. TOUR 2026', PAD, y, { characterSpacing: 2, lineBreak: false })
+      .text('PARTICIPANT · H.O.G.® TOUR 2026', PAD, y, { characterSpacing: 2, lineBreak: false })
 
     // Name
     y = 66
@@ -2134,7 +2134,7 @@ function buildAdminRegistrationEmailHtml({
   <!-- Header -->
   <tr><td style="background:#111009;border:1px solid rgba(255,107,0,.14);border-top:none;padding:32px 40px 24px;">
     <p style="margin:0 0 6px;font-size:8px;letter-spacing:5px;text-transform:uppercase;color:rgba(255,107,0,.6);">Nouvelle inscription</p>
-    <h1 style="margin:0 0 4px;font-size:28px;font-weight:900;letter-spacing:4px;text-transform:uppercase;color:#FF6B00;line-height:1;">H.O.G. TOUR 2026</h1>
+    <h1 style="margin:0 0 4px;font-size:28px;font-weight:900;letter-spacing:4px;text-transform:uppercase;color:#FF6B00;line-height:1;">H.O.G.® TOUR 2026</h1>
     <p style="margin:0 0 20px;font-size:18px;font-weight:900;letter-spacing:3px;color:rgba(255,255,255,.12);">ALGIERS CHAPTER ALGERIA</p>
     <hr style="border:none;border-top:1px solid rgba(255,107,0,.15);margin:0 0 20px;">
     <p style="margin:0;font-size:20px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.9);">${h(prenom)} ${h(nom)}</p>
@@ -2179,7 +2179,7 @@ function buildAdminRegistrationEmailHtml({
   <!-- Footer -->
   <tr><td style="background:#0A0A08;border:1px solid rgba(255,107,0,.06);border-top:none;padding:18px 40px;text-align:center;">
     <p style="margin:0;font-size:9px;color:rgba(255,255,255,.15);letter-spacing:2px;">ID — ${h(registrationId)}</p>
-    <p style="margin:8px 0 0;font-size:9px;color:rgba(255,255,255,.12);letter-spacing:1px;">H.O.G. ALGIERS CHAPTER ALGERIA &middot; 2026</p>
+    <p style="margin:8px 0 0;font-size:9px;color:rgba(255,255,255,.12);letter-spacing:1px;">H.O.G.® ALGIERS CHAPTER ALGERIA &middot; 2026</p>
   </td></tr>
 
   <tr><td style="background:rgba(255,107,0,.35);height:1px;font-size:0;">&nbsp;</td></tr>
@@ -2202,8 +2202,8 @@ function buildPaymentFailedEmailHtml({ prenom, reason, retryUrl }) {
 <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
   <tr><td style="background:#FF6B00;height:3px;font-size:0;line-height:0;">&nbsp;</td></tr>
   <tr><td style="background:#111009;border:1px solid rgba(255,107,0,.14);border-top:none;padding:40px 44px 32px;">
-    <p style="margin:0 0 10px;font-size:9px;letter-spacing:5px;text-transform:uppercase;color:rgba(255,107,0,.7);">H.O.G. Algiers Chapter Algeria</p>
-    <h1 style="margin:0 0 4px;font-size:34px;font-weight:900;letter-spacing:4px;text-transform:uppercase;color:#FF6B00;line-height:1;">H.O.G. TOUR</h1>
+    <p style="margin:0 0 10px;font-size:9px;letter-spacing:5px;text-transform:uppercase;color:rgba(255,107,0,.7);">H.O.G.® Algiers Chapter Algeria</p>
+    <h1 style="margin:0 0 4px;font-size:34px;font-weight:900;letter-spacing:4px;text-transform:uppercase;color:#FF6B00;line-height:1;">H.O.G.® TOUR</h1>
     <p style="margin:0 0 28px;font-size:20px;font-weight:900;letter-spacing:4px;color:rgba(255,255,255,.15);">2026</p>
     <hr style="border:none;border-top:1px solid rgba(255,107,0,.18);margin:0 0 28px;">
     <p style="margin:0 0 16px;font-size:16px;color:rgba(255,255,255,.85);line-height:1.5;">Bonjour <strong style="color:#FF6B00;">${h(prenom)}</strong>,</p>
@@ -2242,8 +2242,8 @@ function buildCancellationEmailHtml({ prenom }) {
 <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
   <tr><td style="background:#FF6B00;height:3px;font-size:0;line-height:0;">&nbsp;</td></tr>
   <tr><td style="background:#111009;border:1px solid rgba(255,107,0,.14);border-top:none;padding:40px 44px 32px;">
-    <p style="margin:0 0 10px;font-size:9px;letter-spacing:5px;text-transform:uppercase;color:rgba(255,107,0,.7);">H.O.G. Algiers Chapter Algeria</p>
-    <h1 style="margin:0 0 4px;font-size:34px;font-weight:900;letter-spacing:4px;text-transform:uppercase;color:#FF6B00;line-height:1;">H.O.G. TOUR</h1>
+    <p style="margin:0 0 10px;font-size:9px;letter-spacing:5px;text-transform:uppercase;color:rgba(255,107,0,.7);">H.O.G.® Algiers Chapter Algeria</p>
+    <h1 style="margin:0 0 4px;font-size:34px;font-weight:900;letter-spacing:4px;text-transform:uppercase;color:#FF6B00;line-height:1;">H.O.G.® TOUR</h1>
     <p style="margin:0 0 28px;font-size:20px;font-weight:900;letter-spacing:4px;color:rgba(255,255,255,.15);">2026</p>
     <hr style="border:none;border-top:1px solid rgba(255,107,0,.18);margin:0 0 28px;">
     <p style="margin:0 0 16px;font-size:16px;color:rgba(255,255,255,.85);line-height:1.5;">Bonjour <strong style="color:#FF6B00;">${h(prenom)}</strong>,</p>
@@ -2301,8 +2301,8 @@ function buildConfirmationEmailHtml({ prenom, fullName, registrationId, mode, pa
 
   <!-- Header -->
   <tr><td style="background:#111009;border:1px solid rgba(255,107,0,.14);border-top:none;padding:40px 44px 32px;">
-    <p style="margin:0 0 10px;font-size:9px;letter-spacing:5px;text-transform:uppercase;color:rgba(255,107,0,.7);">H.O.G. Algiers Chapter Algeria</p>
-    <h1 style="margin:0 0 4px;font-size:34px;font-weight:900;letter-spacing:4px;text-transform:uppercase;color:#FF6B00;line-height:1;">H.O.G. TOUR</h1>
+    <p style="margin:0 0 10px;font-size:9px;letter-spacing:5px;text-transform:uppercase;color:rgba(255,107,0,.7);">H.O.G.® Algiers Chapter Algeria</p>
+    <h1 style="margin:0 0 4px;font-size:34px;font-weight:900;letter-spacing:4px;text-transform:uppercase;color:#FF6B00;line-height:1;">H.O.G.® TOUR</h1>
     <p style="margin:0 0 28px;font-size:20px;font-weight:900;letter-spacing:4px;color:rgba(255,255,255,.15);">2026</p>
     <hr style="border:none;border-top:1px solid rgba(255,107,0,.18);margin:0 0 28px;">
     <p style="margin:0 0 16px;font-size:16px;color:rgba(255,255,255,.85);line-height:1.5;">
@@ -2348,7 +2348,7 @@ function buildConfirmationEmailHtml({ prenom, fullName, registrationId, mode, pa
   <tr><td style="background:#0A0A08;border:1px solid rgba(255,107,0,.06);border-top:none;padding:22px 44px;text-align:center;">
     <p style="margin:0 0 6px;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.2);">Pour toute question</p>
     <a href="mailto:contact@hogalgierschapteralgeria.com" style="color:rgba(255,107,0,.65);font-size:12px;text-decoration:none;">contact@hogalgierschapteralgeria.com</a>
-    <p style="margin:16px 0 0;font-size:9px;color:rgba(255,255,255,.12);letter-spacing:2px;">H.O.G. ALGIERS CHAPTER ALGERIA &middot; 2026</p>
+    <p style="margin:16px 0 0;font-size:9px;color:rgba(255,255,255,.12);letter-spacing:2px;">H.O.G.® ALGIERS CHAPTER ALGERIA &middot; 2026</p>
   </td></tr>
 
   <!-- Bottom bar -->

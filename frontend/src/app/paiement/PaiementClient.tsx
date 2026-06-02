@@ -58,7 +58,6 @@ export default function PaiementClient() {
   const [methods, setMethods] = useState<PaymentMethod[] | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState<string | null>(null)
-  const [onSiteDone, setOnSiteDone] = useState(false)
 
   const apiBase = useMemo(() => {
     const v = process.env.NEXT_PUBLIC_API_BASE_URL?.trim()
@@ -149,43 +148,6 @@ export default function PaiementClient() {
     finally { setLoading(false) }
   }
 
-  async function handlePayOnSite() {
-    setError(null)
-    if (!paymentId || !sig) { setError('Lien de paiement invalide.'); return }
-    setLoading(true)
-    try {
-      const res = await fetch(apiUrl('/v1/payments/choose-onsite'), {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ paymentId, sig }),
-      })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) { setError(String(data?.message || data?.error || 'Erreur.')); return }
-      setOnSiteDone(true)
-    } catch { setError('Impossible de contacter le serveur.') }
-    finally { setLoading(false) }
-  }
-
-  if (onSiteDone) return (
-    <section className="min-h-screen pt-[80px] pb-20 bg-bg flex items-center justify-center">
-      <div className="max-w-[520px] w-full mx-auto px-6">
-        <div className="border border-orange/12 bg-bg3 p-10 text-center">
-          <div className="text-4xl mb-5" style={{ color: '#FF6B00' }}>✓</div>
-          <h1 className="font-display text-htext uppercase tracking-wide mb-3" style={{ fontSize: 'clamp(20px,4vw,28px)' }}>
-            Inscription confirmée
-          </h1>
-          <div style={{ height: 1, background: 'linear-gradient(to right,transparent,rgba(255,107,0,.3),transparent)', margin: '16px 0' }} />
-          <p className="text-muted text-[14px] leading-relaxed">
-            Vous avez choisi le <strong className="text-htext">paiement sur place</strong>.<br />
-            Un email de confirmation avec votre badge vous a été envoyé.
-          </p>
-          <a href="/" className="inline-block mt-8 text-[11px] font-condensed font-bold uppercase tracking-[3px] text-orange/70 hover:text-orange transition-colors">
-            Retour à l&apos;accueil →
-          </a>
-        </div>
-      </div>
-    </section>
-  )
 
   return (
     <section className="min-h-screen pt-[80px] pb-20 bg-bg">
@@ -317,23 +279,6 @@ export default function PaiementClient() {
                     {loading ? 'Redirection…' : isAilleurs ? 'Payer par carte — Stripe' : 'Payer en ligne'}
                   </button>
                 )}
-
-                {/* Séparateur */}
-                <div className="flex items-center gap-3 my-1">
-                  <div className="flex-1 h-px bg-orange/10" />
-                  <span className="text-[9px] uppercase tracking-[2px] text-muted">ou</span>
-                  <div className="flex-1 h-px bg-orange/10" />
-                </div>
-
-                {/* Toujours disponible */}
-                <button
-                  type="button"
-                  disabled={loading}
-                  onClick={handlePayOnSite}
-                  className="w-full bg-transparent border border-orange/25 text-htext font-condensed font-bold text-[13px] tracking-[0.2em] uppercase px-9 py-4 hover:border-orange/50 transition-colors disabled:opacity-60"
-                >
-                  {loading ? 'Traitement…' : "Payer sur place lors de l'événement"}
-                </button>
 
               </div>
             </div>

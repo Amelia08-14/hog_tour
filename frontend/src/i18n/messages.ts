@@ -14,7 +14,7 @@ export const messages: Record<Lang, Msg> = {
       chapter: 'Algiers Chapter',
     },
     hero: {
-      eyebrow: 'H.O.G. Algiers Chapter Algeria · Accréditation #8062',
+      eyebrow: 'H.O.G.® Algiers Chapter Algeria · Accréditation #8062',
       titleLines: ['ALGERIA H.O.G.® TOUR 2026', 'PREMIÈRE FOIS EN', 'ALGÉRIE'],
       subtitleStrong: "Ne ratez pas l'occasion",
       subtitleRest: 'et soyez les bienvenus pour cette première édition.',
@@ -38,16 +38,16 @@ export const messages: Record<Lang, Msg> = {
       aboutMore: 'En savoir plus',
       hog: {
         tag1: 'À propos',
-        title1a: 'Le H.O.G.',
+        title1a: 'Le H.O.G.®',
         title1b: '(Harley Owners Group)',
         p1:
-          "Le Harley Owners Group (H.O.G.) est un club créé par Harley-Davidson pour rassembler les propriétaires de motos de la marque. Chaque concessionnaire possède un Chapter, subdivision du H.O.G. Il existe plus d’un million de membres dans le monde.",
+          "Le Harley Owners Group (H.O.G.®) est un club créé par Harley-Davidson pour rassembler les propriétaires de motos de la marque. Chaque concessionnaire possède un Chapter, subdivision du H.O.G.® Il existe plus d’un million de membres dans le monde.",
         link1: 'En savoir plus',
         tag2: 'Notre Chapter',
-        title2a: 'Le H.O.G. Algiers',
+        title2a: 'Le H.O.G.® Algiers',
         title2b: 'Chapter Algeria',
         p2a:
-          "Créé le 15 mai 2013, le H.O.G. Algiers Chapter Algeria est le club accrédité par Harley-Davidson en Algérie sous le numéro #8062. Il réunit des passionnés autour de balades, stages de conduite, événements et actions caritatives.",
+          "Créé le 15 mai 2013, le H.O.G.® Algiers Chapter Algeria est le club accrédité par Harley-Davidson en Algérie sous le numéro #8062. Il réunit des passionnés autour de balades, stages de conduite, événements et actions caritatives.",
         p2b:
           "Depuis 2023, il co-organise le plus grand événement motocycle en Algérie : Algeria Bike Week.",
         badgeTitle: 'Chapter officiel Harley-Davidson',
@@ -195,7 +195,7 @@ export const messages: Record<Lang, Msg> = {
       chapter: 'Algiers Chapter',
     },
     hero: {
-      eyebrow: 'H.O.G. Algiers Chapter Algeria · Accreditation #8062',
+      eyebrow: 'H.O.G.® Algiers Chapter Algeria · Accreditation #8062',
       titleLines: ['ALGERIA H.O.G.® TOUR 2026', 'FIRST TIME IN', 'ALGERIA'],
       subtitleStrong: "Don’t miss the chance",
       subtitleRest: 'and be part of this first edition.',
@@ -219,16 +219,16 @@ export const messages: Record<Lang, Msg> = {
       aboutMore: 'Learn more',
       hog: {
         tag1: 'About',
-        title1a: 'H.O.G.',
+        title1a: 'H.O.G.®',
         title1b: '(Harley Owners Group)',
         p1:
-          'Harley Owners Group (H.O.G.) is a club created by Harley-Davidson to bring together owners and enthusiasts. Each dealership has a Chapter, a local community within H.O.G. Today, H.O.G. counts over one million members worldwide.',
+          'Harley Owners Group (H.O.G.®) is a club created by Harley-Davidson to bring together owners and enthusiasts. Each dealership has a Chapter, a local community within H.O.G.® Today, H.O.G.® counts over one million members worldwide.',
         link1: 'Learn more',
         tag2: 'Our Chapter',
-        title2a: 'H.O.G. Algiers',
+        title2a: 'H.O.G.® Algiers',
         title2b: 'Chapter Algeria',
         p2a:
-          'Founded on May 15, 2013, H.O.G. Algiers Chapter Algeria is the official Harley-Davidson accredited club in Algeria (#8062). We ride together, train together, and organize events and charity initiatives.',
+          'Founded on May 15, 2013, H.O.G.® Algiers Chapter Algeria is the official Harley-Davidson accredited club in Algeria (#8062). We ride together, train together, and organize events and charity initiatives.',
         p2b:
           'Since 2023, we have co-organized the biggest motorcycle event in Algeria: Algeria Bike Week.',
         badgeTitle: 'Official Harley-Davidson Chapter',
@@ -376,7 +376,7 @@ export const messages: Record<Lang, Msg> = {
       chapter: 'فرع الجزائر',
     },
     hero: {
-      eyebrow: 'H.O.G. فرع الجزائر · اعتماد #8062',
+      eyebrow: 'H.O.G.® فرع الجزائر · اعتماد #8062',
       titleLines: ['ALGERIA H.O.G.® TOUR 2026', 'لأول مرة في', 'الجزائر'],
       subtitleStrong: 'لا تفوّت الفرصة',
       subtitleRest: 'وكن جزءًا من هذه النسخة الأولى.',
@@ -400,16 +400,16 @@ export const messages: Record<Lang, Msg> = {
       aboutMore: 'اعرف المزيد',
       hog: {
         tag1: 'من نحن',
-        title1a: 'H.O.G.',
+        title1a: 'H.O.G.®',
         title1b: '(Harley Owners Group)',
         p1:
-          'مجموعة مالكي هارلي (H.O.G.) هي نادٍ أسسته Harley-Davidson لجمع المالكين وعشّاق العلامة. لكل وكالة فرع (Chapter) يمثل مجتمعًا محليًا ضمن H.O.G. اليوم يضم النادي أكثر من مليون عضو حول العالم.',
+          'مجموعة مالكي هارلي (H.O.G.®) هي نادٍ أسسته Harley-Davidson لجمع المالكين وعشّاق العلامة. لكل وكالة فرع (Chapter) يمثل مجتمعًا محليًا ضمن H.O.G.® اليوم يضم النادي أكثر من مليون عضو حول العالم.',
         link1: 'اعرف المزيد',
         tag2: 'فرعنا',
-        title2a: 'H.O.G. الجزائر',
+        title2a: 'H.O.G.® الجزائر',
         title2b: 'فرع الجزائر',
         p2a:
-          'تأسس فرع H.O.G. الجزائر في 15 مايو 2013 وهو الفرع الرسمي المعتمد في الجزائر تحت رقم #8062. نجتمع حول رحلات القيادة، الدورات، الفعاليات والمبادرات الخيرية.',
+          'تأسس فرع H.O.G.® الجزائر في 15 مايو 2013 وهو الفرع الرسمي المعتمد في الجزائر تحت رقم #8062. نجتمع حول رحلات القيادة، الدورات، الفعاليات والمبادرات الخيرية.',
         p2b:
           'ومنذ 2023 نشارك في تنظيم أكبر حدث للدراجات النارية في الجزائر: Algeria Bike Week.',
         badgeTitle: 'فرع رسمي لـ Harley-Davidson',

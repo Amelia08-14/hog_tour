@@ -15,7 +15,7 @@ export default async function HOGTourPage() {
           h2b: 'Harley‑Davidson community',
           paragraphs: [
             'From Oct 29 to Nov 1, 2026, Algeria will host its first major official Harley‑Davidson gathering: the Algeria H.O.G.® Tour 2026.',
-            'Organized by H.O.G. Algiers Chapter Algeria, this event marks a milestone for the Harley‑Davidson community in North Africa.',
+            'Organized by H.O.G.® Algiers Chapter Algeria, this event marks a milestone for the Harley‑Davidson community in North Africa.',
             'For four days, riders from Algeria and abroad will share the values at the heart of Harley‑Davidson: freedom, brotherhood, passion, and the road spirit.',
           ],
           dateBadgeTitle: 'Official dates',
@@ -24,7 +24,7 @@ export default async function HOGTourPage() {
           adventureLead: 'The 2026 Algeria H.O.G.® Tour offers a unique route blending mountains, desert, heritage, and modernity.',
           joinTitle: 'Join the story',
           joinP:
-            'Whether you are an experienced rider, a H.O.G. member, or simply passionate about the brand, this is your invitation to write a new page of Harley‑Davidson history together.',
+            'Whether you are an experienced rider, a H.O.G.® member, or simply passionate about the brand, this is your invitation to write a new page of Harley‑Davidson history together.',
           slogan: "Let’s roar the rock.",
           cta: 'Register →',
           highlights: [
@@ -43,7 +43,7 @@ export default async function HOGTourPage() {
             h2b: 'مجتمع Harley‑Davidson',
             paragraphs: [
               'من 29 أكتوبر إلى 1 نوفمبر 2026، تستضيف الجزائر لأول مرة تجمعًا رسميًا كبيرًا لـ Harley‑Davidson: جولة Algeria H.O.G.® Tour 2026.',
-              'ينظم هذا الحدث فرع H.O.G. الجزائر، ويمثل محطة مهمة لمجتمع Harley‑Davidson في شمال أفريقيا.',
+              'ينظم هذا الحدث فرع H.O.G.® الجزائر، ويمثل محطة مهمة لمجتمع Harley‑Davidson في شمال أفريقيا.',
               'على مدار أربعة أيام، يلتقي عشّاق القيادة من الجزائر ومن الخارج حول قيم Harley‑Davidson: الحرية، الأخوّة، الشغف وروح الطريق.',
             ],
             dateBadgeTitle: 'المواعيد الرسمية',
@@ -52,7 +52,7 @@ export default async function HOGTourPage() {
             adventureLead: 'تقدم جولة 2026 مسارًا فريدًا يجمع بين الجبال والصحراء والتراث والحداثة.',
             joinTitle: 'كن جزءًا من التاريخ',
             joinP:
-              'سواء كنت قائدًا محترفًا، عضوًا في H.O.G.، أو من عشّاق العلامة، فهذا الموعد دعوة لكتابة صفحة جديدة من تاريخ Harley‑Davidson معًا.',
+              'سواء كنت قائدًا محترفًا، عضوًا في H.O.G.®، أو من عشّاق العلامة، فهذا الموعد دعوة لكتابة صفحة جديدة من تاريخ Harley‑Davidson معًا.',
             slogan: 'Let’s roar the rock.',
             cta: 'سجّل الآن →',
             highlights: [
@@ -70,7 +70,7 @@ export default async function HOGTourPage() {
             h2b: 'communauté Harley-Davidson',
             paragraphs: [
               "Du 29 octobre au 1er novembre 2026, l'Algérie accueillera pour la première fois un grand rassemblement officiel Harley-Davidson : le Algeria H.O.G.® Tour 2026.",
-              "Organisé par le H.O.G. Algiers Chapter Algeria, cet événement marque une étape majeure pour la communauté Harley-Davidson en Afrique du Nord.",
+              "Organisé par le H.O.G.® Algiers Chapter Algeria, cet événement marque une étape majeure pour la communauté Harley-Davidson en Afrique du Nord.",
               "Pendant quatre jours, des passionnés venus d'Algérie et de l'international se réuniront autour des valeurs qui font l'ADN Harley-Davidson : Liberté, fraternité, passion et esprit de route.",
             ],
             dateBadgeTitle: 'Dates officielles',
@@ -79,7 +79,7 @@ export default async function HOGTourPage() {
             adventureLead: 'Le 2026 Algeria H.O.G.® Tour proposera un parcours unique mêlant montagne, désert, patrimoine et modernité.',
             joinTitle: "Rejoignez l'histoire",
             joinP:
-              "Que vous soyez rider confirmé, membre H.O.G. ou passionné de la marque, ce rendez-vous est une invitation à écrire ensemble une nouvelle page de l'histoire Harley-Davidson.",
+              "Que vous soyez rider confirmé, membre H.O.G.® ou passionné de la marque, ce rendez-vous est une invitation à écrire ensemble une nouvelle page de l'histoire Harley-Davidson.",
             slogan: "Let's roar the rock.",
             cta: 'Inscrivez Vous →',
             highlights: [
