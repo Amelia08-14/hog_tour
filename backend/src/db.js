@@ -197,6 +197,18 @@ async function initDb() {
     await addCol('phone_e164', 'VARCHAR(32) NULL')
     await addCol('moto_modele', 'VARCHAR(160) NULL')
 
+    // Colonnes payments (MySQL) — ajoutées ici car cette branche fait un return anticipé
+    const addPaymentCol = async (sql) => {
+      try {
+        await db.exec(sql)
+      } catch (e) {
+        if (!(e && (e.code === 'ER_DUP_FIELDNAME' || String(e.message || '').toLowerCase().includes('duplicate column')))) throw e
+      }
+    }
+    await addPaymentCol(`ALTER TABLE payments ADD COLUMN client_secret VARCHAR(500);`)
+    await addPaymentCol(`ALTER TABLE payments ADD COLUMN confirmation_sent TINYINT DEFAULT 0;`)
+    await addPaymentCol(`ALTER TABLE payments ADD COLUMN failure_reason VARCHAR(500);`)
+
     try {
       await db.exec(`CREATE UNIQUE INDEX ux_registrations_passport_num ON registrations(passport_num);`)
     } catch {}
