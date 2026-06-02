@@ -60,7 +60,7 @@ export default function Nav({ lang }: { lang: Lang }) {
           />
         </div>
         <div className="flex flex-col gap-0.5">
-          <span className="font-display text-orange text-[17px] tracking-[0.3em] leading-none">H.O.G Algeria</span>
+          <span className="font-display text-orange text-[17px] tracking-[0.3em] leading-none">H.O.G. Algeria</span>
           <span className={`text-muted2 text-[10px] ${isAr ? '' : 'tracking-[0.2em] uppercase'}`}>{t(lang, 'nav.chapter')}</span>
         </div>
       </Link>

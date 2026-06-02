@@ -10,7 +10,8 @@
       "Bash(git -C e:/HOG_tour add backend/src/app.js backend/src/yassir.js backend/src/db.js)",
       "Bash(git -C e:/HOG_tour add backend/src/db.js)",
       "Bash(git -C e:/HOG_tour add backend/src/app.js frontend/src/app/payment-success/PaymentSuccessClient.tsx)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(node -e ' *)"
     ]
   }
 }

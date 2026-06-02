@@ -131,6 +131,9 @@ export default function AdminPage() {
   const [details, setDetails]   = useState<Details | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [actionMsg, setActionMsg] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
+  const [checked, setChecked] = useState<Set<string>>(new Set())
+  const PAGE_SIZE = 25
   const [tab, setTab]           = useState<'dashboard' | 'list' | 'mail'>('dashboard')
   const [mailInfo, setMailInfo] = useState<any>(null)
   const [mailTo, setMailTo]     = useState('')
@@ -157,6 +160,11 @@ export default function AdminPage() {
     const byTshirt: Record<string, number> = {}
     let revCents = 0
 
+    // Revenus encaissés par méthode (uniquement les paiements payés)
+    let stripeEurCents = 0, stripeCount = 0   // étrangers — EUR
+    let cashDzdCents = 0, cashCount = 0       // Yassir Cash — DZD
+    let cibDzdCents = 0, cibCount = 0         // CIB / Dahabia — DZD
+
     for (const r of items) {
       const z = String(r.residence_zone || 'Inconnu')
       byZone[z] = (byZone[z] || 0) + 1
@@ -164,7 +172,16 @@ export default function AdminPage() {
       byHeb[h] = (byHeb[h] || 0) + 1
       const t = String(r.taille_tshirt || '—')
       byTshirt[t] = (byTshirt[t] || 0) + 1
-      if (r.payment_status === 'paid') revCents += Number(r.payment_amount_cents) || 0
+      if (r.payment_status === 'paid') {
+        const cents = Number(r.payment_amount_cents) || 0
+        revCents += cents
+        const m = String(r.payment_method || '').toLowerCase()
+        const cur = String(r.payment_currency || '').toUpperCase()
+        if (m.includes('stripe') || cur === 'EUR') { stripeEurCents += cents; stripeCount++ }
+        else if (m.includes('cib') || m.includes('dahabia') || m.includes('satim')) { cibDzdCents += cents; cibCount++ }
+        else if (m.includes('cash') || m.includes('wallet') || m.includes('yassir')) { cashDzdCents += cents; cashCount++ }
+        else if (cur === 'DZD') { cashDzdCents += cents; cashCount++ } // fallback DZD → Cash
+      }
     }
 
     const timeline: Record<string, number> = {}
@@ -173,7 +190,10 @@ export default function AdminPage() {
       if (day) timeline[day] = (timeline[day] || 0) + 1
     }
 
-    return { total, paid, onSite, confirmed, pending, noHeb, byZone, byHeb, byTshirt, revCents, timeline }
+    return {
+      total, paid, onSite, confirmed, pending, noHeb, byZone, byHeb, byTshirt, revCents, timeline,
+      stripeEurCents, stripeCount, cashDzdCents, cashCount, cibDzdCents, cibCount,
+    }
   }, [items])
 
   // ── filtered list ───────────────────────────────────────────────────────
@@ -199,6 +219,16 @@ export default function AdminPage() {
     () => Array.from(new Set(items.map(r => normHeb(r.hebergement)).filter(Boolean))).sort(),
     [items],
   )
+
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const pageClamped = Math.min(page, totalPages)
+  const paginated = useMemo(
+    () => filtered.slice((pageClamped - 1) * PAGE_SIZE, pageClamped * PAGE_SIZE),
+    [filtered, pageClamped],
+  )
+  // Revenir page 1 quand un filtre change
+  useEffect(() => { setPage(1) }, [q, filterZone, filterStatus, filterTshirt, filterHeb])
 
   // ── API calls ───────────────────────────────────────────────────────────
   async function checkSession() {
@@ -244,9 +274,46 @@ export default function AdminPage() {
         ? `Inscription supprimée — email d'annulation envoyé.`
         : `Inscription supprimée${d.wasPaid ? ' (participant payé, pas d\'email)' : ''}.`)
       setSelectedId(null); setDetails(null)
+      setChecked(prev => { const n = new Set(prev); n.delete(id); return n })
       await loadList()
     } catch { setActionMsg('Serveur inaccessible.') }
     finally { setDeleting(false) }
+  }
+
+  function toggleCheck(id: string) {
+    setChecked(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+  }
+  function toggleCheckAllPage(ids: string[], on: boolean) {
+    setChecked(prev => {
+      const n = new Set(prev)
+      ids.forEach(id => on ? n.add(id) : n.delete(id))
+      return n
+    })
+  }
+
+  async function handleBulkDelete() {
+    const ids = Array.from(checked)
+    if (!ids.length) return
+    const paidCount = items.filter(r => ids.includes(r.id) && r.payment_status === 'paid').length
+    const warn = `Supprimer définitivement ${ids.length} inscription(s) ?\n\n`
+      + (paidCount ? `⚠️ ${paidCount} ont déjà PAYÉ (pas d'email d'annulation pour ceux-là).\n` : '')
+      + `Un email d'annulation sera envoyé aux inscrits non payés.`
+    if (!window.confirm(warn)) return
+    setDeleting(true); setActionMsg(null)
+    let ok = 0, fail = 0, mails = 0
+    for (const id of ids) {
+      try {
+        const r = await fetch(api(`/v1/admin/registrations/${encodeURIComponent(id)}/delete`), {
+          method: 'POST', credentials: 'include',
+        })
+        const d = await r.json().catch(() => ({}))
+        if (r.ok) { ok++; if (d.cancellationEmailSent) mails++ } else fail++
+      } catch { fail++ }
+    }
+    setChecked(new Set())
+    setActionMsg(`${ok} inscription(s) supprimée(s)${mails ? `, ${mails} email(s) d'annulation envoyé(s)` : ''}${fail ? ` — ${fail} échec(s)` : ''}.`)
+    await loadList()
+    setDeleting(false)
   }
 
   async function handleLogin(e: FormEvent) {
@@ -325,7 +392,7 @@ export default function AdminPage() {
     <div className="min-h-screen bg-bg flex items-center justify-center px-6">
       <div className="w-full max-w-[420px]">
         <div className="mb-8">
-          <p className="text-[9px] uppercase tracking-[5px] text-orange/60 mb-2">H.O.G Tour 2026</p>
+          <p className="text-[9px] uppercase tracking-[5px] text-orange/60 mb-2">H.O.G. Tour 2026</p>
           <h1 className="font-display text-[40px] text-htext leading-none tracking-wide">ADMIN</h1>
         </div>
         <div className="border border-orange/12 bg-bg3 p-8">
@@ -361,7 +428,7 @@ export default function AdminPage() {
       {/* Top bar */}
       <div className="border-b border-orange/10 bg-bg2 px-6 md:px-10 py-4 flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-2">
-          <span className="text-[8px] uppercase tracking-[4px] text-orange/60">H.O.G Tour 2026</span>
+          <span className="text-[8px] uppercase tracking-[4px] text-orange/60">H.O.G. Tour 2026</span>
           <span className="text-orange/30 mx-2">|</span>
           <span className="font-display text-[18px] text-htext tracking-wide">ADMIN</span>
         </div>
@@ -400,8 +467,23 @@ export default function AdminPage() {
             <KpiCard label="Confirmées" value={stats.confirmed}
               sub={`${stats.paid} payées · ${stats.onSite} sur place`} />
             <KpiCard label="En attente paiement" value={stats.pending} />
-            <KpiCard label="Revenus ligne" value={stats.revCents ? fmtAmount(stats.revCents, 'EUR') : '—'}
-              sub="Paiements en ligne confirmés" />
+            <KpiCard label="Sans hébergement" value={stats.noHeb} />
+          </div>
+
+          {/* Revenus encaissés par moyen de paiement */}
+          <div>
+            <p className="text-[9px] uppercase tracking-[3px] text-orange/60 mb-3">Revenus encaissés (paiements confirmés)</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <KpiCard label="Stripe — Étrangers (EUR)"
+                value={stats.stripeEurCents ? fmtAmount(stats.stripeEurCents, 'EUR') : '0 €'}
+                sub={`${stats.stripeCount} paiement${stats.stripeCount !== 1 ? 's' : ''}`} accent />
+              <KpiCard label="Yassir Cash (DZD)"
+                value={stats.cashDzdCents ? fmtAmount(stats.cashDzdCents, 'DZD') : '0 DA'}
+                sub={`${stats.cashCount} paiement${stats.cashCount !== 1 ? 's' : ''}`} accent />
+              <KpiCard label="CIB / Dahabia (DZD)"
+                value={stats.cibDzdCents ? fmtAmount(stats.cibDzdCents, 'DZD') : '0 DA'}
+                sub={`${stats.cibCount} paiement${stats.cibCount !== 1 ? 's' : ''}`} accent />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -501,11 +583,21 @@ export default function AdminPage() {
               {hebergementValues.map(h => <option key={h} value={h}>{h}</option>)}
             </select>
             <span className="text-muted text-[11px] uppercase tracking-[2px] ml-auto">{filtered.length} résultat{filtered.length !== 1 ? 's' : ''}</span>
+            {checked.size > 0 && (
+              <button onClick={handleBulkDelete} disabled={deleting}
+                className="bg-red-500/10 border border-red-500/40 text-red-400 font-condensed font-bold text-[11px] tracking-[2px] uppercase px-5 py-2.5 hover:bg-red-500/20 transition-colors disabled:opacity-50">
+                {deleting ? 'Suppression…' : `🗑 Supprimer (${checked.size})`}
+              </button>
+            )}
             <button onClick={downloadCsv} disabled={!filtered.length}
               className="bg-bg3 border border-orange/15 text-htext font-condensed font-bold text-[11px] tracking-[2px] uppercase px-5 py-2.5 hover:border-orange/40 transition-colors disabled:opacity-50">
               ↓ Export CSV
             </button>
           </div>
+
+          {actionMsg && (
+            <div className="mb-4 border border-orange/25 bg-bg3 px-5 py-3 text-[13px] text-orange">{actionMsg}</div>
+          )}
 
           {/* Table */}
           <div className="border border-orange/10 overflow-hidden">
@@ -513,6 +605,14 @@ export default function AdminPage() {
               <table className="w-full min-w-[900px] text-left text-[13px]">
                 <thead className="bg-bg2">
                   <tr className="text-muted text-[9px] uppercase tracking-[2px] border-b border-orange/10">
+                    <th className="px-3 py-3 w-10">
+                      <input
+                        type="checkbox"
+                        className="accent-orange cursor-pointer"
+                        checked={paginated.length > 0 && paginated.every(r => checked.has(r.id))}
+                        onChange={e => toggleCheckAllPage(paginated.map(r => r.id), e.target.checked)}
+                      />
+                    </th>
                     <th className="px-4 py-3">Date</th>
                     <th className="px-4 py-3">Participant</th>
                     <th className="px-4 py-3">Email</th>
@@ -525,46 +625,64 @@ export default function AdminPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/[0.05]">
-                  {filtered.map(r => (
+                  {paginated.map(r => (
                     <tr key={r.id}
-                      onClick={() => loadDetails(r.id)}
-                      className={`cursor-pointer hover:bg-bg3 transition-colors ${selectedId === r.id ? 'bg-orange/5' : ''}`}>
-                      <td className="px-4 py-3 text-muted2 whitespace-nowrap">{fmtDateShort(r.created_at)}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">
+                      className={`hover:bg-bg3 transition-colors ${selectedId === r.id ? 'bg-orange/5' : ''} ${checked.has(r.id) ? 'bg-red-500/[0.06]' : ''}`}>
+                      <td className="px-3 py-3" onClick={e => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          className="accent-orange cursor-pointer"
+                          checked={checked.has(r.id)}
+                          onChange={() => toggleCheck(r.id)}
+                        />
+                      </td>
+                      <td className="px-4 py-3 text-muted2 whitespace-nowrap cursor-pointer" onClick={() => loadDetails(r.id)}>{fmtDateShort(r.created_at)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap cursor-pointer" onClick={() => loadDetails(r.id)}>
                         <div className="text-htext font-semibold">{r.prenom} {r.nom}</div>
                         <div className="text-muted2 text-[11px]">{r.passport_num}</div>
                       </td>
-                      <td className="px-4 py-3 text-muted max-w-[180px] truncate">{r.email}</td>
-                      <td className="px-4 py-3 text-muted whitespace-nowrap">{r.residence_zone || '—'}</td>
-                      <td className="px-4 py-3 text-muted whitespace-nowrap">
+                      <td className="px-4 py-3 text-muted max-w-[180px] truncate cursor-pointer" onClick={() => loadDetails(r.id)}>{r.email}</td>
+                      <td className="px-4 py-3 text-muted whitespace-nowrap cursor-pointer" onClick={() => loadDetails(r.id)}>{r.residence_zone || '—'}</td>
+                      <td className="px-4 py-3 text-muted whitespace-nowrap cursor-pointer" onClick={() => loadDetails(r.id)}>
                         {r.hebergement ? r.hebergement.replace('Chambre ', '').replace(' — ', '/') : <span className="text-muted2">—</span>}
                       </td>
-                      <td className="px-4 py-3 text-muted">{r.taille_tshirt || '—'}</td>
-                      <td className="px-4 py-3 text-htext font-medium whitespace-nowrap">
+                      <td className="px-4 py-3 text-muted cursor-pointer" onClick={() => loadDetails(r.id)}>{r.taille_tshirt || '—'}</td>
+                      <td className="px-4 py-3 text-htext font-medium whitespace-nowrap cursor-pointer" onClick={() => loadDetails(r.id)}>
                         {fmtAmount(r.payment_amount_cents, r.payment_currency)}
                       </td>
-                      <td className="px-4 py-3"><StatusBadge row={r} /></td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 cursor-pointer" onClick={() => loadDetails(r.id)}><StatusBadge row={r} /></td>
+                      <td className="px-4 py-3 cursor-pointer" onClick={() => loadDetails(r.id)}>
                         <span className="text-orange/60 text-[11px]">→</span>
                       </td>
                     </tr>
                   ))}
-                  {!filtered.length && (
-                    <tr><td colSpan={9} className="px-4 py-10 text-center text-muted text-[13px]">Aucune inscription.</td></tr>
+                  {!paginated.length && (
+                    <tr><td colSpan={10} className="px-4 py-10 text-center text-muted text-[13px]">Aucune inscription.</td></tr>
                   )}
                 </tbody>
               </table>
             </div>
           </div>
 
-          {actionMsg && (
-            <div className="mb-4 border border-orange/25 bg-bg3 px-5 py-3 text-[13px] text-orange">{actionMsg}</div>
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-5">
+              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={pageClamped <= 1}
+                className="border border-orange/15 text-muted text-[12px] px-3 py-1.5 hover:border-orange/40 hover:text-htext transition-colors disabled:opacity-40">← Préc.</button>
+              <span className="text-muted text-[12px] px-3">Page {pageClamped} / {totalPages}</span>
+              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={pageClamped >= totalPages}
+                className="border border-orange/15 text-muted text-[12px] px-3 py-1.5 hover:border-orange/40 hover:text-htext transition-colors disabled:opacity-40">Suiv. →</button>
+            </div>
           )}
 
-          {/* Detail panel */}
+          {/* Detail modal (overlay) */}
           {selectedId && details && (
-            <div className="mt-6 border border-orange/15 bg-bg3">
-              <div className="flex items-center justify-between gap-4 px-6 py-4 border-b border-orange/10 flex-wrap">
+            <div
+              className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 p-4 sm:p-8"
+              onClick={() => { setSelectedId(null); setDetails(null) }}
+            >
+            <div className="w-full max-w-4xl my-auto border border-orange/15 bg-bg3 shadow-2xl" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between gap-4 px-6 py-4 border-b border-orange/10 flex-wrap sticky top-0 bg-bg3 z-10">
                 <div>
                   <p className="text-[9px] uppercase tracking-[3px] text-orange/60 mb-0.5">Candidature complète</p>
                   <p className="text-htext font-semibold text-[15px]">
@@ -667,6 +785,7 @@ export default function AdminPage() {
                   ) : <p className="text-muted text-[12px]">Aucun fichier.</p>}
                 </div>
               </div>
+            </div>
             </div>
           )}
         </div>

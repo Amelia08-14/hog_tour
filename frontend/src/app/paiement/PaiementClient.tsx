@@ -17,12 +17,12 @@ type PaymentMethod = { code: string; name: string; id: string }
 type Step = 'accommodation' | 'payment'
 
 const ACCOMMODATIONS = [
-  { value: 'Chambre simple',          labelDzd: '75 000 DA',         labelEur: '960 €',         desc: '1 personne — chambre individuelle' },
-  { value: 'Chambre double — Motard', labelDzd: '65 000 DA / motard', labelEur: '880 € / motard', desc: '2 motards — chambre partagée' },
-  { value: 'Chambre double couple',   labelDzd: '125 000 DA',        labelEur: '1 740 €',        desc: '2 personnes en couple' },
+  { value: 'Chambre simple',          labelDzd: '75 000 DA',         labelEur: '960 €',         desc: 'Pension complète — 1 personne, chambre individuelle' },
+  { value: 'Chambre double — Motard', labelDzd: '65 000 DA / motard', labelEur: '880 € / motard', desc: 'Pension complète — 2 motards, chambre partagée' },
+  { value: 'Chambre double couple',   labelDzd: '125 000 DA',        labelEur: '1 740 €',        desc: 'Pension complète — 2 personnes en couple' },
 ]
 
-const EUR_INCLUDES_NOTE = 'Tarif tout compris : traversée par bateau en classe cabine, demi-pension, moto incluse.'
+const EUR_INCLUDES_NOTE = 'Traversée bateau en demi pension, moto incluse et carburant pris en charge durant tout l’événement.'
 
 function formatAmount(cents: number, currency: string) {
   if (currency === 'DZD')
@@ -234,11 +234,12 @@ export default function PaiementClient() {
                 )
               })}
             </div>
+            <div className="mt-4 border border-orange/10 bg-bg3 px-4 py-3 flex gap-2">
+              <span className="text-orange/60 text-[11px] mt-[1px]">★</span>
+              <p className="text-muted text-[11px] leading-relaxed">{EUR_INCLUDES_NOTE}</p>
+            </div>
             {isAilleurs && (
-              <div className="mt-4 border border-orange/10 bg-bg3 px-4 py-3 flex gap-2">
-                <span className="text-orange/60 text-[11px] mt-[1px]">★</span>
-                <p className="text-muted text-[11px] leading-relaxed">{EUR_INCLUDES_NOTE}</p>
-              </div>
+              <p className="mt-2 text-muted2 text-[10px] px-1">Tarif tout compris pour les participants venant de l’étranger.</p>
             )}
             <button
               type="submit"

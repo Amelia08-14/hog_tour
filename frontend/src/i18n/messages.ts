@@ -7,15 +7,15 @@ export const messages: Record<Lang, Msg> = {
     nav: {
       home: 'Accueil',
       about: 'À propos',
-      event: 'H.O.G Tour 2026',
+      event: 'H.O.G. Tour 2026',
       contact: 'Contactez-nous',
       register: 'Inscription',
       registerCta: 'Inscrivez-vous',
       chapter: 'Algiers Chapter',
     },
     hero: {
-      eyebrow: 'H.O.G Algiers Chapter Algeria · Accréditation #8062',
-      titleLines: ['H.O.G TOUR 2026 ®', 'PREMIÈRE FOIS EN', 'ALGÉRIE'],
+      eyebrow: 'H.O.G. Algiers Chapter Algeria · Accréditation #8062',
+      titleLines: ['H.O.G. TOUR 2026 ®', 'PREMIÈRE FOIS EN', 'ALGÉRIE'],
       subtitleStrong: "Ne ratez pas l'occasion",
       subtitleRest: 'et soyez les bienvenus pour cette première édition.',
       ctaRegister: 'Inscrivez-vous',
@@ -32,22 +32,22 @@ export const messages: Record<Lang, Msg> = {
       aboutTag: 'À propos',
       aboutTitle: 'Une aventure Harley-Davidson au cœur du Sahara',
       aboutP1:
-        "Le H.O.G Tour 2026 en Algérie est une première : quatre jours de route entre l’océan de sable, les oasis et les villes du Sud.",
+        "Le H.O.G. Tour 2026 en Algérie est une première : quatre jours de route entre l’océan de sable, les oasis et les villes du Sud.",
       aboutP2:
         "Un rendez-vous pensé pour les passionnés, avec un itinéraire iconique et une organisation premium de bout en bout.",
       aboutMore: 'En savoir plus',
       hog: {
         tag1: 'À propos',
-        title1a: 'Le H.O.G',
+        title1a: 'Le H.O.G.',
         title1b: '(Harley Owners Group)',
         p1:
-          "Le Harley Owners Group (H.O.G) est un club créé par Harley-Davidson pour rassembler les propriétaires de motos de la marque. Chaque concessionnaire possède un Chapter, subdivision du H.O.G. Il existe plus d’un million de membres dans le monde.",
+          "Le Harley Owners Group (H.O.G.) est un club créé par Harley-Davidson pour rassembler les propriétaires de motos de la marque. Chaque concessionnaire possède un Chapter, subdivision du H.O.G. Il existe plus d’un million de membres dans le monde.",
         link1: 'En savoir plus',
         tag2: 'Notre Chapter',
-        title2a: 'Le H.O.G Algiers',
+        title2a: 'Le H.O.G. Algiers',
         title2b: 'Chapter Algeria',
         p2a:
-          "Créé le 15 mai 2013, le H.O.G Algiers Chapter Algeria est le club accrédité par Harley-Davidson en Algérie sous le numéro #8062. Il réunit des passionnés autour de balades, stages de conduite, événements et actions caritatives.",
+          "Créé le 15 mai 2013, le H.O.G. Algiers Chapter Algeria est le club accrédité par Harley-Davidson en Algérie sous le numéro #8062. Il réunit des passionnés autour de balades, stages de conduite, événements et actions caritatives.",
         p2b:
           "Depuis 2023, il co-organise le plus grand événement motocycle en Algérie : Algeria Bike Week.",
         badgeTitle: 'Chapter officiel Harley-Davidson',
@@ -56,7 +56,7 @@ export const messages: Record<Lang, Msg> = {
       programmeTag: 'Programme',
       programmeTitle: 'Itinéraire & temps forts',
       ticketTag: 'Inscription',
-      ticketTitle: 'Rejoindre le H.O.G Tour 2026',
+      ticketTitle: 'Rejoindre le H.O.G. Tour 2026',
       ticketSubtitle: 'Alger → Ghardaïa · 29 oct — 1er nov 2026',
       ticketCta: 'S’inscrire',
       galleryTag: 'Galerie',
@@ -66,12 +66,12 @@ export const messages: Record<Lang, Msg> = {
     },
     about: {
       tag: 'À propos',
-      title: 'H.O.G Tour 2026 — Algérie',
+      title: 'H.O.G. Tour 2026 — Algérie',
       lead:
         "Une première édition exceptionnelle, entre routes désertiques, hospitalité algérienne et esprit Harley-Davidson.",
     },
     hogtour: {
-      tag: 'H.O.G Tour 2026',
+      tag: 'H.O.G. Tour 2026',
       title: 'L’événement',
       lead:
         "Quatre jours d’aventure et de fraternité, sur un tracé conçu pour vivre l’Algérie autrement.",
@@ -97,7 +97,7 @@ export const messages: Record<Lang, Msg> = {
     registration: {
       tag: 'Inscription',
       titleA: 'Inscription',
-      titleB: 'H.O.G Tour 2026',
+      titleB: 'H.O.G. Tour 2026',
       dates: '29 Octobre — 1er Novembre 2026 · Alger → Ghardaïa',
       frameTitle: 'HOG TOUR 2026 ®',
       frameSub: '29 Oct — 1er Nov · Algiers Chapter · #8062',
@@ -188,15 +188,15 @@ export const messages: Record<Lang, Msg> = {
     nav: {
       home: 'Home',
       about: 'About',
-      event: 'H.O.G Tour 2026',
+      event: 'H.O.G. Tour 2026',
       contact: 'Contact',
       register: 'Registration',
       registerCta: 'Register',
       chapter: 'Algiers Chapter',
     },
     hero: {
-      eyebrow: 'H.O.G Algiers Chapter Algeria · Accreditation #8062',
-      titleLines: ['H.O.G TOUR 2026 ®', 'FIRST TIME IN', 'ALGERIA'],
+      eyebrow: 'H.O.G. Algiers Chapter Algeria · Accreditation #8062',
+      titleLines: ['H.O.G. TOUR 2026 ®', 'FIRST TIME IN', 'ALGERIA'],
       subtitleStrong: "Don’t miss the chance",
       subtitleRest: 'and be part of this first edition.',
       ctaRegister: 'Register',
@@ -213,22 +213,22 @@ export const messages: Record<Lang, Msg> = {
       aboutTag: 'About',
       aboutTitle: 'A Harley-Davidson adventure in the heart of the Sahara',
       aboutP1:
-        'H.O.G Tour 2026 in Algeria is a first: four days on the road across dunes, oases, and southern cities.',
+        'H.O.G. Tour 2026 in Algeria is a first: four days on the road across dunes, oases, and southern cities.',
       aboutP2:
         'A premium ride designed for passionate riders, with an iconic itinerary and end‑to‑end organization.',
       aboutMore: 'Learn more',
       hog: {
         tag1: 'About',
-        title1a: 'H.O.G',
+        title1a: 'H.O.G.',
         title1b: '(Harley Owners Group)',
         p1:
-          'Harley Owners Group (H.O.G) is a club created by Harley-Davidson to bring together owners and enthusiasts. Each dealership has a Chapter, a local community within H.O.G. Today, H.O.G counts over one million members worldwide.',
+          'Harley Owners Group (H.O.G.) is a club created by Harley-Davidson to bring together owners and enthusiasts. Each dealership has a Chapter, a local community within H.O.G. Today, H.O.G. counts over one million members worldwide.',
         link1: 'Learn more',
         tag2: 'Our Chapter',
-        title2a: 'H.O.G Algiers',
+        title2a: 'H.O.G. Algiers',
         title2b: 'Chapter Algeria',
         p2a:
-          'Founded on May 15, 2013, H.O.G Algiers Chapter Algeria is the official Harley-Davidson accredited club in Algeria (#8062). We ride together, train together, and organize events and charity initiatives.',
+          'Founded on May 15, 2013, H.O.G. Algiers Chapter Algeria is the official Harley-Davidson accredited club in Algeria (#8062). We ride together, train together, and organize events and charity initiatives.',
         p2b:
           'Since 2023, we have co-organized the biggest motorcycle event in Algeria: Algeria Bike Week.',
         badgeTitle: 'Official Harley-Davidson Chapter',
@@ -237,7 +237,7 @@ export const messages: Record<Lang, Msg> = {
       programmeTag: 'Schedule',
       programmeTitle: 'Route & highlights',
       ticketTag: 'Registration',
-      ticketTitle: 'Join H.O.G Tour 2026',
+      ticketTitle: 'Join H.O.G. Tour 2026',
       ticketSubtitle: 'Algiers → Ghardaïa · Oct 29 — Nov 1, 2026',
       ticketCta: 'Register now',
       galleryTag: 'Gallery',
@@ -247,12 +247,12 @@ export const messages: Record<Lang, Msg> = {
     },
     about: {
       tag: 'About',
-      title: 'H.O.G Tour 2026 — Algeria',
+      title: 'H.O.G. Tour 2026 — Algeria',
       lead:
         'A unique first edition combining desert roads, Algerian hospitality, and the Harley-Davidson spirit.',
     },
     hogtour: {
-      tag: 'H.O.G Tour 2026',
+      tag: 'H.O.G. Tour 2026',
       title: 'The event',
       lead:
         'Four days of riding and brotherhood, on a route designed to experience Algeria differently.',
@@ -278,7 +278,7 @@ export const messages: Record<Lang, Msg> = {
     registration: {
       tag: 'Registration',
       titleA: 'Registration',
-      titleB: 'H.O.G Tour 2026',
+      titleB: 'H.O.G. Tour 2026',
       dates: 'Oct 29 — Nov 1, 2026 · Algiers → Ghardaïa',
       frameTitle: 'HOG TOUR 2026 ®',
       frameSub: 'Oct 29 — Nov 1 · Algiers Chapter · #8062',
@@ -369,15 +369,15 @@ export const messages: Record<Lang, Msg> = {
     nav: {
       home: 'الرئيسية',
       about: 'من نحن',
-      event: 'جولة H.O.G 2026',
+      event: 'جولة H.O.G. 2026',
       contact: 'تواصل معنا',
       register: 'التسجيل',
       registerCta: 'سجّل الآن',
       chapter: 'فرع الجزائر',
     },
     hero: {
-      eyebrow: 'H.O.G فرع الجزائر · اعتماد #8062',
-      titleLines: ['H.O.G TOUR 2026 ®', 'لأول مرة في', 'الجزائر'],
+      eyebrow: 'H.O.G. فرع الجزائر · اعتماد #8062',
+      titleLines: ['H.O.G. TOUR 2026 ®', 'لأول مرة في', 'الجزائر'],
       subtitleStrong: 'لا تفوّت الفرصة',
       subtitleRest: 'وكن جزءًا من هذه النسخة الأولى.',
       ctaRegister: 'سجّل الآن',
@@ -394,22 +394,22 @@ export const messages: Record<Lang, Msg> = {
       aboutTag: 'من نحن',
       aboutTitle: 'مغامرة هارلي ديفيدسون في قلب الصحراء',
       aboutP1:
-        'جولة H.O.G 2026 في الجزائر هي الأولى من نوعها: أربعة أيام على الطريق بين الرمال والواحات ومدن الجنوب.',
+        'جولة H.O.G. 2026 في الجزائر هي الأولى من نوعها: أربعة أيام على الطريق بين الرمال والواحات ومدن الجنوب.',
       aboutP2:
         'تجربة راقية لعشّاق القيادة، بخط سير مميز وتنظيم متكامل من البداية إلى النهاية.',
       aboutMore: 'اعرف المزيد',
       hog: {
         tag1: 'من نحن',
-        title1a: 'H.O.G',
+        title1a: 'H.O.G.',
         title1b: '(Harley Owners Group)',
         p1:
-          'مجموعة مالكي هارلي (H.O.G) هي نادٍ أسسته Harley-Davidson لجمع المالكين وعشّاق العلامة. لكل وكالة فرع (Chapter) يمثل مجتمعًا محليًا ضمن H.O.G. اليوم يضم النادي أكثر من مليون عضو حول العالم.',
+          'مجموعة مالكي هارلي (H.O.G.) هي نادٍ أسسته Harley-Davidson لجمع المالكين وعشّاق العلامة. لكل وكالة فرع (Chapter) يمثل مجتمعًا محليًا ضمن H.O.G. اليوم يضم النادي أكثر من مليون عضو حول العالم.',
         link1: 'اعرف المزيد',
         tag2: 'فرعنا',
-        title2a: 'H.O.G الجزائر',
+        title2a: 'H.O.G. الجزائر',
         title2b: 'فرع الجزائر',
         p2a:
-          'تأسس فرع H.O.G الجزائر في 15 مايو 2013 وهو الفرع الرسمي المعتمد في الجزائر تحت رقم #8062. نجتمع حول رحلات القيادة، الدورات، الفعاليات والمبادرات الخيرية.',
+          'تأسس فرع H.O.G. الجزائر في 15 مايو 2013 وهو الفرع الرسمي المعتمد في الجزائر تحت رقم #8062. نجتمع حول رحلات القيادة، الدورات، الفعاليات والمبادرات الخيرية.',
         p2b:
           'ومنذ 2023 نشارك في تنظيم أكبر حدث للدراجات النارية في الجزائر: Algeria Bike Week.',
         badgeTitle: 'فرع رسمي لـ Harley-Davidson',
@@ -418,7 +418,7 @@ export const messages: Record<Lang, Msg> = {
       programmeTag: 'البرنامج',
       programmeTitle: 'المسار وأبرز المحطات',
       ticketTag: 'التسجيل',
-      ticketTitle: 'انضم إلى جولة H.O.G 2026',
+      ticketTitle: 'انضم إلى جولة H.O.G. 2026',
       ticketSubtitle: 'الجزائر → غرداية · 29 أكتوبر — 1 نوفمبر 2026',
       ticketCta: 'سجّل الآن',
       galleryTag: 'الصور',
@@ -428,12 +428,12 @@ export const messages: Record<Lang, Msg> = {
     },
     about: {
       tag: 'من نحن',
-      title: 'جولة H.O.G 2026 — الجزائر',
+      title: 'جولة H.O.G. 2026 — الجزائر',
       lead:
         'نسخة أولى استثنائية تجمع طرق الصحراء وكرم الضيافة وروح هارلي ديفيدسون.',
     },
     hogtour: {
-      tag: 'جولة H.O.G 2026',
+      tag: 'جولة H.O.G. 2026',
       title: 'الحدث',
       lead:
         'أربعة أيام من المغامرة والأخوّة على مسار صُمم لاكتشاف الجزائر بطريقة مختلفة.',
@@ -459,7 +459,7 @@ export const messages: Record<Lang, Msg> = {
     registration: {
       tag: 'التسجيل',
       titleA: 'التسجيل',
-      titleB: 'جولة H.O.G 2026',
+      titleB: 'جولة H.O.G. 2026',
       dates: '29 أكتوبر — 1 نوفمبر 2026 · الجزائر → غرداية',
       frameTitle: 'HOG TOUR 2026 ®',
       frameSub: '29 أكتوبر — 1 نوفمبر · فرع الجزائر · #8062',

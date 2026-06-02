@@ -57,7 +57,7 @@ export default function Hero({ lang }: { lang: Lang }) {
         <div className="hero-logo-wrap">
           <Image
             src="/images/logo-hogtour.png"
-            alt="H.O.G Tour 2026"
+            alt="H.O.G. Tour 2026"
             width={168}
             height={168}
             className="object-contain hero-logo-img"
@@ -92,7 +92,7 @@ export default function Hero({ lang }: { lang: Lang }) {
             letterSpacing: isAr ? '0px' : '1.5px',
           }}
         >
-          <span className="block text-white">{titleLines?.[0] || 'H.O.G TOUR 2026 ®'}</span>
+          <span className="block text-white">{titleLines?.[0] || 'H.O.G. TOUR 2026 ®'}</span>
           <span className="block text-white">{titleLines?.[1] || ''}</span>
           <span className="block text-orange hero-title-orange">{titleLines?.[2] || ''}</span>
         </h1>
