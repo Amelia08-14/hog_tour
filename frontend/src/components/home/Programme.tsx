@@ -162,7 +162,7 @@ export default function Programme({ lang }: { lang: Lang }) {
         </div>
 
         {/* Route strip */}
-        <div className="reveal reveal-streak hog-glow relative flex items-center justify-between bg-bg3 border border-orange/12 px-8 py-6 mb-1 overflow-hidden">
+        <div className="reveal reveal-streak hog-glow relative flex flex-col sm:flex-row items-stretch sm:items-center sm:justify-between bg-bg3 border border-orange/12 px-4 sm:px-8 py-6 gap-4 sm:gap-0 mb-1 overflow-hidden">
           <div className="absolute inset-0 opacity-50 pointer-events-none"
             style={{ backgroundImage: 'repeating-linear-gradient(90deg,transparent,transparent 60px,rgba(255,255,255,.03) 60px,rgba(255,255,255,.03) 61px)' }}/>
           <RouteCity name={copy.routeStops.a.name} sub={copy.routeStops.a.sub} />
@@ -258,11 +258,11 @@ function RouteCity({ name, sub, highlight = false }: { name: string; sub: string
 
 function RouteArrow({ km, label }: { km: number; label: string }) {
   return (
-    <div className="relative z-10 flex flex-1 items-center gap-2 px-5">
+    <div className="relative z-10 flex w-full sm:w-auto sm:flex-1 items-center gap-2 px-2 sm:px-5">
       <div className="flex-1 h-px" style={{ background: 'linear-gradient(to right, #FF6B00, rgba(255,107,0,.2))' }}/>
       <div className="text-center flex-shrink-0">
-        <p className="font-display text-orange text-[28px] leading-none">{km}</p>
-        <p className="text-muted text-[11px] tracking-[0.18em] uppercase">{label}</p>
+        <p className="font-display text-orange text-[22px] sm:text-[28px] leading-none">{km}</p>
+        <p className="text-muted text-[10px] sm:text-[11px] tracking-[0.18em] uppercase">{label}</p>
       </div>
       <div className="flex-1 h-px" style={{ background: 'linear-gradient(to left, #FF6B00, rgba(255,107,0,.2))' }}/>
     </div>

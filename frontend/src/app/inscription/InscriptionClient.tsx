@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useMemo, useState, type ChangeEventHandler, type ReactNode, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type ChangeEventHandler, type ReactNode, type FormEvent, type FormEventHandler } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { getCountries, getCountryCallingCode } from 'libphonenumber-js'
 import type { Lang } from '@/i18n/shared'
@@ -22,6 +22,8 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
   const [nationalite, setNationalite] = useState('')
   const [nationaliteAutre, setNationaliteAutre] = useState('')
   const [residenceZone, setResidenceZone] = useState('')
+  const [harley, setHarley] = useState('')
+  const [motoModele, setMotoModele] = useState('')
   const [profil, setProfil] = useState('')
   const [profilGroupe, setProfilGroupe] = useState('')
   const [taille, setTaille] = useState('')
@@ -39,7 +41,15 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
 
   const ON_SITE_ZONES = [V.residence.dz]
 
+  // Bloqué si résident Algérie sans Harley-Davidson
+  const blocked = residenceZone === V.residence.dz && harley === 'Non'
+
   useEffect(() => {
+    // Réinitialiser la question Harley quand on quitte l'Algérie
+    if (residenceZone !== V.residence.dz) {
+      setHarley('')
+      setMotoModele('')
+    }
     if (ON_SITE_ZONES.includes(residenceZone as typeof V.residence.dz)) {
       setPaiement('on_site')
       return
@@ -75,6 +85,15 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
     e.preventDefault()
     setError(null)
 
+    // Bloqué : pas de Harley en Algérie
+    if (blocked) return
+
+    // Question Harley obligatoire pour l'Algérie
+    if (residenceZone === V.residence.dz && !harley) {
+      setError('Veuillez indiquer si vous possédez une Harley-Davidson.')
+      return
+    }
+
     const missingState: string[] = []
     if (!sexe) missingState.push(String(t(lang, 'registration.fields.sex')))
     if (!nationalite) missingState.push(String(t(lang, 'registration.fields.nationality')))
@@ -90,6 +109,11 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
 
     if (nationalite === V.nationalite.autre && !nationaliteAutre.trim()) {
       setError(String(t(lang, 'registration.errors.specifyNationality')))
+      return
+    }
+
+    if (residenceZone === V.residence.dz && harley === 'Oui' && !motoModele.trim()) {
+      setError('Veuillez indiquer le modèle de votre Harley-Davidson.')
       return
     }
 
@@ -114,6 +138,8 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
       nationalite,
       nationaliteAutre: nationalite === V.nationalite.autre ? nationaliteAutre.trim() : '',
       residenceZone,
+      harleyOwner: residenceZone === V.residence.dz ? harley : 'Oui',
+      motoModele: residenceZone === V.residence.dz && harley === 'Oui' ? motoModele.trim() : '',
       profil,
       profilGroupe: profil === V.profil.groupe ? profilGroupe.trim() : '',
       tailleTshirt: taille,
@@ -151,6 +177,25 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
       return
     }
 
+    // Email valide
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) {
+      setError('Veuillez saisir une adresse email valide.')
+      return
+    }
+
+    // Téléphone valide (format E.164 reconstruit)
+    if (!/^\+\d{6,20}$/.test(payload.phoneE164.replace(/\s+/g, ''))) {
+      setError(String(t(lang, 'registration.errors.invalidPhone')))
+      return
+    }
+
+    // Champs alphanumériques propres
+    const alnum = /^[A-Za-z0-9]+$/
+    if (!alnum.test(payload.permisNum) || !alnum.test(payload.passportNum) || !alnum.test(payload.immatriculation)) {
+      setError('Les numéros de permis, passeport et immatriculation ne doivent contenir que des lettres et des chiffres.')
+      return
+    }
+
     const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL?.trim()
     const base = apiBase || (process.env.NODE_ENV === 'development' ? 'http://localhost:4000' : '')
     const url = base ? `${base.replace(/\/$/, '')}/v1/registrations` : '/v1/registrations'
@@ -171,6 +216,8 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
       out.set('nationalite', payload.nationalite)
       if (payload.nationaliteAutre) out.set('nationaliteAutre', payload.nationaliteAutre)
       out.set('residenceZone', payload.residenceZone)
+      out.set('harleyOwner', payload.harleyOwner)
+      if (payload.motoModele) out.set('motoModele', payload.motoModele)
       out.set('profil', payload.profil)
       if (payload.profilGroupe) out.set('profilGroupe', payload.profilGroupe)
       out.set('tailleTshirt', payload.tailleTshirt)
@@ -420,56 +467,89 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
                 </G>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <F id="permis" label={`${t(lang, 'registration.fields.license')} *`} type="text" ph={String(t(lang, 'registration.placeholders.license'))} />
-                <UF id="up-permis" label={String(t(lang, 'registration.fields.uploadLicense'))} lang={lang} />
-              </div>
-
-              <F id="passport" label={`${t(lang, 'registration.fields.passport')} *`} type="text" ph={String(t(lang, 'registration.placeholders.passport'))} />
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <F id="immat" label={`${t(lang, 'registration.fields.plate')} *`} type="text" ph={String(t(lang, 'registration.placeholders.plate'))} />
-                <UF id="up-carte" label={String(t(lang, 'registration.fields.uploadRegistration'))} lang={lang} />
-              </div>
-
-              <G label={`${t(lang, 'registration.fields.profile')} *`}>
-                <div className="flex gap-5 flex-wrap">
-                  <CB value={V.profil.solo} label={String(t(lang, 'registration.options.profileSolo'))} state={profil} set={setProfil} />
-                  <CB value={V.profil.groupe} label={String(t(lang, 'registration.options.profileGroup'))} state={profil} set={setProfil} />
-                </div>
-              </G>
-              {profil === V.profil.groupe && (
-                <F
-                  id="profil-groupe"
-                  label={String(t(lang, 'registration.fields.specify'))}
-                  type="text"
-                  ph={String(t(lang, 'registration.placeholders.groupName'))}
-                  value={profilGroupe}
-                  onChange={e => setProfilGroupe(e.target.value)}
-                />
+              {/* Question Harley-Davidson — uniquement pour les résidents en Algérie */}
+              {residenceZone === V.residence.dz && (
+                <G label="Possédez-vous une Harley-Davidson ? *">
+                  <div className="flex gap-5 flex-wrap">
+                    <CB value="Oui" label="Oui" state={harley} set={setHarley} />
+                    <CB value="Non" label="Non" state={harley} set={setHarley} />
+                  </div>
+                </G>
               )}
 
-              <G label={`${t(lang, 'registration.fields.tshirtSize')} *`}>
-                <div className="flex gap-5 flex-wrap">
-                  {['S', 'M', 'L', 'XL', 'XXL'].map(sz => (
-                    <CB key={sz} value={sz} label={sz} state={taille} set={setTaille} />
-                  ))}
-                </div>
-              </G>
-
-              {error && (
-                <div className="border border-orange/20 bg-bg2 px-5 py-4 text-[13px] text-htext leading-relaxed">
-                  {error}
+              {/* Message de blocage si pas de Harley */}
+              {blocked && (
+                <div className="border border-orange/30 bg-bg2 px-6 py-6 text-[14px] text-htext leading-relaxed">
+                  Désolé, mais les inscriptions sont ouvertes uniquement aux propriétaires d&apos;une Harley-Davidson pour le moment. Merci pour votre compréhension.
                 </div>
               )}
 
-              <button
-                type="submit"
-                disabled={loading}
-                className={`mt-2 bg-orange text-black font-condensed font-extrabold text-[14px] py-5 hover:bg-white disabled:opacity-60 disabled:cursor-not-allowed hover:-translate-y-0.5 hover:disabled:translate-y-0 transition-all duration-200 ${lang === 'ar' ? '' : 'tracking-[0.3em] uppercase'}`}
-              >
-                {loading ? t(lang, 'registration.buttons.submitting') : t(lang, 'registration.buttons.submit')}
-              </button>
+              {!blocked && (
+                <>
+                  {/* Modèle de moto — pour les résidents Algérie avec Harley */}
+                  {residenceZone === V.residence.dz && harley === 'Oui' && (
+                    <F
+                      id="moto-modele"
+                      label="Modèle de votre Harley-Davidson *"
+                      type="text"
+                      ph="Ex : Street Glide, Fat Boy, Sportster…"
+                      value={motoModele}
+                      onChange={e => setMotoModele(e.target.value)}
+                    />
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <F id="permis" label={`${t(lang, 'registration.fields.license')} *`} type="text" ph={String(t(lang, 'registration.placeholders.license'))} clean />
+                    <UF id="up-permis" label={String(t(lang, 'registration.fields.uploadLicense'))} lang={lang} />
+                  </div>
+
+                  <F id="passport" label={`${t(lang, 'registration.fields.passport')} *`} type="text" ph={String(t(lang, 'registration.placeholders.passport'))} clean />
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <F id="immat" label={`${t(lang, 'registration.fields.plate')} *`} type="text" ph={String(t(lang, 'registration.placeholders.plate'))} clean />
+                    <UF id="up-carte" label={String(t(lang, 'registration.fields.uploadRegistration'))} lang={lang} />
+                  </div>
+
+                  <G label={`${t(lang, 'registration.fields.profile')} *`}>
+                    <div className="flex gap-5 flex-wrap">
+                      <CB value={V.profil.solo} label={String(t(lang, 'registration.options.profileSolo'))} state={profil} set={setProfil} />
+                      <CB value={V.profil.groupe} label={String(t(lang, 'registration.options.profileGroup'))} state={profil} set={setProfil} />
+                    </div>
+                  </G>
+                  {profil === V.profil.groupe && (
+                    <F
+                      id="profil-groupe"
+                      label={String(t(lang, 'registration.fields.specify'))}
+                      type="text"
+                      ph={String(t(lang, 'registration.placeholders.groupName'))}
+                      value={profilGroupe}
+                      onChange={e => setProfilGroupe(e.target.value)}
+                    />
+                  )}
+
+                  <G label={`${t(lang, 'registration.fields.tshirtSize')} *`}>
+                    <div className="flex gap-5 flex-wrap">
+                      {['S', 'M', 'L', 'XL', 'XXL'].map(sz => (
+                        <CB key={sz} value={sz} label={sz} state={taille} set={setTaille} />
+                      ))}
+                    </div>
+                  </G>
+
+                  {error && (
+                    <div className="border border-orange/20 bg-bg2 px-5 py-4 text-[13px] text-htext leading-relaxed">
+                      {error}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className={`mt-2 bg-orange text-black font-condensed font-extrabold text-[14px] py-5 hover:bg-white disabled:opacity-60 disabled:cursor-not-allowed hover:-translate-y-0.5 hover:disabled:translate-y-0 transition-all duration-200 ${lang === 'ar' ? '' : 'tracking-[0.3em] uppercase'}`}
+                  >
+                    {loading ? t(lang, 'registration.buttons.submitting') : t(lang, 'registration.buttons.submit')}
+                  </button>
+                </>
+              )}
             </form>
           </div>
         </div>
@@ -486,6 +566,7 @@ function F({
   required = true,
   value,
   onChange,
+  clean = false,
 }: {
   id: string
   label: string
@@ -494,7 +575,16 @@ function F({
   required?: boolean
   value?: string
   onChange?: ChangeEventHandler<HTMLInputElement>
+  clean?: boolean
 }) {
+  // clean = n'accepte que lettres et chiffres (permis, passeport, immatriculation)
+  const handleInput: FormEventHandler<HTMLInputElement> = (e) => {
+    if (clean) {
+      const el = e.currentTarget
+      const cleaned = el.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase()
+      if (cleaned !== el.value) el.value = cleaned
+    }
+  }
   return (
     <div className="flex flex-col gap-2">
       <label htmlFor={id} className="text-htext text-[14px]">{label}</label>
@@ -506,6 +596,8 @@ function F({
         required={required}
         value={value}
         onChange={onChange}
+        onInput={handleInput}
+        inputMode={clean ? 'text' : undefined}
         className="bg-bg2 border border-white/8 px-4 py-3.5 text-htext text-[14px] outline-none placeholder:text-muted2 focus:border-orange/50 transition-colors w-full"
       />
     </div>

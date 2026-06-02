@@ -195,6 +195,7 @@ async function initDb() {
     await addCol('passport_num', 'VARCHAR(120) NULL')
     await addCol('residence_zone', 'VARCHAR(32) NULL')
     await addCol('phone_e164', 'VARCHAR(32) NULL')
+    await addCol('moto_modele', 'VARCHAR(160) NULL')
 
     try {
       await db.exec(`CREATE UNIQUE INDEX ux_registrations_passport_num ON registrations(passport_num);`)
@@ -279,6 +280,8 @@ async function initDb() {
   if (!hasPassport) await db.exec(`ALTER TABLE registrations ADD COLUMN passport_num TEXT;`)
   const hasPhoneE164 = cols.some(c => c.name === 'phone_e164')
   if (!hasPhoneE164) await db.exec(`ALTER TABLE registrations ADD COLUMN phone_e164 TEXT;`)
+  const hasMotoModele = cols.some(c => c.name === 'moto_modele')
+  if (!hasMotoModele) await db.exec(`ALTER TABLE registrations ADD COLUMN moto_modele TEXT;`)
 
   if (driver() === 'mysql') {
     try {

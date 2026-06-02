@@ -87,7 +87,7 @@ export default function Hero({ lang }: { lang: Lang }) {
         <h1
           className="au2 font-display m-0"
           style={{
-            fontSize: isAr ? 'clamp(36px, 6vw, 76px)' : 'clamp(58px, 9.8vw, 132px)',
+            fontSize: isAr ? 'clamp(34px, 6vw, 76px)' : 'clamp(40px, 8.5vw, 132px)',
             lineHeight: isAr ? '1.30' : '0.94',
             letterSpacing: isAr ? '0px' : '1.5px',
           }}

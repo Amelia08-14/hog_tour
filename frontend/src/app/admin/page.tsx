@@ -115,8 +115,12 @@ export default function AdminPage() {
   const [q, setQ]               = useState('')
   const [filterZone, setFilterZone] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
+  const [filterTshirt, setFilterTshirt] = useState('')
+  const [filterHeb, setFilterHeb] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [details, setDetails]   = useState<Details | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [actionMsg, setActionMsg] = useState<string | null>(null)
   const [tab, setTab]           = useState<'dashboard' | 'list' | 'mail'>('dashboard')
   const [mailInfo, setMailInfo] = useState<any>(null)
   const [mailTo, setMailTo]     = useState('')
@@ -170,13 +174,20 @@ export default function AdminPage() {
     if (filterStatus === 'on_site') out = out.filter(r => r.payment_method === 'on_site')
     if (filterStatus === 'pending') out = out.filter(r => r.payment_status === 'pending' && r.payment_method !== 'on_site')
     if (filterStatus === 'new')     out = out.filter(r => !r.hebergement)
+    if (filterTshirt) out = out.filter(r => r.taille_tshirt === filterTshirt)
+    if (filterHeb)    out = out.filter(r => String(r.hebergement || '') === filterHeb)
     if (q.trim()) {
       const s = q.trim().toLowerCase()
       const keys = ['prenom', 'nom', 'email', 'phone_number', 'passport_num', 'immatriculation', 'permis_num', 'hebergement']
       out = out.filter(r => keys.some(k => String((r as any)[k] || '').toLowerCase().includes(s)))
     }
     return out
-  }, [items, q, filterZone, filterStatus])
+  }, [items, q, filterZone, filterStatus, filterTshirt, filterHeb])
+
+  const hebergementValues = useMemo(
+    () => Array.from(new Set(items.map(r => String(r.hebergement || '')).filter(Boolean))).sort(),
+    [items],
+  )
 
   // ── API calls ───────────────────────────────────────────────────────────
   async function checkSession() {
@@ -198,12 +209,33 @@ export default function AdminPage() {
   }
 
   async function loadDetails(id: string) {
-    setSelectedId(id); setDetails(null); setTab('list')
+    setSelectedId(id); setDetails(null); setTab('list'); setActionMsg(null)
     try {
       const r = await fetch(api(`/v1/admin/registrations/${encodeURIComponent(id)}`), { credentials: 'include' })
       const d = await r.json().catch(() => ({}))
       if (r.ok) setDetails(d as Details)
     } catch {}
+  }
+
+  async function handleDelete(id: string, name: string, isPaid: boolean) {
+    const warn = isPaid
+      ? `Supprimer définitivement l'inscription de ${name} ?\n\n⚠️ Ce participant a PAYÉ — aucun email d'annulation ne sera envoyé.`
+      : `Supprimer définitivement l'inscription de ${name} ?\n\nUn email d'annulation sera envoyé automatiquement (non payé).`
+    if (!window.confirm(warn)) return
+    setDeleting(true); setActionMsg(null)
+    try {
+      const r = await fetch(api(`/v1/admin/registrations/${encodeURIComponent(id)}`), {
+        method: 'DELETE', credentials: 'include',
+      })
+      const d = await r.json().catch(() => ({}))
+      if (!r.ok) { setActionMsg(`Échec de la suppression: ${String(d?.error || '')}`); return }
+      setActionMsg(d.cancellationEmailSent
+        ? `Inscription supprimée — email d'annulation envoyé.`
+        : `Inscription supprimée${d.wasPaid ? ' (participant payé, pas d\'email)' : ''}.`)
+      setSelectedId(null); setDetails(null)
+      await loadList()
+    } catch { setActionMsg('Serveur inaccessible.') }
+    finally { setDeleting(false) }
   }
 
   async function handleLogin(e: FormEvent) {
@@ -447,6 +479,16 @@ export default function AdminPage() {
               <option value="pending">En attente</option>
               <option value="new">Sans hébergement</option>
             </select>
+            <select value={filterTshirt} onChange={e => setFilterTshirt(e.target.value)}
+              className="bg-bg3 border border-orange/10 text-htext text-[13px] px-4 py-2.5 outline-none focus:border-orange/30 appearance-none cursor-pointer">
+              <option value="">Tous T-shirts</option>
+              {['S','M','L','XL','XXL'].map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <select value={filterHeb} onChange={e => setFilterHeb(e.target.value)}
+              className="bg-bg3 border border-orange/10 text-htext text-[13px] px-4 py-2.5 outline-none focus:border-orange/30 appearance-none cursor-pointer">
+              <option value="">Tous hébergements</option>
+              {hebergementValues.map(h => <option key={h} value={h}>{h}</option>)}
+            </select>
             <span className="text-muted text-[11px] uppercase tracking-[2px] ml-auto">{filtered.length} résultat{filtered.length !== 1 ? 's' : ''}</span>
             <button onClick={downloadCsv} disabled={!filtered.length}
               className="bg-bg3 border border-orange/15 text-htext font-condensed font-bold text-[11px] tracking-[2px] uppercase px-5 py-2.5 hover:border-orange/40 transition-colors disabled:opacity-50">
@@ -504,18 +546,35 @@ export default function AdminPage() {
             </div>
           </div>
 
+          {actionMsg && (
+            <div className="mb-4 border border-orange/25 bg-bg3 px-5 py-3 text-[13px] text-orange">{actionMsg}</div>
+          )}
+
           {/* Detail panel */}
           {selectedId && details && (
             <div className="mt-6 border border-orange/15 bg-bg3">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-orange/10">
+              <div className="flex items-center justify-between gap-4 px-6 py-4 border-b border-orange/10 flex-wrap">
                 <div>
-                  <p className="text-[9px] uppercase tracking-[3px] text-orange/60 mb-0.5">Détail</p>
-                  <p className="text-htext font-semibold">
+                  <p className="text-[9px] uppercase tracking-[3px] text-orange/60 mb-0.5">Candidature complète</p>
+                  <p className="text-htext font-semibold text-[15px]">
                     {details.registration?.prenom} {details.registration?.nom}
                   </p>
                 </div>
-                <button onClick={() => { setSelectedId(null); setDetails(null) }}
-                  className="text-muted hover:text-htext transition-colors text-[20px] leading-none">×</button>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => handleDelete(
+                      String(details.registration?.id),
+                      `${details.registration?.prenom} ${details.registration?.nom}`,
+                      String(details.payment?.status || '') === 'paid',
+                    )}
+                    disabled={deleting}
+                    className="border border-red-500/40 text-red-400 font-condensed font-bold text-[11px] tracking-[2px] uppercase px-4 py-2 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                  >
+                    {deleting ? 'Suppression…' : '🗑 Supprimer'}
+                  </button>
+                  <button onClick={() => { setSelectedId(null); setDetails(null) }}
+                    className="text-muted hover:text-htext transition-colors text-[20px] leading-none">×</button>
+                </div>
               </div>
 
               <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -524,19 +583,26 @@ export default function AdminPage() {
                   <p className="text-[9px] uppercase tracking-[3px] text-orange/60 mb-3">Inscription</p>
                   {[
                     ['Sexe', details.registration?.sexe],
+                    ['Email', details.registration?.email],
                     ['Téléphone', `${details.registration?.phone_country_iso2} ${details.registration?.phone_number}`],
-                    ['Adresse', `${details.registration?.adresse}, ${details.registration?.ville}`],
-                    ['Nationalité', details.registration?.nationalite],
+                    ['Adresse', details.registration?.adresse],
+                    ['Ville', details.registration?.ville],
+                    ['Pays', details.registration?.pays_iso2],
+                    ['Nationalité', details.registration?.nationalite === 'Autre'
+                      ? `Autre (${details.registration?.nationalite_autre || ''})`
+                      : details.registration?.nationalite],
                     ['Résidence', details.registration?.residence_zone],
+                    ['Modèle moto', details.registration?.moto_modele],
                     ['Profil', details.registration?.profil_groupe ? `Groupe — ${details.registration.profil_groupe}` : details.registration?.profil],
                     ['Taille', details.registration?.taille_tshirt],
                     ['Permis', details.registration?.permis_num],
                     ['Immatriculation', details.registration?.immatriculation],
                     ['Passeport', details.registration?.passport_num],
+                    ['Inscrit le', fmtDate(details.registration?.created_at)],
                   ].map(([label, val]) => val ? (
                     <div key={label as string} className="flex gap-2 text-[12px]">
                       <span className="text-muted w-24 shrink-0">{label}</span>
-                      <span className="text-htext">{val}</span>
+                      <span className="text-htext break-all">{val}</span>
                     </div>
                   ) : null)}
                 </div>
@@ -556,12 +622,20 @@ export default function AdminPage() {
                       <span className="text-htext font-mono text-[11px]">{val || '—'}</span>
                     </div>
                   ))}
-                  {details.badge?.badgeUrl && (
-                    <a href={details.badge.badgeUrl} target="_blank" rel="noreferrer"
-                      className="inline-block mt-4 text-orange text-[11px] underline">
-                      Voir le badge →
-                    </a>
-                  )}
+                  <div className="mt-4 flex flex-col gap-2">
+                    {details.badge?.badgeUrl ? (
+                      <>
+                        <a href={details.badge.badgeUrl} target="_blank" rel="noreferrer"
+                          className="text-orange text-[11px] underline">🎫 Voir le badge généré →</a>
+                        {details.badge?.qrUrl && (
+                          <a href={details.badge.qrUrl} target="_blank" rel="noreferrer"
+                            className="text-orange text-[11px] underline">🔳 Voir le QR (vérification) →</a>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-muted2 text-[11px]">Badge non encore généré (paiement en attente).</span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Fichiers */}

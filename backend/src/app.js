@@ -331,6 +331,28 @@ function createApp() {
         return res.status(400).json({ error: 'invalid_fields', fields: ['residenceZone'] })
       }
 
+      // Réservé aux propriétaires de Harley-Davidson (résidents Algérie)
+      const harleyOwner = String(body.harleyOwner || '').trim()
+      if (rz === 'Algérie' && harleyOwner === 'Non') {
+        return res.status(403).json({ error: 'not_harley_owner' })
+      }
+
+      // Validation alphanumérique stricte
+      const alnum = /^[A-Za-z0-9]+$/
+      const permisV = String(body.permisNum || '').trim()
+      const passportV = String(body.passportNum || '').trim()
+      const immatV = String(body.immatriculation || '').trim()
+      if (!alnum.test(permisV) || !alnum.test(passportV) || !alnum.test(immatV)) {
+        return res.status(400).json({ error: 'invalid_alnum', fields: ['permisNum', 'passportNum', 'immatriculation'] })
+      }
+
+      // Email valide
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(body.email || '').trim())) {
+        return res.status(400).json({ error: 'invalid_email' })
+      }
+
+      const motoModele = String(body.motoModele || '').trim()
+
       const derivedPaymentMode = 'online_yassir'
       const phoneE164 = body.phoneE164 ? String(body.phoneE164).trim() : ''
       const normalizedPhoneE164 = phoneE164 && /^\+\d{6,20}$/.test(phoneE164.replace(/\s+/g, '')) ? phoneE164.replace(/\s+/g, '') : ''
@@ -365,7 +387,7 @@ function createApp() {
             prenom, nom, sexe, adresse, ville,
             pays_iso2, phone_country_iso2, phone_number, phone_e164,
             email, nationalite, nationalite_autre,
-            residence_zone,
+            residence_zone, moto_modele,
             profil, profil_groupe,
             hebergement, taille_tshirt, paiement_mode,
             permis_num, immatriculation, passport_num
@@ -374,7 +396,7 @@ function createApp() {
             ?, ?, ?, ?, ?,
             ?, ?, ?, ?,
             ?, ?, ?,
-            ?,
+            ?, ?,
             ?, ?,
             ?, ?, ?,
             ?, ?, ?
@@ -396,13 +418,14 @@ function createApp() {
             String(body.nationalite).trim(),
             body.nationaliteAutre ? String(body.nationaliteAutre).trim() : null,
             rz,
+            motoModele || null,
             String(body.profil).trim(),
             body.profilGroupe ? String(body.profilGroupe).trim() : null,
-            String(body.hebergement).trim(),
+            null,
             String(body.tailleTshirt).trim(),
             derivedPaymentMode,
-            String(body.permisNum).trim(),
-            String(body.immatriculation).trim(),
+            permisV,
+            immatV,
             passportNum,
           ],
         )
@@ -1719,6 +1742,59 @@ function createApp() {
     }
   })
 
+  app.delete('/v1/admin/registrations/:id', requireAdmin, async (req, res) => {
+    try {
+      const db = await getDb()
+      const reg = await db.get(`SELECT * FROM registrations WHERE id = ?`, [req.params.id])
+      if (!reg) return res.status(404).json({ error: 'not_found' })
+
+      const payment = await db.get(`SELECT status FROM payments WHERE registration_id = ?`, [req.params.id])
+      const wasPaid = payment && String(payment.status || '') === 'paid'
+
+      // Récupérer les fichiers pour suppression disque
+      const files = await db.all(`SELECT storage_path FROM registration_files WHERE registration_id = ?`, [req.params.id])
+
+      // Supprimer en base (ordre : enfants puis parent)
+      await withTransaction(async (tx) => {
+        await tx.run(`DELETE FROM registration_files WHERE registration_id = ?`, [req.params.id])
+        await tx.run(`DELETE FROM badges WHERE registration_id = ?`, [req.params.id])
+        await tx.run(`DELETE FROM payments WHERE registration_id = ?`, [req.params.id])
+        await tx.run(`DELETE FROM registrations WHERE id = ?`, [req.params.id])
+      })
+
+      // Supprimer les fichiers du disque
+      try {
+        const paths = (files || []).map(f => f.storage_path).filter(Boolean)
+        if (paths.length) await deleteStoredFiles(paths)
+      } catch (fileErr) {
+        console.error('delete registration files failed', fileErr && fileErr.message ? String(fileErr.message) : fileErr)
+      }
+
+      // Email d'annulation — uniquement si non payé
+      let mailSent = false
+      const mailDisabled = ['1', 'true', 'yes'].includes(String(process.env.MAIL_DISABLED || '').toLowerCase().trim())
+      if (!wasPaid && !mailDisabled && reg.email) {
+        try {
+          const fullName = `${String(reg.prenom || '')} ${String(reg.nom || '')}`
+          await sendMail({
+            to: String(reg.email),
+            subject: `Annulation de votre inscription — H.O.G Tour 2026`,
+            replyTo: String(process.env.MAIL_TO || process.env.MAIL_FROM || 'contact@hogalgierschapteralgeria.com'),
+            html: buildCancellationEmailHtml({ prenom: String(reg.prenom || '') }),
+            text: `Bonjour ${reg.prenom},\n\nNous vous informons que votre inscription au H.O.G Tour 2026 n'est pas éligible au règlement de l'événement.\n\nPour toute information, appelez le +213 774 31 87 51 ou écrivez à contact@hogalgierschapteralgeria.com.\n\nMerci pour votre compréhension.`,
+          })
+          mailSent = true
+        } catch (mailErr) {
+          console.error('cancellation email failed', mailErr && mailErr.message ? String(mailErr.message) : mailErr)
+        }
+      }
+
+      return res.json({ ok: true, deleted: req.params.id, cancellationEmailSent: mailSent, wasPaid: !!wasPaid })
+    } catch (e) {
+      return res.status(500).json({ error: 'server_error' })
+    }
+  })
+
   app.post('/v1/admin/registrations/:id/payment/check', requireAdmin, async (req, res) => {
     try {
       const db = await getDb()
@@ -2141,6 +2217,48 @@ function buildPaymentFailedEmailHtml({ prenom, reason, retryUrl }) {
   <tr><td style="background:#0A0A08;border:1px solid rgba(255,107,0,.06);border-top:none;padding:22px 44px;text-align:center;">
     <p style="margin:0 0 6px;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.2);">Pour toute question</p>
     <a href="mailto:contact@hogalgierschapteralgeria.com" style="color:rgba(255,107,0,.65);font-size:12px;text-decoration:none;">contact@hogalgierschapteralgeria.com</a>
+  </td></tr>
+  <tr><td style="background:rgba(255,107,0,.4);height:1px;font-size:0;line-height:0;">&nbsp;</td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>`
+}
+
+function buildCancellationEmailHtml({ prenom }) {
+  const h = escapeHtml
+  return `<!doctype html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#0A0A08;font-family:Arial,Helvetica,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0A0A08;padding:48px 20px;">
+<tr><td align="center">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
+  <tr><td style="background:#FF6B00;height:3px;font-size:0;line-height:0;">&nbsp;</td></tr>
+  <tr><td style="background:#111009;border:1px solid rgba(255,107,0,.14);border-top:none;padding:40px 44px 32px;">
+    <p style="margin:0 0 10px;font-size:9px;letter-spacing:5px;text-transform:uppercase;color:rgba(255,107,0,.7);">H.O.G Algiers Chapter Algeria</p>
+    <h1 style="margin:0 0 4px;font-size:34px;font-weight:900;letter-spacing:4px;text-transform:uppercase;color:#FF6B00;line-height:1;">H.O.G TOUR</h1>
+    <p style="margin:0 0 28px;font-size:20px;font-weight:900;letter-spacing:4px;color:rgba(255,255,255,.15);">2026</p>
+    <hr style="border:none;border-top:1px solid rgba(255,107,0,.18);margin:0 0 28px;">
+    <p style="margin:0 0 16px;font-size:16px;color:rgba(255,255,255,.85);line-height:1.5;">Bonjour <strong style="color:#FF6B00;">${h(prenom)}</strong>,</p>
+    <p style="margin:0 0 16px;font-size:14px;color:rgba(255,255,255,.6);line-height:1.9;">
+      Nous vous informons que votre inscription au <strong style="color:#FF6B00;">H.O.G Tour 2026</strong> n'est pas éligible au règlement de l'événement.
+    </p>
+    <p style="margin:0 0 8px;font-size:14px;color:rgba(255,255,255,.6);line-height:1.9;">
+      Si vous avez besoin d'informations, contactez-nous :
+    </p>
+    <table cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 0;">
+      <tr><td style="padding:6px 0;">
+        <span style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,107,0,.55);">Téléphone</span><br>
+        <a href="tel:+213774318751" style="color:rgba(255,255,255,.85);font-size:15px;font-weight:700;text-decoration:none;">+213 774 31 87 51</a>
+      </td></tr>
+      <tr><td style="padding:6px 0;">
+        <span style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,107,0,.55);">Email</span><br>
+        <a href="mailto:contact@hogalgierschapteralgeria.com" style="color:rgba(255,107,0,.8);font-size:14px;text-decoration:none;">contact@hogalgierschapteralgeria.com</a>
+      </td></tr>
+    </table>
+    <p style="margin:24px 0 0;font-size:13px;color:rgba(255,255,255,.4);line-height:1.7;">Merci pour votre compréhension.</p>
   </td></tr>
   <tr><td style="background:rgba(255,107,0,.4);height:1px;font-size:0;line-height:0;">&nbsp;</td></tr>
 </table>

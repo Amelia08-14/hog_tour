@@ -469,6 +469,19 @@
   .hero-scroll-label { animation: heroScrollBlink 2.2s ease-in-out infinite; }
 }
 
+/* ── Mobile : éviter le chevauchement logo / titre du Hero ── */
+@media (max-width: 640px) {
+  .hero-logo-wrap {
+    width: 76px !important;
+    height: 76px !important;
+  }
+  .hero-tour-logo {
+    top: 70px !important;
+  }
+  .hero-stat { padding: 14px 10px; }
+  .hero-stat-l { font-size: 9px; letter-spacing: 0.18em; }
+}
+
 @keyframes heroScan {
   0%   { transform: translate3d(0, -42%, 0); opacity: 0; }
   12%  { opacity: 0.20; }
