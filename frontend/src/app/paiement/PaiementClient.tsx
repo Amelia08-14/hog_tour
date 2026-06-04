@@ -72,7 +72,11 @@ export default function PaiementClient() {
   const [pNationalite, setPNationalite] = useState('')
   const [pPassport, setPPassport] = useState('')
   const [pImmat, setPImmat] = useState('')
+  const [pTshirt, setPTshirt] = useState('')
+  const [pPermisNum, setPPermisNum] = useState('')
   const [pPassportFile, setPPassportFile] = useState<File | null>(null)
+  const [pPermisFile, setPPermisFile] = useState<File | null>(null)
+  const [pCarteFile, setPCarteFile] = useState<File | null>(null)
 
   const apiBase = useMemo(() => {
     const v = process.env.NEXT_PUBLIC_API_BASE_URL?.trim()
@@ -131,12 +135,19 @@ export default function PaiementClient() {
     if (!paymentId || !sig)     { setError('Lien de paiement invalide.'); return }
 
     // Validation partenaire (chambre couple, étranger)
+    const twoMotos = isTwoMotos(selectedAccommodation)
     if (partnerRequired) {
       if (!pPrenom.trim() || !pNom.trim()) { setError('Veuillez renseigner le prénom et le nom de votre partenaire.'); return }
       if (!pPassport.trim() || !/^[A-Za-z0-9]+$/.test(pPassport.trim())) { setError('Numéro de passeport du partenaire invalide (lettres et chiffres uniquement).'); return }
       if (!pPassportFile) { setError('Veuillez joindre la photo du passeport de votre partenaire.'); return }
       if (pEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pEmail.trim())) { setError('Email du partenaire invalide.'); return }
-      if (isTwoMotos(selectedAccommodation) && !pImmat.trim()) { setError('Veuillez renseigner l\'immatriculation de la moto du partenaire.'); return }
+      if (!pTshirt) { setError('Veuillez choisir la taille de T-shirt du partenaire.'); return }
+      if (twoMotos) {
+        if (!pPermisNum.trim() || !/^[A-Za-z0-9]+$/.test(pPermisNum.trim())) { setError('Numéro de permis du partenaire invalide (lettres et chiffres uniquement).'); return }
+        if (!pImmat.trim()) { setError('Veuillez renseigner l\'immatriculation de la moto du partenaire.'); return }
+        if (!pPermisFile) { setError('Veuillez joindre la photo du permis du partenaire.'); return }
+        if (!pCarteFile) { setError('Veuillez joindre la photo de la carte grise du partenaire.'); return }
+      }
     }
 
     setError(null)
@@ -147,13 +158,22 @@ export default function PaiementClient() {
       fd.set('sig', sig)
       fd.set('hebergement', selectedAccommodation)
       if (partnerRequired) {
+        // Ordre des fichiers communiqué au backend pour le bon étiquetage
+        const fileTypes: string[] = ['passport']
+        if (twoMotos) { fileTypes.push('permis', 'carte') }
         fd.set('partner', JSON.stringify({
           prenom: pPrenom.trim(), nom: pNom.trim(), sexe: pSexe,
           email: pEmail.trim(), phone: pPhone.trim(), nationalite: pNationalite.trim(),
           passportNum: pPassport.trim(),
-          immatriculation: isTwoMotos(selectedAccommodation) ? pImmat.trim() : '',
+          tailleTshirt: pTshirt,
+          permisNum: twoMotos ? pPermisNum.trim() : '',
+          immatriculation: twoMotos ? pImmat.trim() : '',
+          fileTypes,
         }))
+        // Append dans le même ordre que fileTypes
         if (pPassportFile) fd.append('files', pPassportFile, pPassportFile.name)
+        if (twoMotos && pPermisFile) fd.append('files', pPermisFile, pPermisFile.name)
+        if (twoMotos && pCarteFile) fd.append('files', pCarteFile, pCarteFile.name)
       }
       const res = await fetch(apiUrl('/v1/payments/choose-accommodation'), { method: 'POST', body: fd })
       const data = await res.json().catch(() => ({}))
@@ -170,8 +190,11 @@ export default function PaiementClient() {
       case 'partner_incomplete': return 'Informations du partenaire incomplètes (prénom, nom, passeport requis).'
       case 'partner_passport_invalid': return 'Numéro de passeport du partenaire invalide.'
       case 'partner_passport_photo_missing': return 'La photo du passeport du partenaire est obligatoire.'
+      case 'partner_tshirt_missing': return 'Veuillez choisir la taille de T-shirt du partenaire.'
+      case 'partner_permis_invalid': return 'Numéro de permis du partenaire invalide.'
       case 'partner_plate_missing': return 'L\'immatriculation de la moto du partenaire est requise.'
-      case 'partner_upload_failed': return 'Échec de l\'envoi de la photo du partenaire. Réessayez.'
+      case 'partner_docs_missing': return 'Merci de joindre les 3 photos du partenaire : passeport, permis et carte grise.'
+      case 'partner_upload_failed': return 'Échec de l\'envoi des photos du partenaire. Réessayez.'
       default: return msg || err || 'Erreur.'
     }
   }
@@ -287,22 +310,47 @@ export default function PaiementClient() {
                   <PF label="Nationalité" value={pNationalite} onChange={setPNationalite} />
                   <PF label="N° Passeport *" value={pPassport} onChange={v => setPPassport(v.replace(/[^A-Za-z0-9]/g, '').toUpperCase())} />
                 </div>
+
+                {/* Taille T-shirt partenaire — toujours */}
+                <div className="mt-4">
+                  <p className="text-htext text-[13px] mb-2">Taille T-shirt du partenaire *</p>
+                  <div className="flex gap-4 flex-wrap">
+                    {['S', 'M', 'L', 'XL', 'XXL'].map(sz => (
+                      <label key={sz} className="flex items-center gap-2 cursor-pointer text-htext text-[13px]" onClick={() => setPTshirt(sz)}>
+                        <span className={`w-4 h-4 rounded-[3px] border flex items-center justify-center ${pTshirt === sz ? 'bg-orange border-orange' : 'bg-white/[.04] border-white/25'}`}>
+                          {pTshirt === sz && <svg width="10" height="10" fill="none" stroke="#000" strokeWidth="2.5" viewBox="0 0 12 12"><polyline points="2 6 5 9 10 3" /></svg>}
+                        </span>
+                        {sz}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Permis + immatriculation — uniquement 2 motos */}
                 {isTwoMotos(selectedAccommodation) && (
-                  <div className="mt-4">
-                    <PF label="Immatriculation de la moto du partenaire *" value={pImmat} onChange={v => setPImmat(v.replace(/[^A-Za-z0-9]/g, '').toUpperCase())} />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                    <PF label="N° Permis du partenaire *" value={pPermisNum} onChange={v => setPPermisNum(v.replace(/[^A-Za-z0-9]/g, '').toUpperCase())} />
+                    <PF label="Immatriculation moto partenaire *" value={pImmat} onChange={v => setPImmat(v.replace(/[^A-Za-z0-9]/g, '').toUpperCase())} />
                   </div>
                 )}
+
+                {/* Uploads */}
                 <div className="mt-4">
                   <p className="text-htext text-[13px] mb-2">Photo du passeport du partenaire *</p>
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <label htmlFor="partner-passport" className="bg-orange text-black font-condensed font-extrabold text-[11px] px-5 py-3 cursor-pointer hover:bg-white transition-colors tracking-[0.18em] uppercase">
-                      Choisir un fichier
-                    </label>
-                    <span className="text-muted text-[13px]">{pPassportFile?.name || 'Aucun fichier choisi'}</span>
-                  </div>
-                  <input id="partner-passport" type="file" accept=".jpg,.jpeg,.png,.pdf,.webp" className="hidden"
-                    onChange={e => setPPassportFile(e.target.files?.[0] || null)} />
+                  <PartnerFile id="partner-passport" file={pPassportFile} onPick={setPPassportFile} />
                 </div>
+                {isTwoMotos(selectedAccommodation) && (
+                  <>
+                    <div className="mt-4">
+                      <p className="text-htext text-[13px] mb-2">Photo du permis du partenaire *</p>
+                      <PartnerFile id="partner-permis" file={pPermisFile} onPick={setPPermisFile} />
+                    </div>
+                    <div className="mt-4">
+                      <p className="text-htext text-[13px] mb-2">Photo de la carte grise du partenaire *</p>
+                      <PartnerFile id="partner-carte" file={pCarteFile} onPick={setPCarteFile} />
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
@@ -390,6 +438,19 @@ export default function PaiementClient() {
         )}
       </div>
     </section>
+  )
+}
+
+function PartnerFile({ id, file, onPick }: { id: string; file: File | null; onPick: (f: File | null) => void }) {
+  return (
+    <div className="flex items-center gap-3 flex-wrap">
+      <label htmlFor={id} className="bg-orange text-black font-condensed font-extrabold text-[11px] px-5 py-3 cursor-pointer hover:bg-white transition-colors tracking-[0.18em] uppercase">
+        Choisir un fichier
+      </label>
+      <span className="text-muted text-[13px]">{file?.name || 'Aucun fichier choisi'}</span>
+      <input id={id} type="file" accept=".jpg,.jpeg,.png,.pdf,.webp" className="hidden"
+        onChange={e => onPick(e.target.files?.[0] || null)} />
+    </div>
   )
 }
 

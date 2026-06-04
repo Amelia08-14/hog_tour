@@ -804,6 +804,8 @@ export default function AdminPage() {
                           ['Téléphone', partner.phone],
                           ['Nationalité', partner.nationalite],
                           ['N° Passeport', partner.passportNum],
+                          ['T-shirt', partner.tailleTshirt],
+                          ['N° Permis', partner.permisNum],
                           ['Immatriculation', partner.immatriculation],
                         ].map(([label, val]) => val ? (
                           <div key={label as string} className="flex gap-2 text-[12px]">

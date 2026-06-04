@@ -18,7 +18,7 @@ function createUploadMiddleware() {
   if (!multer) return (req, res, next) => next()
   const m = multer({
     storage: multer.memoryStorage(),
-    limits: { files: 10, fileSize: 10 * 1024 * 1024 },
+    limits: { files: 10, fileSize: 25 * 1024 * 1024 },
   })
   return m.array('files', 10)
 }
@@ -1188,38 +1188,59 @@ function createApp() {
       if (needsPartner) {
         let partner = {}
         try { partner = body.partner ? JSON.parse(String(body.partner)) : {} } catch { partner = {} }
+        const twoMotos = isTwoMotosHebergement(hebergement)
         const pPrenom = String(partner.prenom || '').trim()
         const pNom = String(partner.nom || '').trim()
         const pPassport = String(partner.passportNum || '').trim()
+        const pTshirt = String(partner.tailleTshirt || '').trim()
         if (!pPrenom || !pNom || !pPassport) {
           return res.status(400).json({ error: 'partner_incomplete' })
         }
         if (!/^[A-Za-z0-9]+$/.test(pPassport)) {
           return res.status(400).json({ error: 'partner_passport_invalid' })
         }
-        // Photo passeport partenaire obligatoire
+        if (!pTshirt) return res.status(400).json({ error: 'partner_tshirt_missing' })
+
         const incoming = Array.isArray(req.files) ? req.files : []
-        if (!incoming.length) return res.status(400).json({ error: 'partner_passport_photo_missing' })
-        // 2 motos : immatriculation partenaire requise
-        const pImmat = String(partner.immatriculation || '').trim()
-        if (isTwoMotosHebergement(hebergement) && !pImmat) {
-          return res.status(400).json({ error: 'partner_plate_missing' })
+        // Ordre des fichiers communiqué par le front (passport, [permis, carte])
+        const fileTypes = Array.isArray(partner.fileTypes) ? partner.fileTypes.map(String) : ['passport']
+
+        let pPermisNum = '', pImmat = ''
+        if (twoMotos) {
+          pPermisNum = String(partner.permisNum || '').trim()
+          pImmat = String(partner.immatriculation || '').trim()
+          if (!pPermisNum || !/^[A-Za-z0-9]+$/.test(pPermisNum)) return res.status(400).json({ error: 'partner_permis_invalid' })
+          if (!pImmat) return res.status(400).json({ error: 'partner_plate_missing' })
         }
-        // Stocker la photo passeport partenaire (renommée)
-        let passportFileId = null
+
+        // Validation des fichiers requis
+        const needed = twoMotos ? 3 : 1
+        if (incoming.length < needed) {
+          return res.status(400).json({ error: twoMotos ? 'partner_docs_missing' : 'partner_passport_photo_missing' })
+        }
+
+        // Stocker les fichiers partenaire, étiquetés selon fileTypes
+        const labelFor = { passport: 'passeport', permis: 'permis', carte: 'carte grise' }
+        const fileIds = {}
         try {
-          const renamed = incoming.map(f => ({ ...f, originalname: `PARTENAIRE passeport - ${f.originalname || 'passeport'}` }))
+          const renamed = incoming.map((f, i) => {
+            const type = fileTypes[i] || 'doc'
+            const lbl = labelFor[type] || type
+            return { ...f, _type: type, originalname: `PARTENAIRE ${lbl} - ${f.originalname || lbl}` }
+          })
           const stored = await writeRegistrationFiles(String(row.id), renamed)
-          for (const f of stored) {
+          for (let i = 0; i < stored.length; i++) {
+            const f = stored[i]
             await db.run(
               `INSERT INTO registration_files (id, registration_id, original_name, mime, size_bytes, storage_path, created_at)
                VALUES (?, ?, ?, ?, ?, ?, ?);`,
               [f.id, String(row.id), f.originalName, f.mime || null, f.size, f.storagePath, nowIso()],
             )
+            const type = fileTypes[i] || 'doc'
+            fileIds[type] = f.id
           }
-          passportFileId = stored[0] ? stored[0].id : null
         } catch (fe) {
-          console.error('partner passport upload failed', fe && fe.message ? String(fe.message) : fe)
+          console.error('partner files upload failed', fe && fe.message ? String(fe.message) : fe)
           return res.status(500).json({ error: 'partner_upload_failed' })
         }
         partnerInfo = {
@@ -1230,9 +1251,13 @@ function createApp() {
           nationalite: String(partner.nationalite || '').trim(),
           nationaliteAutre: String(partner.nationaliteAutre || '').trim(),
           passportNum: pPassport,
-          immatriculation: isTwoMotosHebergement(hebergement) ? pImmat : '',
-          deuxMotos: isTwoMotosHebergement(hebergement),
-          passportFileId,
+          tailleTshirt: pTshirt,
+          permisNum: twoMotos ? pPermisNum : '',
+          immatriculation: twoMotos ? pImmat : '',
+          deuxMotos: twoMotos,
+          passportFileId: fileIds.passport || null,
+          permisFileId: fileIds.permis || null,
+          carteFileId: fileIds.carte || null,
         }
       }
 
