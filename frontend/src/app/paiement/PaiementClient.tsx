@@ -17,10 +17,14 @@ type PaymentMethod = { code: string; name: string; id: string }
 type Step = 'accommodation' | 'payment'
 
 const ACCOMMODATIONS = [
-  { value: 'Chambre simple',          labelDzd: '75 000 DA',         labelEur: '960 €',         desc: 'Pension complète — 1 personne, chambre individuelle' },
-  { value: 'Chambre double — Motard', labelDzd: '65 000 DA / motard', labelEur: '880 € / motard', desc: 'Pension complète — 2 motards, chambre partagée' },
-  { value: 'Chambre double couple',   labelDzd: '125 000 DA',        labelEur: '1 740 €',        desc: 'Pension complète — 2 personnes en couple' },
+  { value: 'Chambre simple',          labelDzd: '75 000 DA',         labelEur: '960 €',         desc: 'Pension complète — 1 personne, chambre individuelle', abroadOnly: false },
+  { value: 'Chambre double — Motard', labelDzd: '65 000 DA / motard', labelEur: '880 € / motard', desc: 'Pension complète — 2 motards, chambre partagée', abroadOnly: false },
+  { value: 'Chambre double couple',   labelDzd: '125 000 DA',        labelEur: '1 740 €',        desc: 'Pension complète — couple, 1 moto', abroadOnly: false },
+  { value: 'Chambre double couple — 2 motos', labelDzd: '125 000 DA', labelEur: '1 760 €',       desc: 'Pension complète — couple, 2 motos', abroadOnly: true },
 ]
+
+const isCouple = (v: string) => /couple/i.test(v || '')
+const isTwoMotos = (v: string) => /2\s*motos/i.test(v || '')
 
 const EUR_INCLUDES_NOTE = 'Traversée bateau en demi pension, moto incluse et carburant pris en charge durant tout l’événement.'
 
@@ -58,6 +62,17 @@ export default function PaiementClient() {
   const [methods, setMethods] = useState<PaymentMethod[] | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState<string | null>(null)
+
+  // Partenaire (chambre couple, étrangers)
+  const [pPrenom, setPPrenom] = useState('')
+  const [pNom, setPNom] = useState('')
+  const [pSexe, setPSexe] = useState('')
+  const [pEmail, setPEmail] = useState('')
+  const [pPhone, setPPhone] = useState('')
+  const [pNationalite, setPNationalite] = useState('')
+  const [pPassport, setPPassport] = useState('')
+  const [pImmat, setPImmat] = useState('')
+  const [pPassportFile, setPPassportFile] = useState<File | null>(null)
 
   const apiBase = useMemo(() => {
     const v = process.env.NEXT_PUBLIC_API_BASE_URL?.trim()
@@ -103,30 +118,62 @@ export default function PaiementClient() {
   const isAilleurs = info?.residenceZone?.toLowerCase() === 'ailleurs'
 
   const accommodationOptions = useMemo(() => {
-    const base = [...ACCOMMODATIONS]
-    if (isTestMode) base.push({ value: 'Pack test', labelDzd: '500 DA', labelEur: '1 €', desc: 'Test' })
+    const base = ACCOMMODATIONS.filter(o => !o.abroadOnly || isAilleurs)
+    if (isTestMode) base.push({ value: 'Pack test', labelDzd: '500 DA', labelEur: '1 €', desc: 'Test', abroadOnly: false })
     return base
-  }, [isTestMode])
+  }, [isTestMode, isAilleurs])
+
+  const partnerRequired = isAilleurs && isCouple(selectedAccommodation)
 
   async function handleConfirmAccommodation(e: FormEvent) {
     e.preventDefault()
     if (!selectedAccommodation) { setError('Choisissez un hébergement.'); return }
     if (!paymentId || !sig)     { setError('Lien de paiement invalide.'); return }
+
+    // Validation partenaire (chambre couple, étranger)
+    if (partnerRequired) {
+      if (!pPrenom.trim() || !pNom.trim()) { setError('Veuillez renseigner le prénom et le nom de votre partenaire.'); return }
+      if (!pPassport.trim() || !/^[A-Za-z0-9]+$/.test(pPassport.trim())) { setError('Numéro de passeport du partenaire invalide (lettres et chiffres uniquement).'); return }
+      if (!pPassportFile) { setError('Veuillez joindre la photo du passeport de votre partenaire.'); return }
+      if (pEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pEmail.trim())) { setError('Email du partenaire invalide.'); return }
+      if (isTwoMotos(selectedAccommodation) && !pImmat.trim()) { setError('Veuillez renseigner l\'immatriculation de la moto du partenaire.'); return }
+    }
+
     setError(null)
     setLoading(true)
     try {
-      const res = await fetch(apiUrl('/v1/payments/choose-accommodation'), {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ paymentId, sig, hebergement: selectedAccommodation }),
-      })
+      const fd = new FormData()
+      fd.set('paymentId', paymentId)
+      fd.set('sig', sig)
+      fd.set('hebergement', selectedAccommodation)
+      if (partnerRequired) {
+        fd.set('partner', JSON.stringify({
+          prenom: pPrenom.trim(), nom: pNom.trim(), sexe: pSexe,
+          email: pEmail.trim(), phone: pPhone.trim(), nationalite: pNationalite.trim(),
+          passportNum: pPassport.trim(),
+          immatriculation: isTwoMotos(selectedAccommodation) ? pImmat.trim() : '',
+        }))
+        if (pPassportFile) fd.append('files', pPassportFile, pPassportFile.name)
+      }
+      const res = await fetch(apiUrl('/v1/payments/choose-accommodation'), { method: 'POST', body: fd })
       const data = await res.json().catch(() => ({}))
-      if (!res.ok) { setError(String(data?.message || data?.error || 'Erreur.')); return }
+      if (!res.ok) { setError(partnerErrorMessage(String(data?.error || ''), String(data?.message || ''))); return }
       setInfo(prev => prev ? { ...prev, hebergement: data.hebergement, amountCents: data.amountCents, currency: data.currency } : prev)
       setStep('payment')
       fetchMethods()
     } catch { setError('Impossible de contacter le serveur.') }
     finally { setLoading(false) }
+  }
+
+  function partnerErrorMessage(err: string, msg: string): string {
+    switch (err) {
+      case 'partner_incomplete': return 'Informations du partenaire incomplètes (prénom, nom, passeport requis).'
+      case 'partner_passport_invalid': return 'Numéro de passeport du partenaire invalide.'
+      case 'partner_passport_photo_missing': return 'La photo du passeport du partenaire est obligatoire.'
+      case 'partner_plate_missing': return 'L\'immatriculation de la moto du partenaire est requise.'
+      case 'partner_upload_failed': return 'Échec de l\'envoi de la photo du partenaire. Réessayez.'
+      default: return msg || err || 'Erreur.'
+    }
   }
 
   async function handlePayOnline(methodCode: string) {
@@ -202,6 +249,63 @@ export default function PaiementClient() {
                 {isAilleurs ? EUR_INCLUDES_NOTE : 'Carburant pris en charge tout au long de l’événement.'}
               </p>
             </div>
+
+            {/* Formulaire partenaire — chambre couple (étrangers) */}
+            {partnerRequired && (
+              <div className="mt-6 border border-orange/20 bg-bg3 p-6">
+                <div className="flex items-center gap-3 mb-1">
+                  <div className="w-5 h-px bg-orange/40" />
+                  <span className="text-[9px] uppercase tracking-[3px] text-orange/60">Informations du partenaire</span>
+                </div>
+                <p className="text-muted text-[11px] mb-5 leading-relaxed">
+                  {isTwoMotos(selectedAccommodation)
+                    ? 'Votre partenaire voyage avec sa propre moto. Renseignez ses informations ci-dessous.'
+                    : 'Votre partenaire vous accompagne. Renseignez ses informations ci-dessous.'}
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <PF label="Prénom *" value={pPrenom} onChange={setPPrenom} />
+                  <PF label="Nom *" value={pNom} onChange={setPNom} />
+                </div>
+                <div className="mt-4">
+                  <p className="text-htext text-[13px] mb-2">Sexe</p>
+                  <div className="flex gap-5">
+                    {['Femme', 'Homme'].map(s => (
+                      <label key={s} className="flex items-center gap-2 cursor-pointer text-htext text-[13px]" onClick={() => setPSexe(s)}>
+                        <span className={`w-4 h-4 rounded-[3px] border flex items-center justify-center ${pSexe === s ? 'bg-orange border-orange' : 'bg-white/[.04] border-white/25'}`}>
+                          {pSexe === s && <svg width="10" height="10" fill="none" stroke="#000" strokeWidth="2.5" viewBox="0 0 12 12"><polyline points="2 6 5 9 10 3" /></svg>}
+                        </span>
+                        {s}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                  <PF label="Email" type="email" value={pEmail} onChange={setPEmail} />
+                  <PF label="Téléphone" value={pPhone} onChange={setPPhone} ph="+33 …" />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                  <PF label="Nationalité" value={pNationalite} onChange={setPNationalite} />
+                  <PF label="N° Passeport *" value={pPassport} onChange={v => setPPassport(v.replace(/[^A-Za-z0-9]/g, '').toUpperCase())} />
+                </div>
+                {isTwoMotos(selectedAccommodation) && (
+                  <div className="mt-4">
+                    <PF label="Immatriculation de la moto du partenaire *" value={pImmat} onChange={v => setPImmat(v.replace(/[^A-Za-z0-9]/g, '').toUpperCase())} />
+                  </div>
+                )}
+                <div className="mt-4">
+                  <p className="text-htext text-[13px] mb-2">Photo du passeport du partenaire *</p>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <label htmlFor="partner-passport" className="bg-orange text-black font-condensed font-extrabold text-[11px] px-5 py-3 cursor-pointer hover:bg-white transition-colors tracking-[0.18em] uppercase">
+                      Choisir un fichier
+                    </label>
+                    <span className="text-muted text-[13px]">{pPassportFile?.name || 'Aucun fichier choisi'}</span>
+                  </div>
+                  <input id="partner-passport" type="file" accept=".jpg,.jpeg,.png,.pdf,.webp" className="hidden"
+                    onChange={e => setPPassportFile(e.target.files?.[0] || null)} />
+                </div>
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={loading || !selectedAccommodation}
@@ -286,5 +390,26 @@ export default function PaiementClient() {
         )}
       </div>
     </section>
+  )
+}
+
+function PF({ label, value, onChange, type = 'text', ph = '' }: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  type?: string
+  ph?: string
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <label className="text-htext text-[13px]">{label}</label>
+      <input
+        type={type}
+        value={value}
+        placeholder={ph}
+        onChange={e => onChange(e.target.value)}
+        className="bg-bg2 border border-white/8 px-4 py-3 text-htext text-[14px] outline-none placeholder:text-muted2 focus:border-orange/50 transition-colors w-full"
+      />
+    </div>
   )
 }

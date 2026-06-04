@@ -196,6 +196,7 @@ async function initDb() {
     await addCol('residence_zone', 'VARCHAR(32) NULL')
     await addCol('phone_e164', 'VARCHAR(32) NULL')
     await addCol('moto_modele', 'VARCHAR(160) NULL')
+    await addCol('partner_info', 'TEXT NULL')
 
     // Colonnes payments (MySQL) — ajoutées ici car cette branche fait un return anticipé
     const addPaymentCol = async (sql) => {
@@ -294,6 +295,8 @@ async function initDb() {
   if (!hasPhoneE164) await db.exec(`ALTER TABLE registrations ADD COLUMN phone_e164 TEXT;`)
   const hasMotoModele = cols.some(c => c.name === 'moto_modele')
   if (!hasMotoModele) await db.exec(`ALTER TABLE registrations ADD COLUMN moto_modele TEXT;`)
+  const hasPartnerInfo = cols.some(c => c.name === 'partner_info')
+  if (!hasPartnerInfo) await db.exec(`ALTER TABLE registrations ADD COLUMN partner_info TEXT;`)
 
   if (driver() === 'mysql') {
     try {

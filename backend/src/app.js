@@ -42,9 +42,17 @@ const HEBERGEMENT_PRICES = {
   'Chambre simple': { dzd: 7500000, eur: 96000 },
   'Chambre double — Motard': { dzd: 6500000, eur: 88000 },
   'Chambre double couple': { dzd: 12500000, eur: 174000 },
+  'Chambre double couple — 2 motos': { dzd: 12500000, eur: 176000 },
   'Pack test': { dzd: 50000, eur: 100 },
 }
 const ON_SITE_ZONES = ['Algérie']
+// Hébergements "couple" nécessitant les infos du partenaire (étrangers)
+function isCoupleHebergement(h) {
+  return /couple/i.test(String(h || ''))
+}
+function isTwoMotosHebergement(h) {
+  return /2\s*motos/i.test(String(h || ''))
+}
 
 function hebergementPrice(hebergement, residenceZone) {
   const prices = HEBERGEMENT_PRICES[hebergement]
@@ -228,6 +236,46 @@ async function sendPaidConfirmation(db, paymentId, registrationId) {
         attachments: pdfAttachment ? [pdfAttachment] : undefined,
       })
       console.log(`sendPaidConfirmation: email sent to ${reg.email} for payment ${paymentId}`)
+
+      // ── Badge séparé pour le partenaire (chambre couple) ──
+      let partner = null
+      try { partner = reg.partner_info ? JSON.parse(String(reg.partner_info)) : null } catch {}
+      if (partner && partner.prenom && partner.nom) {
+        try {
+          const partnerPdf = await buildBadgePdf({
+            prenom: String(partner.prenom || ''),
+            nom: String(partner.nom || ''),
+            passportNum: String(partner.passportNum || ''),
+            zone: String(reg.residence_zone || ''),
+            issuedDate,
+            badgeId: `${String(badge.id || '')}-P`,
+          })
+          const safeP = String(partner.nom || '').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()
+          const partnerAttachment = { filename: `badge-hog2026-${safeP}.pdf`, content: partnerPdf, contentType: 'application/pdf' }
+          const partnerFullName = `${String(partner.prenom || '')} ${String(partner.nom || '')}`
+          // Destinataire : email du partenaire si fourni, sinon celui du participant principal
+          const partnerEmail = String(partner.email || '').trim()
+          const recipient = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(partnerEmail) ? partnerEmail : String(reg.email || '')
+          await sendMail({
+            to: recipient,
+            subject: `Votre badge — Algeria H.O.G.® Tour 2026`,
+            replyTo: String(process.env.MAIL_TO || process.env.MAIL_FROM || 'contact@hogalgierschapteralgeria.com'),
+            html: buildConfirmationEmailHtml({
+              prenom: String(partner.prenom || ''),
+              fullName: partnerFullName,
+              registrationId: String(reg.id || ''),
+              mode: 'paid',
+              paymentUrl: null,
+              badgeUrl: null,
+            }),
+            text: `Bonjour ${partnerFullName},\n\nVotre inscription au Algeria H.O.G.® Tour 2026 (chambre couple avec ${fullName}) est confirmée. Votre badge personnel est en pièce jointe.\n`,
+            attachments: [partnerAttachment],
+          })
+          console.log(`sendPaidConfirmation: partner badge sent to ${recipient} for payment ${paymentId}`)
+        } catch (partnerErr) {
+          console.error('partner badge email failed', partnerErr && partnerErr.message ? String(partnerErr.message) : partnerErr)
+        }
+      }
     }
   } catch (mailErr) {
     console.error('sendPaidConfirmation email failed', mailErr && mailErr.message ? String(mailErr.message) : mailErr)
@@ -1111,7 +1159,7 @@ function createApp() {
     }
   })
 
-  app.post('/v1/payments/choose-accommodation', async (req, res) => {
+  app.post('/v1/payments/choose-accommodation', uploadForRegistration, async (req, res) => {
     try {
       const body = req.body || {}
       const paymentIdParam = typeof body.paymentId === 'string' ? body.paymentId.trim() : ''
@@ -1133,7 +1181,63 @@ function createApp() {
       const pricing = hebergementPrice(hebergement, String(row.residence_zone || ''))
       if (!pricing) return res.status(400).json({ error: 'price_not_found' })
 
-      await db.run(`UPDATE registrations SET hebergement = ?, updated_at = ? WHERE id = ?`, [hebergement, nowIso(), String(row.id)])
+      // ── Partenaire (chambre couple, étrangers uniquement) ──
+      const isAbroad = !ON_SITE_ZONES.includes(String(row.residence_zone || ''))
+      const needsPartner = isCoupleHebergement(hebergement) && isAbroad
+      let partnerInfo = null
+      if (needsPartner) {
+        let partner = {}
+        try { partner = body.partner ? JSON.parse(String(body.partner)) : {} } catch { partner = {} }
+        const pPrenom = String(partner.prenom || '').trim()
+        const pNom = String(partner.nom || '').trim()
+        const pPassport = String(partner.passportNum || '').trim()
+        if (!pPrenom || !pNom || !pPassport) {
+          return res.status(400).json({ error: 'partner_incomplete' })
+        }
+        if (!/^[A-Za-z0-9]+$/.test(pPassport)) {
+          return res.status(400).json({ error: 'partner_passport_invalid' })
+        }
+        // Photo passeport partenaire obligatoire
+        const incoming = Array.isArray(req.files) ? req.files : []
+        if (!incoming.length) return res.status(400).json({ error: 'partner_passport_photo_missing' })
+        // 2 motos : immatriculation partenaire requise
+        const pImmat = String(partner.immatriculation || '').trim()
+        if (isTwoMotosHebergement(hebergement) && !pImmat) {
+          return res.status(400).json({ error: 'partner_plate_missing' })
+        }
+        // Stocker la photo passeport partenaire (renommée)
+        let passportFileId = null
+        try {
+          const renamed = incoming.map(f => ({ ...f, originalname: `PARTENAIRE passeport - ${f.originalname || 'passeport'}` }))
+          const stored = await writeRegistrationFiles(String(row.id), renamed)
+          for (const f of stored) {
+            await db.run(
+              `INSERT INTO registration_files (id, registration_id, original_name, mime, size_bytes, storage_path, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?);`,
+              [f.id, String(row.id), f.originalName, f.mime || null, f.size, f.storagePath, nowIso()],
+            )
+          }
+          passportFileId = stored[0] ? stored[0].id : null
+        } catch (fe) {
+          console.error('partner passport upload failed', fe && fe.message ? String(fe.message) : fe)
+          return res.status(500).json({ error: 'partner_upload_failed' })
+        }
+        partnerInfo = {
+          prenom: pPrenom, nom: pNom,
+          sexe: String(partner.sexe || '').trim(),
+          email: String(partner.email || '').trim(),
+          phone: String(partner.phone || '').trim(),
+          nationalite: String(partner.nationalite || '').trim(),
+          nationaliteAutre: String(partner.nationaliteAutre || '').trim(),
+          passportNum: pPassport,
+          immatriculation: isTwoMotosHebergement(hebergement) ? pImmat : '',
+          deuxMotos: isTwoMotosHebergement(hebergement),
+          passportFileId,
+        }
+      }
+
+      await db.run(`UPDATE registrations SET hebergement = ?, partner_info = ?, updated_at = ? WHERE id = ?`,
+        [hebergement, partnerInfo ? JSON.stringify(partnerInfo) : null, nowIso(), String(row.id)])
       await db.run(`UPDATE payments SET amount_cents = ?, currency = ?, updated_at = ?, updated_by = 'user_choice' WHERE id = ?`,
         [pricing.amountCents, pricing.currency, nowIso(), paymentIdParam])
 

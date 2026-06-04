@@ -784,6 +784,38 @@ export default function AdminPage() {
                     </div>
                   ) : <p className="text-muted text-[12px]">Aucun fichier.</p>}
                 </div>
+
+                {/* Partenaire (chambre couple) */}
+                {(() => {
+                  let partner: any = null
+                  try { partner = details.registration?.partner_info ? JSON.parse(String(details.registration.partner_info)) : null } catch {}
+                  if (!partner) return null
+                  return (
+                    <div className="md:col-span-2 lg:col-span-3 border-t border-orange/10 pt-5">
+                      <p className="text-[9px] uppercase tracking-[3px] text-orange/60 mb-3">
+                        Partenaire (chambre couple{partner.deuxMotos ? ' — 2 motos' : ''})
+                      </p>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2">
+                        {[
+                          ['Prénom', partner.prenom],
+                          ['Nom', partner.nom],
+                          ['Sexe', partner.sexe],
+                          ['Email', partner.email],
+                          ['Téléphone', partner.phone],
+                          ['Nationalité', partner.nationalite],
+                          ['N° Passeport', partner.passportNum],
+                          ['Immatriculation', partner.immatriculation],
+                        ].map(([label, val]) => val ? (
+                          <div key={label as string} className="flex gap-2 text-[12px]">
+                            <span className="text-muted w-24 shrink-0">{label}</span>
+                            <span className="text-htext break-all">{val}</span>
+                          </div>
+                        ) : null)}
+                      </div>
+                      <p className="text-muted2 text-[10px] mt-2">📎 La photo du passeport du partenaire figure dans les fichiers joints ci-dessus.</p>
+                    </div>
+                  )
+                })()}
               </div>
             </div>
             </div>
