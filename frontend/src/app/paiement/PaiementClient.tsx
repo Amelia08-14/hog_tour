@@ -25,6 +25,11 @@ const ACCOMMODATIONS = [
 
 const isCouple = (v: string) => /couple/i.test(v || '')
 const isTwoMotos = (v: string) => /2\s*motos/i.test(v || '')
+const isDoubleMotard = (v: string) => /motard/i.test(v || '')
+// Affiche le formulaire 2e personne (partenaire ou co-motard)
+const needsSecondPerson = (v: string) => isCouple(v) || isDoubleMotard(v)
+// Nécessite les infos moto complètes (permis + carte grise + immatriculation)
+const needsFullMoto = (v: string) => isTwoMotos(v) || isDoubleMotard(v)
 
 const EUR_INCLUDES_NOTE = 'Traversée bateau en demi pension, moto incluse et carburant pris en charge durant tout l’événement.'
 
@@ -62,6 +67,7 @@ export default function PaiementClient() {
   const [methods, setMethods] = useState<PaymentMethod[] | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState<string | null>(null)
+  const [onSiteDone, setOnSiteDone] = useState(false)
 
   // Partenaire (chambre couple, étrangers)
   const [pPrenom, setPPrenom] = useState('')
@@ -119,7 +125,10 @@ export default function PaiementClient() {
     } catch { setMethods([]) }
   }
 
-  const isAilleurs = info?.residenceZone?.toLowerCase() === 'ailleurs'
+  const zone = (info?.residenceZone || '').toLowerCase()
+  const isAilleurs = zone === 'ailleurs'
+  // Tunisie / Lybie : paiement sur place (cash à l'événement)
+  const isOnSiteZone = zone === 'tunisie' || zone === 'lybie' || zone === 'libye'
 
   const accommodationOptions = useMemo(() => {
     const base = ACCOMMODATIONS.filter(o => !o.abroadOnly || isAilleurs)
@@ -127,15 +136,15 @@ export default function PaiementClient() {
     return base
   }, [isTestMode, isAilleurs])
 
-  const partnerRequired = isAilleurs && isCouple(selectedAccommodation)
+  const partnerRequired = isAilleurs && needsSecondPerson(selectedAccommodation)
 
   async function handleConfirmAccommodation(e: FormEvent) {
     e.preventDefault()
     if (!selectedAccommodation) { setError('Choisissez un hébergement.'); return }
     if (!paymentId || !sig)     { setError('Lien de paiement invalide.'); return }
 
-    // Validation partenaire (chambre couple, étranger)
-    const twoMotos = isTwoMotos(selectedAccommodation)
+    // Validation 2e personne (partenaire couple ou co-motard, étranger)
+    const twoMotos = needsFullMoto(selectedAccommodation)
     if (partnerRequired) {
       if (!pPrenom.trim() || !pNom.trim()) { setError('Veuillez renseigner le prénom et le nom de votre partenaire.'); return }
       if (!pPassport.trim() || !/^[A-Za-z0-9]+$/.test(pPassport.trim())) { setError('Numéro de passeport du partenaire invalide (lettres et chiffres uniquement).'); return }
@@ -218,6 +227,44 @@ export default function PaiementClient() {
     finally { setLoading(false) }
   }
 
+  // Paiement sur place (Tunisie / Lybie)
+  async function handlePayOnSite() {
+    setError(null)
+    if (!paymentId || !sig) { setError('Lien de paiement invalide.'); return }
+    setLoading(true)
+    try {
+      const res = await fetch(apiUrl('/v1/payments/choose-onsite'), {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ paymentId, sig }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) { setError(String(data?.message || data?.error || 'Erreur.')); return }
+      setOnSiteDone(true)
+    } catch { setError('Impossible de contacter le serveur.') }
+    finally { setLoading(false) }
+  }
+
+  if (onSiteDone) return (
+    <section className="min-h-screen pt-[80px] pb-20 bg-bg flex items-center justify-center">
+      <div className="max-w-[520px] w-full mx-auto px-6">
+        <div className="border border-orange/12 bg-bg3 p-10 text-center">
+          <div className="text-4xl mb-5" style={{ color: '#FF6B00' }}>✓</div>
+          <h1 className="font-display text-htext uppercase tracking-wide mb-3" style={{ fontSize: 'clamp(20px,4vw,28px)' }}>
+            Inscription confirmée
+          </h1>
+          <div style={{ height: 1, background: 'linear-gradient(to right,transparent,rgba(255,107,0,.3),transparent)', margin: '16px 0' }} />
+          <p className="text-muted text-[14px] leading-relaxed">
+            Vous réglez votre inscription <strong className="text-htext">sur place lors de l&apos;événement</strong>.<br />
+            Un email de confirmation avec votre badge vous a été envoyé.
+          </p>
+          <a href="/" className="inline-block mt-8 text-[11px] font-condensed font-bold uppercase tracking-[3px] text-orange/70 hover:text-orange transition-colors">
+            Retour à l&apos;accueil →
+          </a>
+        </div>
+      </div>
+    </section>
+  )
 
   return (
     <section className="min-h-screen pt-[80px] pb-20 bg-bg">
@@ -273,17 +320,21 @@ export default function PaiementClient() {
               </p>
             </div>
 
-            {/* Formulaire partenaire — chambre couple (étrangers) */}
+            {/* Formulaire 2e personne — couple ou co-motard (étrangers) */}
             {partnerRequired && (
               <div className="mt-6 border border-orange/20 bg-bg3 p-6">
                 <div className="flex items-center gap-3 mb-1">
                   <div className="w-5 h-px bg-orange/40" />
-                  <span className="text-[9px] uppercase tracking-[3px] text-orange/60">Informations du partenaire</span>
+                  <span className="text-[9px] uppercase tracking-[3px] text-orange/60">
+                    {isDoubleMotard(selectedAccommodation) ? 'Informations du 2ᵉ motard' : 'Informations du partenaire'}
+                  </span>
                 </div>
                 <p className="text-muted text-[11px] mb-5 leading-relaxed">
-                  {isTwoMotos(selectedAccommodation)
-                    ? 'Votre partenaire voyage avec sa propre moto. Renseignez ses informations ci-dessous.'
-                    : 'Votre partenaire vous accompagne. Renseignez ses informations ci-dessous.'}
+                  {isDoubleMotard(selectedAccommodation)
+                    ? 'Cette chambre est partagée par 2 motards. Renseignez les informations du 2ᵉ motard (avec sa moto).'
+                    : isTwoMotos(selectedAccommodation)
+                      ? 'Votre partenaire voyage avec sa propre moto. Renseignez ses informations ci-dessous.'
+                      : 'Votre partenaire vous accompagne. Renseignez ses informations ci-dessous.'}
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <PF label="Prénom *" value={pPrenom} onChange={setPPrenom} />
@@ -326,11 +377,11 @@ export default function PaiementClient() {
                   </div>
                 </div>
 
-                {/* Permis + immatriculation — uniquement 2 motos */}
-                {isTwoMotos(selectedAccommodation) && (
+                {/* Permis + immatriculation — 2 motos ou double motard */}
+                {needsFullMoto(selectedAccommodation) && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-                    <PF label="N° Permis du partenaire *" value={pPermisNum} onChange={v => setPPermisNum(v.replace(/[^A-Za-z0-9]/g, '').toUpperCase())} />
-                    <PF label="Immatriculation moto partenaire *" value={pImmat} onChange={v => setPImmat(v.replace(/[^A-Za-z0-9]/g, '').toUpperCase())} />
+                    <PF label="N° Permis *" value={pPermisNum} onChange={v => setPPermisNum(v.replace(/[^A-Za-z0-9]/g, '').toUpperCase())} />
+                    <PF label="Immatriculation moto *" value={pImmat} onChange={v => setPImmat(v.replace(/[^A-Za-z0-9]/g, '').toUpperCase())} />
                   </div>
                 )}
 
@@ -339,14 +390,14 @@ export default function PaiementClient() {
                   <p className="text-htext text-[13px] mb-2">Photo du passeport du partenaire *</p>
                   <PartnerFile id="partner-passport" file={pPassportFile} onPick={setPPassportFile} />
                 </div>
-                {isTwoMotos(selectedAccommodation) && (
+                {needsFullMoto(selectedAccommodation) && (
                   <>
                     <div className="mt-4">
-                      <p className="text-htext text-[13px] mb-2">Photo du permis du partenaire *</p>
+                      <p className="text-htext text-[13px] mb-2">Photo du permis *</p>
                       <PartnerFile id="partner-permis" file={pPermisFile} onPick={setPPermisFile} />
                     </div>
                     <div className="mt-4">
-                      <p className="text-htext text-[13px] mb-2">Photo de la carte grise du partenaire *</p>
+                      <p className="text-htext text-[13px] mb-2">Photo de la carte grise *</p>
                       <PartnerFile id="partner-carte" file={pCarteFile} onPick={setPCarteFile} />
                     </div>
                   </>
@@ -400,8 +451,23 @@ export default function PaiementClient() {
               <p className="text-muted text-[12px] mb-6 leading-relaxed uppercase tracking-[2px]">Mode de paiement</p>
               <div className="flex flex-col gap-3">
 
-                {/* Boutons Yassir dynamiques */}
-                {methods === null ? (
+                {isOnSiteZone ? (
+                  /* Tunisie / Lybie : paiement sur place */
+                  <>
+                    <p className="text-muted text-[13px] leading-relaxed mb-2">
+                      Vous réglez votre inscription <strong className="text-htext">sur place lors de l&apos;événement</strong> (espèces).
+                      Confirmez ci-dessous pour recevoir votre badge.
+                    </p>
+                    <button
+                      type="button"
+                      disabled={loading}
+                      onClick={handlePayOnSite}
+                      className="w-full bg-orange text-black font-condensed font-bold text-[13px] tracking-[0.2em] uppercase px-9 py-4 hover:bg-white transition-colors disabled:opacity-60"
+                    >
+                      {loading ? 'Traitement…' : 'Confirmer — paiement sur place'}
+                    </button>
+                  </>
+                ) : methods === null ? (
                   <div className="text-muted text-[12px] py-2 animate-pulse">Chargement des méthodes de paiement…</div>
                 ) : methods.length > 0 ? (
                   methods.map(m => {

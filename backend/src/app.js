@@ -45,13 +45,26 @@ const HEBERGEMENT_PRICES = {
   'Chambre double couple — 2 motos': { dzd: 12500000, eur: 176000 },
   'Pack test': { dzd: 50000, eur: 100 },
 }
-const ON_SITE_ZONES = ['Algérie']
+const ON_SITE_ZONES = ['Algérie', 'Lybie', 'Tunisie']
+// Zones qui paient sur place (cash à l'événement) — distinctes de l'Algérie (Yassir en ligne)
+const ONSITE_PAYMENT_ZONES = ['Lybie', 'Tunisie']
 // Hébergements "couple" nécessitant les infos du partenaire (étrangers)
 function isCoupleHebergement(h) {
   return /couple/i.test(String(h || ''))
 }
 function isTwoMotosHebergement(h) {
   return /2\s*motos/i.test(String(h || ''))
+}
+function isDoubleMotardHebergement(h) {
+  return /motard/i.test(String(h || ''))
+}
+// Nécessite un 2e formulaire (partenaire couple ou co-motard)
+function needsSecondPersonHebergement(h) {
+  return isCoupleHebergement(h) || isDoubleMotardHebergement(h)
+}
+// Nécessite les infos moto complètes (permis + carte grise + immatriculation)
+function needsFullMotoHebergement(h) {
+  return isTwoMotosHebergement(h) || isDoubleMotardHebergement(h)
 }
 
 function hebergementPrice(hebergement, residenceZone) {
@@ -375,7 +388,7 @@ function createApp() {
       }
 
       const rz = String(body.residenceZone).trim()
-      if (!['Algérie', 'Ailleurs'].includes(rz)) {
+      if (!['Algérie', 'Lybie', 'Tunisie', 'Ailleurs'].includes(rz)) {
         return res.status(400).json({ error: 'invalid_fields', fields: ['residenceZone'] })
       }
 
@@ -1181,14 +1194,14 @@ function createApp() {
       const pricing = hebergementPrice(hebergement, String(row.residence_zone || ''))
       if (!pricing) return res.status(400).json({ error: 'price_not_found' })
 
-      // ── Partenaire (chambre couple, étrangers uniquement) ──
+      // ── 2e personne : partenaire couple OU co-motard (étrangers uniquement) ──
       const isAbroad = !ON_SITE_ZONES.includes(String(row.residence_zone || ''))
-      const needsPartner = isCoupleHebergement(hebergement) && isAbroad
+      const needsPartner = needsSecondPersonHebergement(hebergement) && isAbroad
       let partnerInfo = null
       if (needsPartner) {
         let partner = {}
         try { partner = body.partner ? JSON.parse(String(body.partner)) : {} } catch { partner = {} }
-        const twoMotos = isTwoMotosHebergement(hebergement)
+        const twoMotos = needsFullMotoHebergement(hebergement)
         const pPrenom = String(partner.prenom || '').trim()
         const pNom = String(partner.nom || '').trim()
         const pPassport = String(partner.passportNum || '').trim()
