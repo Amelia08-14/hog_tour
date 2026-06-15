@@ -494,7 +494,8 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
                 </div>
                 <G label={`${t(lang, 'registration.fields.residence')} *`}>
                   <div className="flex gap-5 flex-wrap">
-                    <CB value={V.residence.dz} label={String(t(lang, 'registration.options.residenceDz'))} state={residenceZone} set={setResidenceZone} />
+                    {/* Option Algérie masquée temporairement — inscriptions locales fermées pour le moment (réactiver en décommentant) */}
+                    {/* <CB value={V.residence.dz} label={String(t(lang, 'registration.options.residenceDz'))} state={residenceZone} set={setResidenceZone} /> */}
                     <CB value={V.residence.lby} label={String(t(lang, 'registration.options.residenceLby'))} state={residenceZone} set={setResidenceZone} />
                     <CB value={V.residence.tun} label={String(t(lang, 'registration.options.residenceTun'))} state={residenceZone} set={setResidenceZone} />
                     <CB value={V.residence.ailleurs} label={String(t(lang, 'registration.options.residenceAbroad'))} state={residenceZone} set={setResidenceZone} />
