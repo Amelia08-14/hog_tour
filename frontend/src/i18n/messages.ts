@@ -15,7 +15,7 @@ export const messages: Record<Lang, Msg> = {
     },
     hero: {
       eyebrow: 'H.O.G.® Algiers Chapter Algeria · Accréditation #8062',
-      titleLines: ['ALGERIA H.O.G.® TOUR 2026', 'PREMIÈRE FOIS EN', 'ALGÉRIE'],
+      titleLines: ['ALGERIA MOTO RIDERS', 'ACCUEILLE LE', 'ALGERIA H.O.G.® TOUR'],
       subtitleStrong: "Ne ratez pas l'occasion",
       subtitleRest: 'et soyez les bienvenus pour cette première édition.',
       ctaRegister: 'Inscrivez-vous',
@@ -90,7 +90,7 @@ export const messages: Record<Lang, Msg> = {
       failed: "Une erreur est survenue. Merci de réessayer.",
     },
     footer: {
-      ticker: ['HOG TOUR 2026', 'ALGIERS CHAPTER ALGERIA', 'PREMIÈRE FOIS EN ALGÉRIE', '29 OCT — 1ER NOV', 'HARLEY-DAVIDSON', 'ALGERIA BIKE WEEK'],
+      ticker: ['Algeria Moto Riders accueille l’Algeria H.O.G.® Tour', '29 Oct — 1er Nov 2026', 'Harley-Davidson', 'Algiers Chapter Algeria'],
       developedBy: 'Développé par',
       rights: 'Tous droits réservés',
     },
@@ -196,7 +196,7 @@ export const messages: Record<Lang, Msg> = {
     },
     hero: {
       eyebrow: 'H.O.G.® Algiers Chapter Algeria · Accreditation #8062',
-      titleLines: ['ALGERIA H.O.G.® TOUR 2026', 'FIRST TIME IN', 'ALGERIA'],
+      titleLines: ['ALGERIA MOTO RIDERS', 'WELCOMES THE', 'ALGERIA H.O.G.® TOUR'],
       subtitleStrong: "Don’t miss the chance",
       subtitleRest: 'and be part of this first edition.',
       ctaRegister: 'Register',
@@ -271,7 +271,7 @@ export const messages: Record<Lang, Msg> = {
       failed: 'Something went wrong. Please try again.',
     },
     footer: {
-      ticker: ['HOG TOUR 2026', 'ALGIERS CHAPTER ALGERIA', 'FIRST TIME IN ALGERIA', 'OCT 29 — NOV 1', 'HARLEY-DAVIDSON', 'ALGERIA BIKE WEEK'],
+      ticker: ['Algeria Moto Riders welcomes the Algeria H.O.G.® Tour', 'Oct 29 — Nov 1, 2026', 'Harley-Davidson', 'Algiers Chapter Algeria'],
       developedBy: 'Developed by',
       rights: 'All rights reserved',
     },
@@ -377,7 +377,7 @@ export const messages: Record<Lang, Msg> = {
     },
     hero: {
       eyebrow: 'H.O.G.® فرع الجزائر · اعتماد #8062',
-      titleLines: ['ALGERIA H.O.G.® TOUR 2026', 'لأول مرة في', 'الجزائر'],
+      titleLines: ['Algeria Moto Riders', 'تستقبل', 'Algeria H.O.G.® Tour'],
       subtitleStrong: 'لا تفوّت الفرصة',
       subtitleRest: 'وكن جزءًا من هذه النسخة الأولى.',
       ctaRegister: 'سجّل الآن',
@@ -452,7 +452,7 @@ export const messages: Record<Lang, Msg> = {
       failed: 'حدث خطأ. يرجى المحاولة مرة أخرى.',
     },
     footer: {
-      ticker: ['HOG TOUR 2026', 'ALGIERS CHAPTER ALGERIA', 'لأول مرة في الجزائر', '29 أكتوبر — 1 نوفمبر', 'HARLEY-DAVIDSON', 'ALGERIA BIKE WEEK'],
+      ticker: ['Algeria Moto Riders تستقبل Algeria H.O.G.® Tour', '29 أكتوبر — 1 نوفمبر 2026', 'Harley-Davidson', 'Algiers Chapter Algeria'],
       developedBy: 'تم التطوير بواسطة',
       rights: 'جميع الحقوق محفوظة',
     },

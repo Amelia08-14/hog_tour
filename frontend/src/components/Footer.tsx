@@ -10,23 +10,18 @@ export default function Footer({ lang }: { lang: Lang }) {
     <footer className="bg-bg2 border-t border-orange/10 overflow-hidden">
 
       {/* Ticker géant */}
-      <div className="overflow-hidden py-5 border-b border-orange/10">
-        <div className="flex whitespace-nowrap ticker-track">
+      <div className="overflow-hidden py-6 border-b border-orange/10">
+        <div className="flex items-center whitespace-nowrap ticker-track">
           {[...items, ...items].map((item, i) => (
-            <span key={i} className={`font-display text-orange/15 px-8 inline-block ${lang === 'ar' ? 'tracking-normal' : 'tracking-[0.25em]'}`}
-              style={{ fontSize: 'clamp(40px, 7vw, 90px)' }}>
-              {i > 0 && (
-                <span className="inline-flex items-center mr-8 opacity-[0.12] mix-blend-screen">
-                  <Image
-                    src="/images/hog-logo.png"
-                    alt=""
-                    width={44}
-                    height={44}
-                    className="object-contain"
-                    priority={false}
-                  />
-                </span>
-              )}
+            <span
+              key={i}
+              className={`font-display inline-flex items-center text-orange/35 ${lang === 'ar' ? 'tracking-normal' : 'tracking-[0.06em]'}`}
+              style={{ fontSize: 'clamp(22px, 3.4vw, 52px)' }}
+            >
+              {/* Séparateur logo avant chaque segment (défilement homogène) */}
+              <span className="inline-flex items-center mx-6 md:mx-9 opacity-30 shrink-0">
+                <Image src="/images/hog-logo.png" alt="" width={34} height={34} className="object-contain" priority={false} />
+              </span>
               {item}
             </span>
           ))}
