@@ -429,6 +429,20 @@
     opacity: 0.98;
     transform: translateZ(0);
   }
+  .hero-fasm-wrap {
+    width: clamp(104px, 14vw, 156px);
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+  }
+  .hero-fasm-img {
+    width: 100%;
+    height: auto;
+    max-height: clamp(104px, 14vw, 156px);
+    object-fit: contain;
+    filter: drop-shadow(0 14px 26px rgba(0,0,0,.55));
+    opacity: 0.97;
+  }
   .hero-stats-strip {
     border-top: 1px solid rgba(255,107,0,.22);
     background:
@@ -469,15 +483,20 @@
   .hero-scroll-label { animation: heroScrollBlink 2.2s ease-in-out infinite; }
 }
 
-/* ── Mobile : éviter le chevauchement logo / titre du Hero ── */
+/* ── Mobile : les 2 logos centrés en haut, sans chevaucher le titre ── */
 @media (max-width: 640px) {
-  .hero-logo-wrap {
-    width: 76px !important;
-    height: 76px !important;
+  .hero-badges {
+    top: 80px !important;
+    justify-content: center !important;
+    gap: 22px;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
   }
-  .hero-tour-logo {
-    top: 70px !important;
-  }
+  .hero-logo-wrap { width: 82px !important; height: 82px !important; }
+  .hero-fasm-wrap { width: 82px !important; }
+  .hero-fasm-img  { max-height: 82px !important; }
+  /* Contenu décalé sous les logos */
+  .hero-content { padding-top: 178px !important; }
   .hero-stat { padding: 14px 10px; }
   .hero-stat-l { font-size: 9px; letter-spacing: 0.18em; }
 }

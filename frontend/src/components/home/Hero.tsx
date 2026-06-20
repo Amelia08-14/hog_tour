@@ -49,11 +49,23 @@ export default function Hero({ lang }: { lang: Lang }) {
         <path d="M720 400 L1240 80" stroke="#FF6B00" strokeWidth="0.5" strokeDasharray="8 32"  opacity=".10"/>
       </svg>
 
-      {/* ── Badge HOG top-right ── */}
+      {/* ── Badges : FASM (gauche) + HOG Tour (droite) — miroir en AR ── */}
       <div
-        className={`absolute top-[76px] ${isAr ? 'left-5 sm:left-8 md:left-10' : 'right-5 sm:right-8 md:right-10'} md:top-[92px] hero-tour-logo`}
+        className={`hero-badges absolute top-[70px] md:top-[96px] left-0 right-0 mx-auto max-w-[1060px] px-5 flex items-center justify-between ${isAr ? 'flex-row-reverse' : ''}`}
         style={{ zIndex: 10 }}
       >
+        {/* FASM — Fédération */}
+        <div className="hero-fasm-wrap">
+          <Image
+            src="/images/FASM_logo.png"
+            alt="FASM"
+            width={150}
+            height={150}
+            className="object-contain hero-fasm-img"
+            priority
+          />
+        </div>
+        {/* Badge Algeria H.O.G.® Tour */}
         <div className="hero-logo-wrap">
           <Image
             src="/images/logo-hogtour.png"
@@ -68,7 +80,7 @@ export default function Hero({ lang }: { lang: Lang }) {
 
       {/* ── Contenu centré ── */}
       <div
-        className="flex-1 flex flex-col items-center justify-center relative text-center px-6 md:px-12"
+        className="hero-content flex-1 flex flex-col items-center justify-center relative text-center px-6 md:px-12"
         style={{ zIndex: 5, paddingTop: '88px', paddingBottom: '20px' }}
       >
         {/* Eyebrow */}
