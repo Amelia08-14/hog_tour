@@ -38,16 +38,16 @@ function parsePriceToCents(input) {
   return Math.round(n * 100)
 }
 
+// Prix par hébergement : dzd (locaux), eur (étrangers), espt (Espagne/Portugal)
 const HEBERGEMENT_PRICES = {
-  'Chambre simple': { dzd: 7500000, eur: 96000 },
-  'Chambre double — Motard': { dzd: 6500000, eur: 88000 },
-  'Chambre double couple': { dzd: 12500000, eur: 174000 },
-  'Chambre double couple — 2 motos': { dzd: 12500000, eur: 176000 },
-  'Pack test': { dzd: 50000, eur: 100 },
+  'Chambre simple': { dzd: 7500000, eur: 96000, espt: 92000 },
+  'Chambre double — Motard': { dzd: 6500000, eur: 88000, espt: 88000 },
+  'Chambre double couple': { dzd: 12500000, eur: 174000, espt: 164000 },
+  'Chambre double couple — 2 motos': { dzd: 12500000, eur: 176000, espt: 166000 },
+  'Pack test': { dzd: 50000, eur: 100, espt: 100 },
 }
 const ON_SITE_ZONES = ['Algérie', 'Lybie', 'Tunisie']
-// Zones qui paient sur place (cash à l'événement) — distinctes de l'Algérie (Yassir en ligne)
-const ONSITE_PAYMENT_ZONES = ['Lybie', 'Tunisie']
+const ESP_PT_ZONE = 'Espagne / Portugal'
 // Hébergements "couple" nécessitant les infos du partenaire (étrangers)
 function isCoupleHebergement(h) {
   return /couple/i.test(String(h || ''))
@@ -70,8 +70,10 @@ function needsFullMotoHebergement(h) {
 function hebergementPrice(hebergement, residenceZone) {
   const prices = HEBERGEMENT_PRICES[hebergement]
   if (!prices) return null
-  const isLocal = ON_SITE_ZONES.includes(String(residenceZone || ''))
-  return isLocal ? { amountCents: prices.dzd, currency: 'DZD' } : { amountCents: prices.eur, currency: 'EUR' }
+  const zone = String(residenceZone || '')
+  if (ON_SITE_ZONES.includes(zone)) return { amountCents: prices.dzd, currency: 'DZD' }
+  if (zone === ESP_PT_ZONE) return { amountCents: prices.espt, currency: 'EUR' }
+  return { amountCents: prices.eur, currency: 'EUR' }
 }
 
 function isTrue(v) {
@@ -388,7 +390,7 @@ function createApp() {
       }
 
       const rz = String(body.residenceZone).trim()
-      if (!['Algérie', 'Lybie', 'Tunisie', 'Ailleurs'].includes(rz)) {
+      if (!['Algérie', 'Lybie', 'Tunisie', 'Ailleurs', ESP_PT_ZONE].includes(rz)) {
         return res.status(400).json({ error: 'invalid_fields', fields: ['residenceZone'] })
       }
 
@@ -434,8 +436,8 @@ function createApp() {
       }
 
       const incomingFiles = Array.isArray(req.files) ? req.files : []
-      // Pièces jointes obligatoires : photo permis + photo carte grise (2 fichiers)
-      if (incomingFiles.length < 2) {
+      // Pièces jointes obligatoires : permis + carte grise + passeport (3 fichiers)
+      if (incomingFiles.length < 3) {
         return res.status(400).json({ error: 'missing_attachments' })
       }
       let storedFiles = []

@@ -8,7 +8,7 @@ import { t } from '@/i18n/messages'
 const V = {
   sexe: { femme: 'Femme', homme: 'Homme' },
   nationalite: { dz: 'Algérienne', autre: 'Autre' },
-  residence: { dz: 'Algérie', lby: 'Lybie', tun: 'Tunisie', ailleurs: 'Ailleurs' },
+  residence: { dz: 'Algérie', lby: 'Lybie', tun: 'Tunisie', esp: 'Espagne / Portugal', ailleurs: 'Ailleurs' },
   profil: { solo: 'Solo', groupe: "Membre d'un groupe de Motards" },
 } as const
 
@@ -29,6 +29,7 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
   const [taille, setTaille] = useState('')
   const [hasPermisFile, setHasPermisFile] = useState(false)
   const [hasCarteFile, setHasCarteFile] = useState(false)
+  const [hasPassportFile, setHasPassportFile] = useState(false)
   const [paiement, setPaiement] = useState('')
   const [pays, setPays] = useState('')
   const [phoneCountry, setPhoneCountry] = useState('DZ')
@@ -203,6 +204,10 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
       setError('Veuillez joindre une photo de votre permis de conduire.')
       return
     }
+    if (!hasPassportFile) {
+      setError('Veuillez joindre une photo de votre passeport.')
+      return
+    }
     if (!hasCarteFile) {
       setError('Veuillez joindre une photo de la carte grise de la moto.')
       return
@@ -259,7 +264,7 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
         } else if (res.status === 400 && err === 'invalid_alnum') {
           setError('Les numéros de permis, passeport et immatriculation ne doivent contenir que des lettres et des chiffres, sans espaces ni symboles.')
         } else if (res.status === 400 && err === 'missing_attachments') {
-          setError('Merci de joindre les deux pièces obligatoires : photo du permis et photo de la carte grise.')
+          setError('Merci de joindre les trois pièces obligatoires : photo du permis, photo du passeport et photo de la carte grise.')
         } else if (res.status === 400 && err === 'phone_missing') {
           setError('Le numéro de téléphone est invalide. Vérifiez l\'indicatif du pays et le numéro saisi.')
         } else if (res.status === 400 && err === 'invalid_fields' && fields.includes('residenceZone')) {
@@ -498,6 +503,7 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
                     {/* <CB value={V.residence.dz} label={String(t(lang, 'registration.options.residenceDz'))} state={residenceZone} set={setResidenceZone} /> */}
                     <CB value={V.residence.lby} label={String(t(lang, 'registration.options.residenceLby'))} state={residenceZone} set={setResidenceZone} />
                     <CB value={V.residence.tun} label={String(t(lang, 'registration.options.residenceTun'))} state={residenceZone} set={setResidenceZone} />
+                    <CB value={V.residence.esp} label={String(t(lang, 'registration.options.residenceEsp'))} state={residenceZone} set={setResidenceZone} />
                     <CB value={V.residence.ailleurs} label={String(t(lang, 'registration.options.residenceAbroad'))} state={residenceZone} set={setResidenceZone} />
                   </div>
                 </G>
@@ -539,7 +545,10 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
                     <UF id="up-permis" label={String(t(lang, 'registration.fields.uploadLicense'))} lang={lang} onPicked={setHasPermisFile} />
                   </div>
 
-                  <F id="passport" label={`${t(lang, 'registration.fields.passport')} *`} type="text" ph={String(t(lang, 'registration.placeholders.passport'))} clean />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <F id="passport" label={`${t(lang, 'registration.fields.passport')} *`} type="text" ph={String(t(lang, 'registration.placeholders.passport'))} clean />
+                    <UF id="up-passport" label={String(t(lang, 'registration.fields.uploadPassport'))} lang={lang} onPicked={setHasPassportFile} />
+                  </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <F id="immat" label={`${t(lang, 'registration.fields.plate')} *`} type="text" ph={String(t(lang, 'registration.placeholders.plate'))} clean />

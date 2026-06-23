@@ -16,11 +16,12 @@ type Info = {
 type PaymentMethod = { code: string; name: string; id: string }
 type Step = 'accommodation' | 'payment'
 
+// localOK = Algérie/Lybie/Tunisie (DZD) · abroadOK = Ailleurs (EUR) · esptOK = Espagne/Portugal (EUR)
 const ACCOMMODATIONS = [
-  { value: 'Chambre simple',          labelDzd: '75 000 DA',         labelEur: '960 €',         desc: 'Pension complète — 1 personne, chambre individuelle', abroadOnly: false },
-  { value: 'Chambre double — Motard', labelDzd: '65 000 DA / motard', labelEur: '880 € / motard', desc: 'Pension complète — 2 motards, chambre partagée', abroadOnly: false },
-  { value: 'Chambre double couple',   labelDzd: '125 000 DA',        labelEur: '1 740 €',        desc: 'Pension complète — couple, 1 moto', abroadOnly: false },
-  { value: 'Chambre double couple — 2 motos', labelDzd: '125 000 DA', labelEur: '1 760 €',       desc: 'Pension complète — couple, 2 motos', abroadOnly: true },
+  { value: 'Chambre simple',          labelDzd: '75 000 DA',          labelEur: '960 €',  labelEspt: '920 €',  desc: 'Pension complète — 1 personne, chambre individuelle', localOK: true,  abroadOK: true,  esptOK: true },
+  { value: 'Chambre double — Motard', labelDzd: '65 000 DA / motard', labelEur: '880 € / motard', labelEspt: '880 € / motard', desc: 'Pension complète — 2 motards, chambre partagée', localOK: true,  abroadOK: true,  esptOK: false },
+  { value: 'Chambre double couple',   labelDzd: '125 000 DA',         labelEur: '1 740 €', labelEspt: '1 640 €', desc: 'Pension complète — couple, 1 moto',  localOK: true,  abroadOK: true,  esptOK: true },
+  { value: 'Chambre double couple — 2 motos', labelDzd: '125 000 DA', labelEur: '1 760 €', labelEspt: '1 660 €', desc: 'Pension complète — couple, 2 motos / 2 bikers', localOK: false, abroadOK: true,  esptOK: true },
 ]
 
 const isCouple = (v: string) => /couple/i.test(v || '')
@@ -126,17 +127,27 @@ export default function PaiementClient() {
   }
 
   const zone = (info?.residenceZone || '').toLowerCase()
+  const isLocal = zone === 'algérie' || zone === 'algerie' || zone === 'tunisie' || zone === 'lybie' || zone === 'libye'
+  const isEspPt = zone.includes('espagne') || zone.includes('portugal')
   const isAilleurs = zone === 'ailleurs'
-  // Tunisie / Lybie : paiement sur place (cash à l'événement)
-  const isOnSiteZone = zone === 'tunisie' || zone === 'lybie' || zone === 'libye'
+  const isAbroad = isAilleurs || isEspPt   // paie en EUR + formulaire partenaire
+
+  // Devise/label de prix selon la zone
+  function priceLabelFor(o: typeof ACCOMMODATIONS[number]) {
+    if (isEspPt) return o.labelEspt
+    if (isLocal) return o.labelDzd
+    return o.labelEur
+  }
 
   const accommodationOptions = useMemo(() => {
-    const base = ACCOMMODATIONS.filter(o => !o.abroadOnly || isAilleurs)
-    if (isTestMode) base.push({ value: 'Pack test', labelDzd: '500 DA', labelEur: '1 €', desc: 'Test', abroadOnly: false })
+    const base = ACCOMMODATIONS.filter(o =>
+      isEspPt ? o.esptOK : isLocal ? o.localOK : o.abroadOK,
+    )
+    if (isTestMode) base.push({ value: 'Pack test', labelDzd: '500 DA', labelEur: '1 €', labelEspt: '1 €', desc: 'Test', localOK: true, abroadOK: true, esptOK: true })
     return base
-  }, [isTestMode, isAilleurs])
+  }, [isTestMode, isLocal, isEspPt, isAilleurs])
 
-  const partnerRequired = isAilleurs && needsSecondPerson(selectedAccommodation)
+  const partnerRequired = isAbroad && needsSecondPerson(selectedAccommodation)
 
   async function handleConfirmAccommodation(e: FormEvent) {
     e.preventDefault()
@@ -291,7 +302,7 @@ export default function PaiementClient() {
             )}
             <div className="flex flex-col gap-3">
               {accommodationOptions.map(opt => {
-                const priceLabel = isAilleurs ? opt.labelEur : opt.labelDzd
+                const priceLabel = priceLabelFor(opt)
                 const selected = selectedAccommodation === opt.value
                 return (
                   <label
@@ -316,7 +327,7 @@ export default function PaiementClient() {
             <div className="mt-4 border border-orange/10 bg-bg3 px-4 py-3 flex gap-2">
               <span className="text-orange/60 text-[11px] mt-[1px]">★</span>
               <p className="text-muted text-[11px] leading-relaxed">
-                {isAilleurs ? EUR_INCLUDES_NOTE : 'Carburant pris en charge tout au long de l’événement.'}
+                {isAbroad ? EUR_INCLUDES_NOTE : 'Carburant pris en charge tout au long de l’événement.'}
               </p>
             </div>
 
@@ -446,59 +457,21 @@ export default function PaiementClient() {
               </button>
             </div>
 
-            {/* Payment options */}
+            {/* Paiement sur place — pour tous */}
             <div className="border border-orange/12 bg-bg3 p-8">
-              <p className="text-muted text-[12px] mb-6 leading-relaxed uppercase tracking-[2px]">Mode de paiement</p>
-              <div className="flex flex-col gap-3">
-
-                {isOnSiteZone ? (
-                  /* Tunisie / Lybie : paiement sur place */
-                  <>
-                    <p className="text-muted text-[13px] leading-relaxed mb-2">
-                      Vous réglez votre inscription <strong className="text-htext">sur place lors de l&apos;événement</strong> (espèces).
-                      Confirmez ci-dessous pour recevoir votre badge.
-                    </p>
-                    <button
-                      type="button"
-                      disabled={loading}
-                      onClick={handlePayOnSite}
-                      className="w-full bg-orange text-black font-condensed font-bold text-[13px] tracking-[0.2em] uppercase px-9 py-4 hover:bg-white transition-colors disabled:opacity-60"
-                    >
-                      {loading ? 'Traitement…' : 'Confirmer — paiement sur place'}
-                    </button>
-                  </>
-                ) : methods === null ? (
-                  <div className="text-muted text-[12px] py-2 animate-pulse">Chargement des méthodes de paiement…</div>
-                ) : methods.length > 0 ? (
-                  methods.map(m => {
-                    const { label, sub } = methodDisplay(m.code, m.name)
-                    const yassirCash = isYassirCash(m.code)
-                    return (
-                      <button
-                        key={m.code}
-                        type="button"
-                        disabled={loading}
-                        onClick={() => handlePayOnline(m.code)}
-                        style={yassirCash ? { backgroundColor: '#4c0fad', color: '#fff' } : undefined}
-                        className={`w-full font-condensed font-bold text-[13px] tracking-[0.15em] uppercase px-9 py-4 transition-colors disabled:opacity-60 flex items-center justify-center gap-3 ${yassirCash ? 'hover:brightness-110' : 'bg-orange text-black hover:bg-white'}`}
-                      >
-                        <span>{loading ? 'Redirection…' : label}</span>
-                        {sub && <span className="opacity-60 font-normal text-[11px] normal-case tracking-normal">— {sub}</span>}
-                      </button>
-                    )
-                  })
-                ) : (
-                  <button
-                    type="button"
-                    disabled={loading}
-                    onClick={() => handlePayOnline(isAilleurs ? 'STRIPE' : 'WALLET_V2')}
-                    className="w-full bg-orange text-black font-condensed font-bold text-[13px] tracking-[0.2em] uppercase px-9 py-4 hover:bg-white transition-colors disabled:opacity-60"
-                  >
-                    {loading ? 'Redirection…' : isAilleurs ? 'Payer par carte — Stripe' : 'Payer en ligne'}
-                  </button>
-                )}
-
-              </div>
+              <p className="text-muted text-[12px] mb-4 leading-relaxed uppercase tracking-[2px]">Mode de paiement</p>
+              <p className="text-muted text-[13px] leading-relaxed mb-5">
+                Vous réglez votre inscription <strong className="text-htext">sur place lors de l&apos;événement</strong>.
+                Confirmez ci-dessous pour valider votre inscription et recevoir votre badge par email.
+              </p>
+              <button
+                type="button"
+                disabled={loading}
+                onClick={handlePayOnSite}
+                className="w-full bg-orange text-black font-condensed font-bold text-[13px] tracking-[0.2em] uppercase px-9 py-4 hover:bg-white transition-colors disabled:opacity-60"
+              >
+                {loading ? 'Traitement…' : 'Confirmer mon inscription — paiement sur place'}
+              </button>
             </div>
           </div>
         )}
