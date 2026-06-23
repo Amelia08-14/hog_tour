@@ -388,7 +388,7 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
       </div>
 
       <section className="py-20 bg-bg">
-        <div className="max-w-[1040px] mx-auto px-6 md:px-10">
+        <div className="max-w-[1280px] mx-auto px-6 md:px-10">
           <div className="relative bg-bg3 border border-orange/12">
             <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: 'linear-gradient(to right,#FF6B00,rgba(255,107,0,.2))' }} />
             <div className="absolute top-[10px] left-[10px] w-5 h-5 border-t border-l border-orange" />
