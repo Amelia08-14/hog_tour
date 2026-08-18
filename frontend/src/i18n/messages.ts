@@ -63,6 +63,9 @@ export const messages: Record<Lang, Msg> = {
       galleryTitle: 'En images',
       galleryMore: 'Voir plus de photos',
       galleryLess: 'Réduire la galerie',
+      officialCarrier: 'Transporteur Officiel du Tour',
+      sponsorsTag: 'Partenaires',
+      sponsorsTitle: 'Nos Sponsors',
     },
     about: {
       tag: 'À propos',
@@ -246,6 +249,9 @@ export const messages: Record<Lang, Msg> = {
       galleryTitle: 'In pictures',
       galleryMore: 'See more photos',
       galleryLess: 'Show less',
+      officialCarrier: 'Official Tour Carrier',
+      sponsorsTag: 'Partners',
+      sponsorsTitle: 'Our Sponsors',
     },
     about: {
       tag: 'About',
@@ -429,6 +435,9 @@ export const messages: Record<Lang, Msg> = {
       galleryTitle: 'بالصور',
       galleryMore: 'عرض المزيد',
       galleryLess: 'عرض أقل',
+      officialCarrier: 'الناقل الرسمي للجولة',
+      sponsorsTag: 'الشركاء',
+      sponsorsTitle: 'رعاتنا',
     },
     about: {
       tag: 'من نحن',

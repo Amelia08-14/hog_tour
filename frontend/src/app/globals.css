@@ -177,6 +177,133 @@
   .film-grain { animation: none !important; }
   .hero-spotlight { animation: none !important; }
   .au-route, .au-countdown { animation: none !important; opacity: 1; transform: none; }
+  .sponsor-marquee-track { animation: none !important; transform: none !important; }
+}
+
+/* Sponsors */
+.sponsor-marquee {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  min-height: 104px;
+  display: flex;
+  align-items: center;
+  background: linear-gradient(90deg, #f7f8fb 0%, #fff 50%, #f7f8fb 100%);
+  border-top: 3px solid #FF6B00;
+  border-bottom: 1px solid rgba(255,107,0,.30);
+  color: #0a2652;
+  z-index: 2;
+}
+.sponsor-marquee::before,
+.sponsor-marquee::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: clamp(28px, 7vw, 120px);
+  z-index: 2;
+  pointer-events: none;
+}
+.sponsor-marquee::before { left: 0; background: linear-gradient(to right, #f7f8fb, transparent); }
+.sponsor-marquee::after { right: 0; background: linear-gradient(to left, #f7f8fb, transparent); }
+.sponsor-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: sponsorMarquee 28s linear infinite;
+  will-change: transform;
+}
+.sponsor-marquee:hover .sponsor-marquee-track { animation-play-state: paused; }
+.sponsor-marquee-group,
+.sponsor-marquee-item {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.sponsor-marquee-item { gap: clamp(16px, 2.2vw, 36px); }
+.sponsor-marquee-logo {
+  width: clamp(150px, 14vw, 220px);
+  height: 70px;
+  object-fit: contain;
+}
+.sponsor-marquee-label {
+  font-size: clamp(15px, 1.25vw, 20px);
+  font-weight: 800;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.sponsor-marquee-dot {
+  width: 7px;
+  height: 7px;
+  background: #FF6B00;
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
+.sponsor-marquee-separator {
+  color: #FF6B00;
+  font-size: 24px;
+  margin: 0 clamp(28px, 4vw, 68px);
+}
+@keyframes sponsorMarquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.sponsors-section {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(76px, 9vw, 132px) 24px;
+  background: linear-gradient(180deg, rgba(15,15,13,.95), #0A0A08);
+  border-top: 1px solid rgba(255,107,0,.10);
+}
+.sponsors-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(700px 380px at 50% 50%, rgba(255,107,0,.08), transparent 70%);
+}
+.sponsors-inner { position: relative; max-width: 1280px; margin: 0 auto; }
+.sponsors-heading { margin-bottom: clamp(36px, 5vw, 64px); }
+.sponsors-title { font-size: clamp(42px, 6vw, 76px); line-height: .95; letter-spacing: .02em; }
+.sponsors-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.sponsor-card {
+  position: relative;
+  min-height: 260px;
+  padding: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: linear-gradient(145deg, #fff, #eef1f6);
+  border: 1px solid rgba(255,255,255,.13);
+  box-shadow: 0 20px 60px rgba(0,0,0,.28);
+  transition: transform .35s ease, box-shadow .35s ease;
+}
+.sponsor-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 25%, rgba(255,255,255,.8) 48%, transparent 70%);
+  transform: translateX(-130%);
+  transition: transform .7s ease;
+}
+.sponsor-card:hover { transform: translateY(-6px); box-shadow: 0 26px 70px rgba(255,107,0,.12); }
+.sponsor-card:hover::before { transform: translateX(130%); }
+.sponsor-card-logo { position: relative; width: 100%; max-height: 150px; object-fit: contain; }
+.sponsor-card-corner { position: absolute; width: 28px; height: 28px; border-color: #FF6B00; opacity: .7; }
+.sponsor-card-corner-top { top: 12px; left: 12px; border-top: 2px solid; border-left: 2px solid; }
+.sponsor-card-corner-bottom { right: 12px; bottom: 12px; border-right: 2px solid; border-bottom: 2px solid; }
+
+@media (max-width: 767px) {
+  .sponsor-marquee { min-height: 82px; }
+  .sponsor-marquee-logo { width: 126px; height: 54px; }
+  .sponsor-marquee-label { font-size: 12px; letter-spacing: .10em; }
+  .sponsor-marquee-dot { width: 5px; height: 5px; }
+  .sponsor-marquee-separator { margin: 0 24px; }
+  .sponsors-section { padding-left: 16px; padding-right: 16px; }
+  .sponsors-grid { grid-template-columns: 1fr; gap: 12px; }
+  .sponsor-card { min-height: 190px; padding: 30px; }
+  .sponsor-card-logo { max-height: 120px; }
 }
 
 /* ═══════════════════════════════════════════════════
