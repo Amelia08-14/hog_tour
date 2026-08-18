@@ -231,16 +231,18 @@
   letter-spacing: .16em;
   text-transform: uppercase;
   white-space: nowrap;
+  color: #FF6B00;
+  text-shadow: 0 0 22px rgba(255,107,0,.12);
 }
 .sponsor-marquee-dot {
   width: 7px;
   height: 7px;
-  background: #FF6B00;
+  background: #0a2652;
   transform: rotate(45deg);
   flex-shrink: 0;
 }
 .sponsor-marquee-separator {
-  color: #FF6B00;
+  color: #0a2652;
   font-size: 24px;
   margin: 0 clamp(28px, 4vw, 68px);
 }

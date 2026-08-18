@@ -3,6 +3,7 @@ import Image from 'next/image'
 import type { Lang } from '@/i18n/shared'
 import { t } from '@/i18n/messages'
 import HeroCountdown from './HeroCountdown'
+import { OfficialCarrierStrip } from './Sponsors'
 
 export default function Hero({ lang }: { lang: Lang }) {
   const titleLines = t(lang, 'hero.titleLines') as string[]
@@ -153,7 +154,9 @@ export default function Hero({ lang }: { lang: Lang }) {
         </div>
       </div>
 
-      {/* ── Stats strip ── */}
+      {/* ── Partenaire officiel puis statistiques ── */}
+      <OfficialCarrierStrip lang={lang} />
+
       <div className="au5 hero-stats-strip relative grid grid-cols-2 md:grid-cols-4" style={{ zIndex: 5 }}>
         {(Array.isArray(stats) ? stats : []).map((st, i) => (
           <div
