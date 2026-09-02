@@ -1,26 +1,34 @@
 /**
- * Crée manuellement des inscrits "passeport seul" + badge signé, directement en base.
+ * Crée manuellement des inscrits + badge signé, directement en base.
  *
- * Utile pour ajouter des participants qui n'ont fourni que leur numéro de passeport :
- * l'inscrit apparaît dans l'admin et son badge (QR) est résolvable au check-in.
+ * Pour ajouter des participants hors formulaire (ex : on n'a que le passeport).
+ * L'inscrit apparaît dans l'admin et son badge (QR) est résolvable au check-in.
  *
  * Fonctionne quel que soit le driver (sqlite ou mysql) : il réutilise src/db.js
  * et src/security.js, donc le token de badge est signé exactement comme en prod.
+ * Les colonnes absentes du schéma sont ignorées automatiquement.
  *
- * Usage (sur le VPS, dans le dossier backend) :
+ * ── Usage (sur le VPS, dans /var/www/hogtour/backend) ──
  *
- *   node scripts/create-manual-inscrits.js "P1234567" "X9876543"
+ *   node scripts/create-manual-inscrits.js "SPEC1" "SPEC2"
  *
- *   # avec nom/prénom/email optionnels (séparés par des virgules, dans cet ordre) :
- *   node scripts/create-manual-inscrits.js "P1234567,DUPONT,Jean,jean@mail.com" "X9876543,MARTIN,Alice"
+ * Une SPEC = champs séparés par des virgules, dans cet ordre (seul le 1er est requis) :
+ *   passeport,NOM,Prénom,email,sexe,zone,nationalité
  *
- *   # aperçu sans rien écrire :
- *   node scripts/create-manual-inscrits.js --dry-run "P1234567" "X9876543"
+ *   - sexe        : "Femme" | "Homme"
+ *   - zone        : "Algérie" | "Lybie" | "Tunisie" | "Espagne / Portugal" | "Ailleurs"
+ *   - nationalité : "Algérienne" ou libre (ex "Française" → stocké en nationalite_autre)
  *
- * Options :
- *   --dry-run           n'écrit rien, montre ce qui serait fait
- *   --zone "Algérie"    residence_zone (défaut: "Algérie")
- *   --status paid       statut du paiement (défaut: "paid")
+ * Exemple :
+ *   node scripts/create-manual-inscrits.js --onsite \
+ *     "304953240,GIBELLA,Cynthia Yamina Antoinette,,Femme,Algérie,Algérienne" \
+ *     "25HH89159,GIBELLA,Antonio,,Homme,Ailleurs,Française"
+ *
+ * ── Options ──
+ *   --onsite            paiement sur place : paiement_mode/method = 'on_site', statut 'unpaid'
+ *   --status <s>        statut de paiement si pas --onsite (défaut: "paid")
+ *   --zone <z>          zone par défaut si absente de la SPEC (défaut: "Algérie")
+ *   --dry-run           n'écrit rien, affiche ce qui serait fait
  */
 
 // Charge la config : backend/.env en local, /etc/hogtour/backend.env sur le VPS (systemd).
@@ -40,47 +48,66 @@ const { newToken, signToken } = require('../src/security')
 
 const args = process.argv.slice(2)
 const DRY_RUN = args.includes('--dry-run')
+const ONSITE = args.includes('--onsite')
 
 function optValue(name, def) {
   const i = args.indexOf(name)
   return i >= 0 && args[i + 1] ? args[i + 1] : def
 }
 
-const ZONE = optValue('--zone', 'Algérie')
-const STATUS = optValue('--status', 'paid')
+const DEFAULT_ZONE = optValue('--zone', 'Algérie')
+const STATUS = ONSITE ? 'unpaid' : optValue('--status', 'paid')
+const PAYMENT_MODE = ONSITE ? 'on_site' : 'manual'
+const PAYMENT_METHOD = ONSITE ? 'on_site' : 'manual'
 
-// Tout ce qui n'est pas une option = une "spec" d'inscrit
-const OPTION_FLAGS = new Set(['--dry-run', '--zone', '--status'])
+const VALID_ZONES = ['Algérie', 'Lybie', 'Tunisie', 'Espagne / Portugal', 'Ailleurs']
+
+const FLAGS_WITH_VALUE = new Set(['--status', '--zone'])
 const specs = []
 for (let i = 0; i < args.length; i++) {
   const a = args[i]
-  if (a === '--dry-run') continue
-  if (a === '--zone' || a === '--status') { i++; continue }
-  if (a.startsWith('--')) continue
+  if (a.startsWith('--')) {
+    if (FLAGS_WITH_VALUE.has(a)) i++
+    continue
+  }
   specs.push(a)
 }
 
 if (!specs.length) {
-  console.error('Aucun inscrit fourni.\nExemple : node scripts/create-manual-inscrits.js "P1234567" "X9876543"')
+  console.error('Aucun inscrit fourni. Voir l\'en-tête du script pour le format des SPEC.')
   process.exit(1)
 }
 
-function nowIso() {
-  return new Date().toISOString()
-}
-
-function uuid() {
-  return crypto.randomUUID()
-}
+const nowIso = () => new Date().toISOString()
+const uuid = () => crypto.randomUUID()
 
 function parseSpec(raw) {
-  const [passportRaw, nomRaw, prenomRaw, emailRaw] = String(raw).split(',').map(s => (s || '').trim())
-  const passport = passportRaw
-  if (!passport) throw new Error(`spec invalide (passeport manquant): "${raw}"`)
+  const parts = String(raw).split(',').map(s => (s || '').trim())
+  const [passport, nomRaw, prenomRaw, emailRaw, sexeRaw, zoneRaw, natRaw] = parts
+  if (!passport) throw new Error(`SPEC invalide (passeport manquant): "${raw}"`)
+
   const nom = nomRaw || 'INVITE'
   const prenom = prenomRaw || passport
   const email = emailRaw || `${passport.toLowerCase()}@no-email.hogtour`
-  return { passport, nom, prenom, email }
+
+  let sexe = 'NA'
+  if (/^f/i.test(sexeRaw || '')) sexe = 'Femme'
+  else if (/^h|^m/i.test(sexeRaw || '')) sexe = 'Homme'
+
+  let zone = zoneRaw || DEFAULT_ZONE
+  if (!VALID_ZONES.includes(zone)) {
+    throw new Error(`Zone invalide "${zone}" pour ${passport}. Valeurs: ${VALID_ZONES.join(' | ')}`)
+  }
+
+  let nationalite = 'NA'
+  let nationaliteAutre = null
+  const nat = (natRaw || '').trim()
+  if (nat) {
+    if (/^alg/i.test(nat)) nationalite = 'Algérienne'
+    else { nationalite = 'Autre'; nationaliteAutre = nat }
+  }
+
+  return { passport, nom, prenom, email, sexe, zone, nationalite, nationaliteAutre }
 }
 
 async function tableColumns(db, table) {
@@ -114,65 +141,60 @@ async function run() {
   const baseUrl = (process.env.PUBLIC_BASE_URL || `http://localhost:${Number(process.env.PORT) || 4000}`).replace(/\/$/, '')
 
   console.log(`\n=== Création inscrits manuels ${DRY_RUN ? '[DRY RUN]' : ''} ===`)
-  console.log(`Zone: ${ZONE} | Statut paiement: ${STATUS} | Base URL: ${baseUrl}\n`)
+  console.log(`Paiement: ${PAYMENT_MODE} (statut ${STATUS}) | Base URL: ${baseUrl}\n`)
 
   const created = []
 
   for (const raw of specs) {
-    const { passport, nom, prenom, email } = parseSpec(raw)
+    const s = parseSpec(raw)
 
-    const existing = await db.get(`SELECT id FROM registrations WHERE passport_num = ?`, [passport])
+    const existing = await db.get(`SELECT id FROM registrations WHERE passport_num = ?`, [s.passport])
     if (existing && existing.id) {
-      console.log(`⚠  passeport "${passport}" déjà présent (registration ${existing.id}) — ignoré`)
+      console.log(`⚠  passeport "${s.passport}" déjà présent (registration ${existing.id}) — ignoré`)
       continue
     }
 
     const registrationId = uuid()
-    const paymentId = uuid()
-    const badgeId = uuid()
     const token = newToken()
     const ts = nowIso()
+    const sig = signToken(token)
+    const badgeUrl = `${baseUrl}/v1/badge?token=${encodeURIComponent(token)}&sig=${encodeURIComponent(sig)}`
+    const pdfUrl = `${baseUrl}/v1/badge/pdf?token=${encodeURIComponent(token)}&sig=${encodeURIComponent(sig)}`
 
-    console.log(`+ ${prenom} ${nom} | passeport ${passport} | reg ${registrationId}`)
+    console.log(`+ ${s.prenom} ${s.nom} | ${s.passport} | ${s.sexe} | ${s.zone} | ${s.nationaliteAutre || s.nationalite}`)
+    console.log(`  reg   : ${registrationId}`)
+    console.log(`  badge : ${badgeUrl}`)
 
-    if (DRY_RUN) {
-      const sig = signToken(token)
-      console.log(`  badge : ${baseUrl}/v1/badge?token=${encodeURIComponent(token)}&sig=${encodeURIComponent(sig)}`)
-      continue
-    }
+    if (DRY_RUN) continue
 
     await insertRow(db, 'registrations', regCols, {
       id: registrationId, created_at: ts, updated_at: ts,
-      prenom, nom, sexe: 'NA', adresse: 'NA', ville: 'NA',
+      prenom: s.prenom, nom: s.nom, sexe: s.sexe, adresse: 'NA', ville: 'NA',
       pays_iso2: 'DZ', phone_country_iso2: 'DZ', phone_number: 'NA', phone_e164: null,
-      email, nationalite: 'NA', nationalite_autre: null,
-      residence_zone: ZONE, moto_modele: null,
-      profil: 'Invité', profil_groupe: null,
-      hebergement: '', taille_tshirt: 'NA', paiement_mode: 'manual',
-      permis_num: 'NA', immatriculation: 'NA', passport_num: passport,
+      email: s.email, nationalite: s.nationalite, nationalite_autre: s.nationaliteAutre,
+      residence_zone: s.zone, moto_modele: null,
+      profil: 'Solo', profil_groupe: null,
+      hebergement: '', taille_tshirt: 'NA', paiement_mode: PAYMENT_MODE,
+      permis_num: 'NA', immatriculation: 'NA', passport_num: s.passport,
     })
 
     await insertRow(db, 'payments', payCols, {
-      id: paymentId, registration_id: registrationId, status: STATUS,
-      amount_cents: null, currency: null, method: 'manual', reference: null,
+      id: uuid(), registration_id: registrationId, status: STATUS,
+      amount_cents: null, currency: null, method: PAYMENT_METHOD, reference: null,
       updated_at: ts, updated_by: 'manual-script',
     })
 
     await insertRow(db, 'badges', badgeCols, {
-      id: badgeId, registration_id: registrationId, token, issued_at: ts,
+      id: uuid(), registration_id: registrationId, token, issued_at: ts,
     })
 
-    const sig = signToken(token)
-    const badgeUrl = `${baseUrl}/v1/badge?token=${encodeURIComponent(token)}&sig=${encodeURIComponent(sig)}`
-    const pdfUrl = `${baseUrl}/v1/badge/pdf?token=${encodeURIComponent(token)}&sig=${encodeURIComponent(sig)}`
-    created.push({ prenom, nom, passport, registrationId, badgeUrl, pdfUrl })
-    console.log(`  badge : ${badgeUrl}`)
+    created.push({ ...s, registrationId, badgeUrl, pdfUrl })
     console.log(`  pdf   : ${pdfUrl}`)
   }
 
   console.log(`\n=== Terminé : ${created.length} inscrit(s) créé(s) ===`)
   for (const c of created) {
-    console.log(`- ${c.prenom} ${c.nom} (${c.passport})\n    ${c.badgeUrl}`)
+    console.log(`- ${c.prenom} ${c.nom} (${c.passport})\n    badge : ${c.badgeUrl}\n    pdf   : ${c.pdfUrl}`)
   }
   console.log()
   process.exit(0)
