@@ -21,7 +21,7 @@ export const messages: Record<Lang, Msg> = {
       ctaRegister: 'Inscrivez-vous',
       ctaDiscover: "Découvrir l’événement",
       stats: [
-        { v: '1 580', l: 'Kilomètres de route' },
+        { v: '1 510', l: 'Kilomètres de route' },
         { v: '4', l: "Jours d’aventure" },
         { v: '29 Oct', l: 'Date de départ' },
         { v: '1ère', l: 'Fois en Algérie' },
@@ -207,7 +207,7 @@ export const messages: Record<Lang, Msg> = {
       ctaRegister: 'Register',
       ctaDiscover: 'Discover the event',
       stats: [
-        { v: '1,580', l: 'Kilometers on the road' },
+        { v: '1,510', l: 'Kilometers on the road' },
         { v: '4', l: 'Days of adventure' },
         { v: 'Oct 29', l: 'Departure date' },
         { v: '1st', l: 'Time in Algeria' },
@@ -393,7 +393,7 @@ export const messages: Record<Lang, Msg> = {
       ctaRegister: 'سجّل الآن',
       ctaDiscover: 'اكتشف الحدث',
       stats: [
-        { v: '1580', l: 'كم على الطريق' },
+        { v: '1510', l: 'كم على الطريق' },
         { v: '4', l: 'أيام من المغامرة' },
         { v: '29 أكتوبر', l: 'تاريخ الانطلاق' },
         { v: 'الأولى', l: 'في الجزائر' },

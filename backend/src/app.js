@@ -2073,7 +2073,7 @@ function buildBadgeHtml({ prenom, nom, email, passportNum, zone, issuedDate, bad
           <div class="cell"><div class="clabel">Passeport</div><div class="cval">${h(passportNum)}</div></div>
           <div class="cell"><div class="clabel">Émis le</div><div class="cval">${h(issuedDate)}</div></div>
           <div class="cell"><div class="clabel">Dates</div><div class="cval">29 Oct — 1 Nov</div></div>
-          <div class="cell"><div class="clabel">Distance</div><div class="cval">1 580 km</div></div>
+          <div class="cell"><div class="clabel">Distance</div><div class="cval">1 510 km</div></div>
         </div>
       </div>
       <div class="qr-section">
@@ -2179,7 +2179,7 @@ async function buildBadgePdf({ prenom, nom, passportNum, zone, issuedDate, badge
       { label: 'PASSEPORT', val: String(passportNum || '—') },
       { label: 'ÉMIS LE', val: String(issuedDate || '—') },
       { label: 'DATES', val: '29 Oct — 1 Nov' },
-      { label: 'DISTANCE', val: '1 580 km' },
+      { label: 'DISTANCE', val: '1 510 km' },
     ]
     cells.forEach((cell, i) => {
       const col = i % 2

@@ -39,7 +39,7 @@ const notoKufiArabic = Noto_Kufi_Arabic({
 
 export const metadata: Metadata = {
   title: { default: 'Algeria H.O.G.® Tour 2026 Algeria', template: '%s | Algeria H.O.G.® Tour 2026' },
-  description: "Première édition du HOG Tour en Algérie. Alger → Ghardaïa, 1 580 km, 4 jours. 29 oct — 1er nov 2026.",
+  description: "Première édition du HOG Tour en Algérie. Alger → Ghardaïa, 1 510 km, 4 jours. 29 oct — 1er nov 2026.",
 }
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
