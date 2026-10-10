@@ -31,6 +31,11 @@ function person(row, role, record = {}, payment = {}) {
     accommodation: row.hebergement,
     group: row.profil_groupe || row.profil || '',
     paymentStatus: payment.status || 'unknown',
+    // Tous les participants reglent a l'accueil : l'agent a besoin du montant,
+    // pas d'un avertissement.
+    paymentMethod: payment.method || '',
+    amountCents: Number.isFinite(Number(payment.amount_cents)) ? Number(payment.amount_cents) : null,
+    currency: payment.currency || '',
     revision: Number(record.revision || 0), checks,
     hotelName: record.hotel_name || '', roomNumber: record.room_number || '',
   }
@@ -40,7 +45,7 @@ async function snapshot(db = null) {
   const rows = await db.all('SELECT id, prenom, nom, passport_num, residence_zone, nationalite, pays_iso2, taille_tshirt, hebergement, profil_groupe, profil, partner_info FROM registrations ORDER BY nom, prenom, id')
   const records = await db.all('SELECT * FROM checkin_records')
   // Plusieurs paiements possibles : statut du dernier, ordre déterministe.
-  const payments = await db.all('SELECT registration_id, status FROM payments ORDER BY updated_at DESC, id DESC')
+  const payments = await db.all('SELECT registration_id, status, method, amount_cents, currency FROM payments ORDER BY updated_at DESC, id DESC')
   const recordMap = new Map(records.map(r => [`${r.registration_id}:${r.person_role}`, r]))
   const paymentMap = new Map()
   for (const p of payments) if (!paymentMap.has(p.registration_id)) paymentMap.set(p.registration_id, p)
@@ -62,7 +67,7 @@ async function getPerson(id, db = null) {
   const row = await db.get('SELECT * FROM registrations WHERE id = ?', [registrationId])
   if (!row) throw fault(404, 'not_found', 'Inscription introuvable.')
   const record = await db.get('SELECT * FROM checkin_records WHERE registration_id = ? AND person_role = ?', [registrationId, role])
-  const payment = await db.get('SELECT status FROM payments WHERE registration_id = ? ORDER BY updated_at DESC, id DESC LIMIT 1', [registrationId])
+  const payment = await db.get('SELECT status, method, amount_cents, currency FROM payments WHERE registration_id = ? ORDER BY updated_at DESC, id DESC LIMIT 1', [registrationId])
   const value = person(row, role, record || {}, payment || {})
   if (!value) throw fault(404, 'not_found', 'Accompagnant introuvable.')
   return value
@@ -118,7 +123,6 @@ async function act(id, body, staff) {
     }
     if (p.revision !== body.revision) throw fault(409, 'stale_revision', 'La fiche a changé sur un autre appareil. Actualise-la avant de confirmer.')
     if (['cancelled', 'refunded'].includes(p.paymentStatus)) throw fault(409, 'payment_blocked', 'Inscription annulée ou remboursée. Consulte le responsable.')
-    if (p.paymentStatus !== 'paid' && body.acknowledgePayment !== true) throw fault(409, 'payment_ack_required', 'Le paiement n’est pas confirmé. Une validation explicite de l’équipe est nécessaire.')
     if (action === 'ghardaia' && !p.checks.alger) throw fault(409, 'alger_required', 'Le check-in à Alger doit être enregistré en premier.')
     if (['kit', 'hotel'].includes(action) && !p.checks.ghardaia) throw fault(409, 'ghardaia_required', 'Enregistre d’abord l’arrivée à Ghardaïa.')
     if (!p.revision) await db.run('INSERT INTO checkin_records (registration_id, person_role, revision) VALUES (?, ?, 0)', [registrationId, role])
@@ -130,7 +134,7 @@ async function act(id, body, staff) {
     params.push(registrationId, role)
     await db.run(sql, params)
     await db.run(`INSERT INTO checkin_events (id, registration_id, person_role, action, occurred_at, staff_username, staff_name, detail_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [randomUUID(), registrationId, role, action, at, staff.username, staff.name, JSON.stringify({ paymentStatus: p.paymentStatus, paymentAcknowledged: body.acknowledgePayment === true, ...(action === 'hotel' ? { hotelName, roomNumber } : {}) })])
+      [randomUUID(), registrationId, role, action, at, staff.username, staff.name, JSON.stringify({ paymentStatus: p.paymentStatus, paymentMethod: p.paymentMethod, amountCents: p.amountCents, ...(action === 'hotel' ? { hotelName, roomNumber } : {}) })])
     return { participant: await getPerson(id, db), alreadyDone: false }
   })
 }

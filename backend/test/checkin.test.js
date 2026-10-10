@@ -100,9 +100,10 @@ test('versions périmées, kit unique et installation hôtel', async () => {
   assert.equal((await request('POST', `/participants/${primary}/actions`, { ...body, roomNumber: '205' })).body.error, 'hotel_already_assigned')
   assert.equal((await request('GET', `/participants/${primary}`)).body.history.length, 4)
 })
-test('paiements : confirmation explicite et blocage annulations', async () => {
-  assert.equal((await request('POST', `/participants/${pending}/actions`, { action: 'alger', revision: 0 })).body.error, 'payment_ack_required')
-  assert.equal((await request('POST', `/participants/${pending}/actions`, { action: 'alger', revision: 0, acknowledgePayment: true })).status, 200)
+test('paiements : accueil sur place autorisé, blocage des annulations', async () => {
+  // Tout le monde regle a l'accueil : un paiement non encaisse n'empeche pas
+  // d'accueillir. Seule une inscription annulee ou remboursee bloque.
+  assert.equal((await request('POST', `/participants/${pending}/actions`, { action: 'alger', revision: 0 })).status, 200)
   assert.equal((await request('POST', `/participants/${cancelled}/actions`, { action: 'alger', revision: 0, acknowledgePayment: true })).body.error, 'payment_blocked')
 })
 test('recherche, pagination, tableaux de bord et absence de secrets dans les réponses', async () => {
