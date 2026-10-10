@@ -3,6 +3,7 @@ const path = require('path')
 
 let sqliteDbPromise
 let mysqlPoolPromise
+let sqliteTransactionTail = Promise.resolve()
 
 function driver() {
   return String(process.env.DB_DRIVER || 'sqlite').toLowerCase()
@@ -19,7 +20,10 @@ async function getSqliteDb() {
   if (!sqliteDbPromise) {
     const sqlite3 = require('sqlite3')
     const { open } = require('sqlite')
-    sqliteDbPromise = open({ filename: getDbPath(), driver: sqlite3.Database })
+    sqliteDbPromise = open({ filename: getDbPath(), driver: sqlite3.Database }).then(async db => {
+      await db.exec('PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 15000; PRAGMA foreign_keys = ON;')
+      return db
+    })
   }
   return sqliteDbPromise
 }
@@ -343,16 +347,28 @@ async function withTransaction(fn) {
     }
   }
 
-  const sqlite = await getSqliteDb()
-  const tx = wrapSqlite(sqlite)
-  await sqlite.exec('BEGIN')
+  // Connexion dédiée : une requête concurrente ne rejoint jamais une transaction ouverte.
+  const sqlite3 = require('sqlite3')
+  const { open } = require('sqlite')
+  // Sérialisation locale pour éviter de saturer les threads sqlite3 en attente de verrou.
+  const previous = sqliteTransactionTail
+  let release
+  sqliteTransactionTail = new Promise(resolve => { release = resolve })
+  await previous
+  let sqlite
   try {
+    sqlite = await open({ filename: getDbPath(), driver: sqlite3.Database })
+    const tx = wrapSqlite(sqlite)
+    await sqlite.exec('PRAGMA busy_timeout = 15000; PRAGMA foreign_keys = ON;')
+    await sqlite.exec('BEGIN IMMEDIATE')
     const out = await fn(tx)
     await sqlite.exec('COMMIT')
     return out
   } catch (e) {
-    try { await sqlite.exec('ROLLBACK') } catch {}
+    try { if (sqlite) await sqlite.exec('ROLLBACK') } catch {}
     throw e
+  } finally {
+    try { if (sqlite) await sqlite.close() } finally { release() }
   }
 }
 

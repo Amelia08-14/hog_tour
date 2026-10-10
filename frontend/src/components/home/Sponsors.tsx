@@ -21,6 +21,12 @@ const sponsors = [
     width: 1336,
     height: 228,
   },
+  {
+    src: '/sponsors/logo_jsm.png',
+    alt: 'JSM – Solution Smart Marketing & Com',
+    width: 961,
+    height: 630,
+  },
 ]
 
 export function OfficialCarrierStrip({ lang }: { lang: Lang }) {
@@ -75,7 +81,7 @@ export function SponsorsSection({ lang }: { lang: Lang }) {
                 alt={sponsor.alt}
                 width={sponsor.width}
                 height={sponsor.height}
-                sizes="(max-width: 767px) 88vw, 30vw"
+                sizes="(max-width: 767px) 88vw, 23vw"
                 className="sponsor-card-logo"
               />
               <span className="sponsor-card-corner sponsor-card-corner-bottom" aria-hidden="true" />

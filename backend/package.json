@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon src/server.js",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "test:checkin": "node --test test/checkin.test.js",
+    "checkin:user": "node scripts/create-checkin-user.js"
   },
   "keywords": [],
   "author": "",

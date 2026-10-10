@@ -3,6 +3,7 @@
 **/.turbo/
 **/dist/
 **/*.log
+/HOG_ALGERIA_TOUR_app
 
 **/.env
 **/.env.*

@@ -9,6 +9,8 @@ const { sendMail } = require('./mailer')
 const { writeRegistrationFiles, deleteStoredFiles, resolveStoragePath } = require('./uploads')
 const { ensureCustomer, listPaymentMethods, createPaymentIntent, proceedIntent, checkIntent } = require('./yassir')
 const { iso2ToIso3 } = require('./iso3166')
+const { createCheckinRouter } = require('./checkin/router')
+const { initCheckinDbSafe } = require('./checkin/schema')
 
 const multer = (() => {
   try { return require('multer') } catch { return null }
@@ -349,6 +351,8 @@ function createApp() {
 
   app.use(cors())
   app.use(express.json({ limit: '2mb' }))
+
+  app.use('/v1/checkin', createCheckinRouter())
 
   app.get('/health', (req, res) => res.json({ ok: true }))
 
@@ -2511,6 +2515,7 @@ function buildConfirmationEmailHtml({ prenom, fullName, registrationId, mode, pa
 
 async function createStartedApp() {
   await initDb()
+  await initCheckinDbSafe()
   return createApp()
 }
 

@@ -267,7 +267,7 @@
 .sponsors-inner { position: relative; max-width: 1280px; margin: 0 auto; }
 .sponsors-heading { margin-bottom: clamp(36px, 5vw, 64px); }
 .sponsors-title { font-size: clamp(42px, 6vw, 76px); line-height: .95; letter-spacing: .02em; }
-.sponsors-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.sponsors-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
 .sponsor-card {
   position: relative;
   min-height: 260px;
