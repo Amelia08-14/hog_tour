@@ -27,27 +27,69 @@ const sponsors = [
     width: 961,
     height: 630,
   },
+  {
+    src: '/sponsors/krosti.png',
+    alt: 'Krosti',
+    width: 702,
+    height: 210,
+  },
+  {
+    src: '/sponsors/cophyd.png',
+    alt: 'COPHYD',
+    width: 372,
+    height: 210,
+  },
 ]
 
 export function OfficialCarrierStrip({ lang }: { lang: Lang }) {
-  const label = t(lang, 'home.officialCarrier') as string
+  const carrier = t(lang, 'home.officialCarrier') as string
+  const partner = t(lang, 'home.officialPartner') as string
+
+  // Chaque partenaire porte son propre intitulé : « Transporteur Officiel »
+  // appartient à Algérie Ferries, les autres sont partenaires du tour.
+  const marquee = [
+    {
+      src: '/sponsors/algerie_ferie_horizontal.png',
+      alt: 'Algérie Ferries',
+      width: 1268,
+      height: 449,
+      label: carrier,
+    },
+    {
+      src: '/sponsors/krosti.png',
+      alt: 'Krosti',
+      width: 702,
+      height: 210,
+      label: partner,
+    },
+    {
+      src: '/sponsors/cophyd.png',
+      alt: 'COPHYD',
+      width: 372,
+      height: 210,
+      label: partner,
+    },
+  ]
+  // La bande défile en translatant d'un groupe : chaque groupe doit être au
+  // moins aussi large que l'écran, sinon un vide apparaît à droite.
+  const pass = [...marquee, ...marquee]
 
   return (
-    <section className="sponsor-marquee" aria-label={label}>
+    <section className="sponsor-marquee" aria-label={`${carrier} · ${partner}`}>
       <div className="sponsor-marquee-track">
         {[0, 1].map((group) => (
           <div className="sponsor-marquee-group" aria-hidden={group === 1} key={group}>
-            {[0, 1, 2].map((item) => (
-              <div className="sponsor-marquee-item" key={item}>
+            {pass.map((sponsor, index) => (
+              <div className="sponsor-marquee-item" key={`${sponsor.src}-${index}`}>
                 <Image
-                  src="/sponsors/algerie_ferie_horizontal.png"
-                  alt={group === 0 && item === 0 ? 'Algérie Ferries' : ''}
-                  width={1268}
-                  height={449}
+                  src={sponsor.src}
+                  alt={group === 0 && index < marquee.length ? sponsor.alt : ''}
+                  width={sponsor.width}
+                  height={sponsor.height}
                   className="sponsor-marquee-logo"
                 />
                 <span className="sponsor-marquee-dot" aria-hidden="true" />
-                <span className="sponsor-marquee-label font-condensed">{label}</span>
+                <span className="sponsor-marquee-label font-condensed">{sponsor.label}</span>
                 <span className="sponsor-marquee-separator" aria-hidden="true">•</span>
               </div>
             ))}

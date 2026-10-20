@@ -209,7 +209,9 @@
 .sponsor-marquee-track {
   display: flex;
   width: max-content;
-  animation: sponsorMarquee 28s linear infinite;
+  /* 3 partenaires au lieu d'un seul logo repete : la bande est deux fois
+     plus longue, la duree suit pour garder la meme vitesse a l'ecran. */
+  animation: sponsorMarquee 48s linear infinite;
   will-change: transform;
 }
 .sponsor-marquee:hover .sponsor-marquee-track { animation-play-state: paused; }
@@ -221,8 +223,11 @@
 }
 .sponsor-marquee-item { gap: clamp(16px, 2.2vw, 36px); }
 .sponsor-marquee-logo {
-  width: clamp(150px, 14vw, 220px);
+  /* Largeur libre a hauteur constante : chaque logo garde ses proportions
+     au lieu d'etre enferme dans une boite commune. */
   height: 70px;
+  width: auto;
+  max-width: clamp(150px, 17vw, 250px);
   object-fit: contain;
 }
 .sponsor-marquee-label {
@@ -267,7 +272,12 @@
 .sponsors-inner { position: relative; max-width: 1280px; margin: 0 auto; }
 .sponsors-heading { margin-bottom: clamp(36px, 5vw, 64px); }
 .sponsors-title { font-size: clamp(42px, 6vw, 76px); line-height: .95; letter-spacing: .02em; }
-.sponsors-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+/* Six partenaires : 3 colonnes remplissent deux rangees pleines, la ou 4
+   colonnes laisseraient une seconde rangee a moitie vide. */
+.sponsors-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (min-width: 768px) and (max-width: 1023px) {
+  .sponsors-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 .sponsor-card {
   position: relative;
   min-height: 260px;
