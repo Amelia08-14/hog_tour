@@ -7,4 +7,5 @@ data/*.sqlite*
 node_modules/
 
 config/checkin-users.json
-data/demo-badges.html
+# Pieces d'identite des participants : jamais sur GitHub.
+uploads/
