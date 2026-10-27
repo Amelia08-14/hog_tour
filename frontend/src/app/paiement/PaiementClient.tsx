@@ -11,13 +11,22 @@ type Info = {
   currency: string
   paymentStatus: string
   paymentMethod: string
+  hogMember?: boolean
+  hogOptions?: HogOption[]
+}
+
+// Grille membres du H.O.G Algérie, fournie par le serveur (source unique des tarifs).
+type HogOption = { value: string; room: string; occupancy: string; persons: number; roomCents: number; perPersonCents: number }
+type Accommodation = {
+  value: string; labelDzd: string; labelEur: string; labelEspt: string; desc: string
+  localOK: boolean; abroadOK: boolean; esptOK: boolean
 }
 
 type PaymentMethod = { code: string; name: string; id: string }
 type Step = 'accommodation' | 'payment'
 
 // localOK = Algérie/Lybie/Tunisie (DZD) · abroadOK = Ailleurs (EUR) · esptOK = Espagne/Portugal (EUR)
-const ACCOMMODATIONS = [
+const ACCOMMODATIONS: Accommodation[] = [
   { value: 'Chambre simple',          labelDzd: '75 000 DA',          labelEur: '960 €',  labelEspt: '920 €',  desc: 'Pension complète — 1 personne, chambre individuelle', localOK: true,  abroadOK: true,  esptOK: true },
   { value: 'Chambre double — Motard', labelDzd: '65 000 DA / motard', labelEur: '880 € / motard', labelEspt: '880 € / motard', desc: 'Pension complète — 2 motards, chambre partagée', localOK: true,  abroadOK: true,  esptOK: false },
   { value: 'Chambre double couple',   labelDzd: '125 000 DA',         labelEur: '1 740 €', labelEspt: '1 640 €', desc: 'Pension complète — couple, 1 moto',  localOK: true,  abroadOK: true,  esptOK: true },
@@ -133,19 +142,27 @@ export default function PaiementClient() {
   const isAbroad = isAilleurs || isEspPt   // paie en EUR + formulaire partenaire
 
   // Devise/label de prix selon la zone
-  function priceLabelFor(o: typeof ACCOMMODATIONS[number]) {
+  function priceLabelFor(o: Accommodation) {
     if (isEspPt) return o.labelEspt
     if (isLocal) return o.labelDzd
     return o.labelEur
   }
 
+  // Un membre H.O.G résidant sur place ne voit que sa grille.
+  const hogMember = !!info?.hogMember && isLocal && (info.hogOptions?.length ?? 0) > 0
   const accommodationOptions = useMemo(() => {
-    const base = ACCOMMODATIONS.filter(o =>
-      isEspPt ? o.esptOK : isLocal ? o.localOK : o.abroadOK,
-    )
+    const base: Accommodation[] = hogMember
+      ? (info?.hogOptions ?? []).map(o => ({
+          value: o.value,
+          labelDzd: o.persons > 1 ? `${formatAmount(o.perPersonCents, 'DZD')} / motard` : formatAmount(o.roomCents, 'DZD'),
+          labelEur: '', labelEspt: '',
+          desc: `Pension complète — ${o.room}, ${o.occupancy.toLowerCase()}${o.persons > 1 ? ` · ${formatAmount(o.roomCents, 'DZD')} la chambre, partagée` : ''}`,
+          localOK: true, abroadOK: false, esptOK: false,
+        }))
+      : ACCOMMODATIONS.filter(o => (isEspPt ? o.esptOK : isLocal ? o.localOK : o.abroadOK))
     if (isTestMode) base.push({ value: 'Pack test', labelDzd: '500 DA', labelEur: '1 €', labelEspt: '1 €', desc: 'Test', localOK: true, abroadOK: true, esptOK: true })
     return base
-  }, [isTestMode, isLocal, isEspPt, isAilleurs])
+  }, [isTestMode, isLocal, isEspPt, isAilleurs, hogMember, info?.hogOptions])
 
   const partnerRequired = isAbroad && needsSecondPerson(selectedAccommodation)
 
@@ -299,6 +316,12 @@ export default function PaiementClient() {
               <p className="text-muted text-[13px] mb-6">
                 Bonjour <span className="text-htext font-semibold">{info.prenom} {info.nom}</span> — choisissez votre hébergement pour voir le montant à régler.
               </p>
+            )}
+            {hogMember && (
+              <div className="mb-4 border border-orange/30 bg-bg3 px-4 py-3 text-[12px] text-htext leading-relaxed">
+                <span className="text-orange font-semibold tracking-wide uppercase text-[11px]">Tarifs membres H.O.G Algérie</span>
+                <span className="block text-muted mt-1">Une pièce justificative de votre adhésion au H.O.G Algérie pourra vous être demandée à l’accueil.</span>
+              </div>
             )}
             <div className="flex flex-col gap-3">
               {accommodationOptions.map(opt => {

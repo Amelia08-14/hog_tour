@@ -17,6 +17,7 @@ const CSV_COLUMNS = [
   { key: 'adresse', label: 'Adresse' }, { key: 'ville', label: 'Ville' },
   { key: 'nationalite', label: 'Nationalité' }, { key: 'residence_zone', label: 'Résidence' },
   { key: 'profil', label: 'Profil' }, { key: 'profil_groupe', label: 'Groupe' },
+  { key: 'hog_member', label: 'Membre H.O.G (1=oui)' },
   { key: 'hebergement', label: 'Hébergement' }, { key: 'taille_tshirt', label: 'T-shirt' },
   { key: 'paiement_mode', label: 'Mode paiement' }, { key: 'permis_num', label: 'Permis' },
   { key: 'immatriculation', label: 'Immatriculation' }, { key: 'passport_num', label: 'Passeport' },
@@ -30,6 +31,7 @@ const CSV_COLUMNS = [
 function normHeb(h: any): string {
   const s = String(h || '').toLowerCase().trim()
   if (!s || s === 'undefined') return ''
+  if (s.startsWith('hog')) return String(h)
   if (s.includes('motard')) return 'Chambre double — Motard'
   if (s.includes('couple')) return 'Chambre double couple'
   if (s.includes('simple')) return 'Chambre simple'
@@ -723,6 +725,7 @@ export default function AdminPage() {
                     ['Résidence', details.registration?.residence_zone],
                     ['Modèle moto', details.registration?.moto_modele],
                     ['Profil', details.registration?.profil_groupe ? `Groupe — ${details.registration.profil_groupe}` : details.registration?.profil],
+                    ['Membre H.O.G Algérie', Number(details.registration?.hog_member) ? 'Oui — tarifs membres' : ''],
                     ['Taille', details.registration?.taille_tshirt],
                     ['Permis', details.registration?.permis_num],
                     ['Immatriculation', details.registration?.immatriculation],

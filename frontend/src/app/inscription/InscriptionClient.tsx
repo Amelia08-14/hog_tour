@@ -10,6 +10,7 @@ const V = {
   nationalite: { dz: 'Algérienne', autre: 'Autre' },
   residence: { dz: 'Algérie', lby: 'Lybie', tun: 'Tunisie', esp: 'Espagne / Portugal', ailleurs: 'Ailleurs' },
   profil: { solo: 'Solo', groupe: "Membre d'un groupe de Motards" },
+  hog: { oui: 'Oui', non: 'Non' },
 } as const
 
 export default function InscriptionClient({ lang }: { lang: Lang }) {
@@ -26,6 +27,7 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
   const [motoModele, setMotoModele] = useState('')
   const [profil, setProfil] = useState('')
   const [profilGroupe, setProfilGroupe] = useState('')
+  const [hogMember, setHogMember] = useState('')
   const [taille, setTaille] = useState('')
   const [hasPermisFile, setHasPermisFile] = useState(false)
   const [hasCarteFile, setHasCarteFile] = useState(false)
@@ -43,6 +45,7 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
   }, [])
 
   const ON_SITE_ZONES = [V.residence.dz, V.residence.lby, V.residence.tun]
+  const isHog = hogMember === V.hog.oui
 
   // Bloqué si résident Algérie sans Harley-Davidson
   const blocked = residenceZone === V.residence.dz && harley === 'Non'
@@ -102,6 +105,7 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
     if (!nationalite) missingState.push(String(t(lang, 'registration.fields.nationality')))
     if (!residenceZone) missingState.push(String(t(lang, 'registration.fields.residence')))
     if (!profil) missingState.push(String(t(lang, 'registration.fields.profile')))
+    if (!hogMember) missingState.push(String(t(lang, 'registration.fields.hogMember')))
     if (!taille) missingState.push(String(t(lang, 'registration.fields.tshirtSize')))
     if (!pays) missingState.push(String(t(lang, 'registration.fields.country')))
 
@@ -120,7 +124,8 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
       return
     }
 
-    if (profil === V.profil.groupe && !profilGroupe.trim()) {
+    // Un membre du H.O.G Algérie n'a pas de groupe à préciser : le H.O.G est son groupe.
+    if (profil === V.profil.groupe && !isHog && !profilGroupe.trim()) {
       setError(String(t(lang, 'registration.errors.specifyGroup')))
       return
     }
@@ -144,7 +149,8 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
       harleyOwner: residenceZone === V.residence.dz ? harley : 'Oui',
       motoModele: residenceZone === V.residence.dz && harley === 'Oui' ? motoModele.trim() : '',
       profil,
-      profilGroupe: profil === V.profil.groupe ? profilGroupe.trim() : '',
+      profilGroupe: profil === V.profil.groupe && !isHog ? profilGroupe.trim() : '',
+      hogMember: isHog ? 'Oui' : 'Non',
       tailleTshirt: taille,
       paiementMode: paiement || (ON_SITE_ZONES.includes(residenceZone as typeof V.residence.dz) ? 'on_site' : residenceZone ? 'online_yassir' : ''),
       permisNum: String(fd.get('permis') || '').trim(),
@@ -237,6 +243,7 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
       if (payload.motoModele) out.set('motoModele', payload.motoModele)
       out.set('profil', payload.profil)
       if (payload.profilGroupe) out.set('profilGroupe', payload.profilGroupe)
+      out.set('hogMember', payload.hogMember)
       out.set('tailleTshirt', payload.tailleTshirt)
       out.set('paiementMode', payload.paiementMode)
       out.set('permisNum', payload.permisNum)
@@ -274,7 +281,7 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
             prenom: 'prénom', nom: 'nom', sexe: 'sexe', adresse: 'adresse', ville: 'ville',
             paysIso2: 'pays', phoneNumber: 'téléphone', email: 'email', nationalite: 'nationalité',
             nationaliteAutre: 'précision de nationalité', residenceZone: 'lieu de résidence',
-            profil: 'profil', profilGroupe: 'nom du groupe', tailleTshirt: 'taille de t-shirt',
+            profil: 'profil', profilGroupe: 'nom du groupe', hogMember: 'membre H.O.G', tailleTshirt: 'taille de t-shirt',
             permisNum: 'numéro de permis', immatriculation: 'immatriculation', passportNum: 'numéro de passeport',
           }
           const human = fields.map(f => labelFor[f] || f)
@@ -561,7 +568,14 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
                       <CB value={V.profil.groupe} label={String(t(lang, 'registration.options.profileGroup'))} state={profil} set={setProfil} />
                     </div>
                   </G>
-                  {profil === V.profil.groupe && (
+                  <G label={`${t(lang, 'registration.fields.hogMember')} *`}>
+                    <div className="flex gap-5 flex-wrap">
+                      <CB value={V.hog.oui} label={String(t(lang, 'registration.options.hogYes'))} state={hogMember} set={setHogMember} />
+                      <CB value={V.hog.non} label={String(t(lang, 'registration.options.hogNo'))} state={hogMember} set={setHogMember} />
+                    </div>
+                    {isHog && <p className="text-muted text-[13px] leading-relaxed">{String(t(lang, 'registration.fields.hogMemberHint'))}</p>}
+                  </G>
+                  {profil === V.profil.groupe && !isHog && (
                     <F
                       id="profil-groupe"
                       label={String(t(lang, 'registration.fields.specify'))}

@@ -10,6 +10,7 @@ const { writeRegistrationFiles, deleteStoredFiles, resolveStoragePath } = requir
 const { ensureCustomer, listPaymentMethods, createPaymentIntent, proceedIntent, checkIntent } = require('./yassir')
 const { iso2ToIso3 } = require('./iso3166')
 const { createCheckinRouter } = require('./checkin/router')
+const { HOG_TARIFFS, isHogTariff, hogTariff } = require('./tariffs')
 const { initCheckinDbSafe } = require('./checkin/schema')
 
 const multer = (() => {
@@ -69,7 +70,21 @@ function needsFullMotoHebergement(h) {
   return isTwoMotosHebergement(h) || isDoubleMotardHebergement(h)
 }
 
-function hebergementPrice(hebergement, residenceZone) {
+// Membre du H.O.G Algérie : grille spécifique, en DZD, pour les zones payant sur place.
+function isHogMemberValue(v) {
+  return ['1', 'true', 'yes', 'oui'].includes(String(v == null ? '' : v).toLowerCase().trim())
+}
+function hebergementAllowed(hebergement, residenceZone, hogMember) {
+  const onSite = ON_SITE_ZONES.includes(String(residenceZone || ''))
+  if (isHogTariff(hebergement)) return !!hogMember && onSite
+  // Un membre H.O.G résidant sur place ne choisit que dans sa grille ; « Pack test » reste un outil interne.
+  if (hogMember && onSite) return hebergement === 'Pack test'
+  return !!HEBERGEMENT_PRICES[hebergement]
+}
+
+function hebergementPrice(hebergement, residenceZone, hogMember = false) {
+  const hog = hogTariff(hebergement)
+  if (hog) return hogMember && ON_SITE_ZONES.includes(String(residenceZone || '')) ? { amountCents: hog.perPersonCents, currency: 'DZD' } : null
   const prices = HEBERGEMENT_PRICES[hebergement]
   if (!prices) return null
   const zone = String(residenceZone || '')
@@ -389,7 +404,9 @@ function createApp() {
       if (body.nationalite === 'Autre' && (!body.nationaliteAutre || String(body.nationaliteAutre).trim() === '')) {
         return res.status(400).json({ error: 'missing_fields', fields: ['nationaliteAutre'] })
       }
-      if (body.profil === "Membre d'un groupe de Motards" && (!body.profilGroupe || String(body.profilGroupe).trim() === '')) {
+      const hogMember = isHogMemberValue(body.hogMember)
+      // Un membre du H.O.G Algérie n'a pas de groupe à préciser : le H.O.G est son groupe.
+      if (!hogMember && body.profil === "Membre d'un groupe de Motards" && (!body.profilGroupe || String(body.profilGroupe).trim() === '')) {
         return res.status(400).json({ error: 'missing_fields', fields: ['profilGroupe'] })
       }
 
@@ -461,7 +478,7 @@ function createApp() {
             residence_zone, moto_modele,
             profil, profil_groupe,
             hebergement, taille_tshirt, paiement_mode,
-            permis_num, immatriculation, passport_num
+            permis_num, immatriculation, passport_num, hog_member
           ) VALUES (
             ?, ?, ?,
             ?, ?, ?, ?, ?,
@@ -470,7 +487,7 @@ function createApp() {
             ?, ?,
             ?, ?,
             ?, ?, ?,
-            ?, ?, ?
+            ?, ?, ?, ?
           );`,
           [
             registrationId,
@@ -491,13 +508,14 @@ function createApp() {
             rz,
             motoModele || null,
             String(body.profil).trim(),
-            body.profilGroupe ? String(body.profilGroupe).trim() : null,
+            hogMember ? (body.profil === "Membre d'un groupe de Motards" ? 'H.O.G Algérie' : null) : (body.profilGroupe ? String(body.profilGroupe).trim() : null),
             '',
             String(body.tailleTshirt).trim(),
             derivedPaymentMode,
             permisV,
             immatV,
             passportNum,
+            hogMember ? 1 : 0,
           ],
         )
 
@@ -1092,12 +1110,12 @@ function createApp() {
       const db = await getDb()
       const row = paymentIdParam
         ? await db.get(
-            `SELECT r.prenom, r.nom, r.hebergement, r.residence_zone, p.id as payment_id, p.amount_cents, p.currency, p.status as payment_status, p.method
+            `SELECT r.prenom, r.nom, r.hebergement, r.residence_zone, r.hog_member, p.id as payment_id, p.amount_cents, p.currency, p.status as payment_status, p.method
              FROM payments p JOIN registrations r ON r.id = p.registration_id WHERE p.id = ?`,
             [paymentIdParam],
           )
         : await db.get(
-            `SELECT r.prenom, r.nom, r.hebergement, r.residence_zone, p.id as payment_id, p.amount_cents, p.currency, p.status as payment_status, p.method
+            `SELECT r.prenom, r.nom, r.hebergement, r.residence_zone, r.hog_member, p.id as payment_id, p.amount_cents, p.currency, p.status as payment_status, p.method
              FROM badges b
              JOIN registrations r ON r.id = b.registration_id
              JOIN payments p ON p.registration_id = r.id
@@ -1115,6 +1133,8 @@ function createApp() {
         currency: String(row.currency || 'EUR'),
         paymentStatus: String(row.payment_status || 'pending'),
         paymentMethod: String(row.method || ''),
+        hogMember: !!Number(row.hog_member),
+        hogOptions: Number(row.hog_member) && ON_SITE_ZONES.includes(String(row.residence_zone || '')) ? HOG_TARIFFS : [],
       })
     } catch (e) {
       return res.status(500).json({ error: 'server_error' })
@@ -1186,7 +1206,7 @@ function createApp() {
       const hebergement = typeof body.hebergement === 'string' ? body.hebergement.trim() : ''
       if (!paymentIdParam || !sig || !hebergement) return res.status(400).json({ error: 'missing_params' })
       if (!safeEqual(sig, signToken(paymentIdParam))) return res.status(401).json({ error: 'invalid_signature' })
-      if (!HEBERGEMENT_PRICES[hebergement]) return res.status(400).json({ error: 'invalid_hebergement' })
+      if (!HEBERGEMENT_PRICES[hebergement] && !isHogTariff(hebergement)) return res.status(400).json({ error: 'invalid_hebergement' })
 
       const db = await getDb()
       const row = await db.get(
@@ -1197,7 +1217,9 @@ function createApp() {
       if (!row) return res.status(404).json({ error: 'not_found' })
       if (row.payment_status === 'paid') return res.status(400).json({ error: 'already_paid' })
 
-      const pricing = hebergementPrice(hebergement, String(row.residence_zone || ''))
+      const hogMember = !!Number(row.hog_member)
+      if (!hebergementAllowed(hebergement, row.residence_zone, hogMember)) return res.status(400).json({ error: 'invalid_hebergement' })
+      const pricing = hebergementPrice(hebergement, String(row.residence_zone || ''), hogMember)
       if (!pricing) return res.status(400).json({ error: 'price_not_found' })
 
       // ── 2e personne : partenaire couple OU co-motard (étrangers uniquement) ──
@@ -1314,6 +1336,7 @@ function createApp() {
               residenceZone: String(row.residence_zone || ''),
               profil: String(row.profil || ''),
               profilGroupe: String(row.profil_groupe || ''),
+              hogMember: !!Number(row.hog_member),
               tailleTshirt: String(row.taille_tshirt || ''),
               permisNum: String(row.permis_num || ''),
               immatriculation: String(row.immatriculation || ''),
@@ -2235,7 +2258,7 @@ async function buildBadgePdf({ prenom, nom, passportNum, zone, issuedDate, badge
 function buildAdminRegistrationEmailHtml({
   prenom, nom, sexe, email, phoneCountryIso2, phoneNumber,
   adresse, ville, paysIso2, nationalite, nationaliteAutre,
-  residenceZone, profil, profilGroupe, tailleTshirt,
+  residenceZone, profil, profilGroupe, hogMember, tailleTshirt,
   permisNum, immatriculation, passportNum,
   derivedPaymentMode, hebergement, amountCents, currency,
   registrationId, baseUrl, files,
@@ -2315,6 +2338,7 @@ function buildAdminRegistrationEmailHtml({
       ${field('N° permis', permisNum)}
       ${field('Immatriculation', immatriculation)}
       ${field('Profil', profilDisplay)}
+      ${field('Membre H.O.G Algérie', hogMember ? 'Oui — tarifs membres' : '')}
       ${field('Taille T-shirt', tailleTshirt)}
       ${field('Mode paiement', payMode)}
       ${field('Hébergement', hebergementDisplay)}

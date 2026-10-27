@@ -1,6 +1,7 @@
 const { randomUUID } = require('node:crypto')
 const { getDb, withTransaction } = require('../db')
 const { signToken, safeEqual } = require('../security')
+const { hogTariff } = require('../tariffs')
 const FIELDS = ['alger', 'ghardaia', 'kit', 'hotel']
 const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9]+/g, ' ').trim().replace(/\s+/g, ' ')
 const passportKey = value => normalize(value).replace(/ /g, '')
@@ -29,6 +30,10 @@ function person(row, role, record = {}, payment = {}) {
     country: p?.nationalite || row.residence_zone || row.nationalite || row.pays_iso2,
     tshirt: p?.tailleTshirt || row.taille_tshirt,
     accommodation: row.hebergement,
+    // Membre du H.O.G Algérie (déclaré à l'inscription) : tarifs référentiels. Le
+    // tarif retenu, s'il existe, accompagne la fiche pour l'afficher à l'accueil.
+    hogMember: !!Number(row.hog_member),
+    hogTariff: hogTariff(row.hebergement),
     group: row.profil_groupe || row.profil || '',
     paymentStatus: payment.status || 'unknown',
     // Tous les participants reglent a l'accueil : l'agent a besoin du montant,
@@ -42,7 +47,7 @@ function person(row, role, record = {}, payment = {}) {
 }
 async function snapshot(db = null) {
   db = db || await getDb()
-  const rows = await db.all('SELECT id, prenom, nom, passport_num, residence_zone, nationalite, pays_iso2, taille_tshirt, hebergement, profil_groupe, profil, partner_info FROM registrations ORDER BY nom, prenom, id')
+  const rows = await db.all('SELECT id, prenom, nom, passport_num, residence_zone, nationalite, pays_iso2, taille_tshirt, hebergement, profil_groupe, profil, partner_info, hog_member FROM registrations ORDER BY nom, prenom, id')
   const records = await db.all('SELECT * FROM checkin_records')
   // Plusieurs paiements possibles : statut du dernier, ordre déterministe.
   const payments = await db.all('SELECT registration_id, status, method, amount_cents, currency FROM payments ORDER BY updated_at DESC, id DESC')

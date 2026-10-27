@@ -10,8 +10,10 @@ import type { Lang } from '@/i18n/shared'
 export default function Shell({ children, lang }: { children: ReactNode; lang: Lang }) {
   const pathname = usePathname() || ''
   const isAdmin = pathname === '/admin' || pathname.startsWith('/admin/')
+  // L'application d'accueil (/checkin) s'affiche seule, sans menu ni décor du site.
+  const isCheckin = pathname === '/checkin' || pathname.startsWith('/checkin/')
 
-  if (isAdmin) {
+  if (isAdmin || isCheckin) {
     return <main>{children}</main>
   }
 

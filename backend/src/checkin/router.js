@@ -3,6 +3,7 @@ const auth = require('./auth')
 const { getDb } = require('../db')
 const { snapshot, resolveQr, getPerson, act, FIELDS, normalize, fault, defaultHotel } = require('./service')
 const { checkinInitError } = require('./schema')
+const { HOG_TARIFFS } = require('../tariffs')
 function createCheckinRouter() {
   const router = express.Router()
   router.use((req, res, next) => { res.set('Cache-Control', 'no-store'); next() })
@@ -14,6 +15,8 @@ function createCheckinRouter() {
   router.use(auth.authenticate)
   router.post('/auth/logout', auth.logout)
   router.get('/me', (req, res) => res.json({ user: req.staff, defaultHotel: defaultHotel() }))
+  // Grille de référence des membres du H.O.G Algérie, affichée à l'accueil.
+  router.get('/tariffs', (req, res) => res.json({ hog: HOG_TARIFFS }))
   router.post('/resolve', async (req, res) => res.json(await resolveQr(req.body?.qr)))
   router.get('/dashboard', async (req, res) => {
     const list = await snapshot()
