@@ -33,9 +33,11 @@ const ACCOMMODATIONS: Accommodation[] = [
   { value: 'Chambre double couple — 2 motos', labelDzd: '125 000 DA', labelEur: '1 760 €', labelEspt: '1 660 €', desc: 'Pension complète — couple, 2 motos / 2 bikers', localOK: false, abroadOK: true,  esptOK: true },
 ]
 
+const isHogOption = (v: string) => (v || '').startsWith('HOG — ')
 const isCouple = (v: string) => /couple/i.test(v || '')
 const isTwoMotos = (v: string) => /2\s*motos/i.test(v || '')
-const isDoubleMotard = (v: string) => /motard/i.test(v || '')
+// Grille H.O.G : « motard seul » n'a pas de 2e occupant, seule la chambre « 2 motards » en a un.
+const isDoubleMotard = (v: string) => (isHogOption(v) ? /2 motards/i : /motard/i).test(v || '')
 // Affiche le formulaire 2e personne (partenaire ou co-motard)
 const needsSecondPerson = (v: string) => isCouple(v) || isDoubleMotard(v)
 // Nécessite les infos moto complètes (permis + carte grise + immatriculation)
@@ -143,13 +145,14 @@ export default function PaiementClient() {
 
   // Devise/label de prix selon la zone
   function priceLabelFor(o: Accommodation) {
+    if (hogMember) return o.labelDzd
     if (isEspPt) return o.labelEspt
     if (isLocal) return o.labelDzd
     return o.labelEur
   }
 
-  // Un membre H.O.G résidant sur place ne voit que sa grille.
-  const hogMember = !!info?.hogMember && isLocal && (info.hogOptions?.length ?? 0) > 0
+  // Un membre H.O.G résidant en Algérie ne voit que sa grille, en DZD (le serveur ne la fournit que dans ce cas).
+  const hogMember = !!info?.hogMember && (info.hogOptions?.length ?? 0) > 0
   const accommodationOptions = useMemo(() => {
     const base: Accommodation[] = hogMember
       ? (info?.hogOptions ?? []).map(o => ({
@@ -350,7 +353,7 @@ export default function PaiementClient() {
             <div className="mt-4 border border-orange/10 bg-bg3 px-4 py-3 flex gap-2">
               <span className="text-orange/60 text-[11px] mt-[1px]">★</span>
               <p className="text-muted text-[11px] leading-relaxed">
-                {isAbroad ? EUR_INCLUDES_NOTE : 'Carburant pris en charge tout au long de l’événement.'}
+                {isAbroad && !hogMember ? EUR_INCLUDES_NOTE : 'Carburant pris en charge tout au long de l’événement.'}
               </p>
             </div>
 

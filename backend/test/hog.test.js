@@ -102,6 +102,19 @@ test('membre H.O.G : seule la grille membres est proposée et facturée', async 
   assert.deepEqual([shared.body.amountCents, shared.body.currency], [8100000, 'DZD'])
 })
 
+test('membre H.O.G résidant ailleurs qu’en Algérie : grille publique de sa zone, pas les tarifs membres', async () => {
+  const lib = await register({ hogMember: 'Oui', residenceZone: 'Lybie' })
+  assert.deepEqual((await info(lib.paymentId)).hogOptions, [])
+  assert.equal((await choose(lib.paymentId, HOG_TARIFFS[0].value)).body.error, 'invalid_hebergement')
+  const libOk = await choose(lib.paymentId, 'Chambre simple')
+  assert.deepEqual([libOk.body.amountCents, libOk.body.currency], [7500000, 'DZD'])
+  const abroad = await register({ hogMember: 'Oui', residenceZone: 'Ailleurs' })
+  assert.deepEqual((await info(abroad.paymentId)).hogOptions, [])
+  assert.equal((await choose(abroad.paymentId, 'HOG — Suite (motard seul)')).body.error, 'invalid_hebergement')
+  const abroadOk = await choose(abroad.paymentId, 'Chambre simple')
+  assert.deepEqual([abroadOk.body.amountCents, abroadOk.body.currency], [96000, 'EUR'])
+})
+
 test('non-membre : grille publique inchangée, tarifs membres refusés', async () => {
   const { paymentId } = await register({})
   const i = await info(paymentId)

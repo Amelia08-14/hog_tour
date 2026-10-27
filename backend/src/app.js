@@ -55,11 +55,12 @@ const ESP_PT_ZONE = 'Espagne / Portugal'
 function isCoupleHebergement(h) {
   return /couple/i.test(String(h || ''))
 }
+// Grille H.O.G : seules les chambres « couple » et « 2 motards » ont un 2e occupant.
 function isTwoMotosHebergement(h) {
   return /2\s*motos/i.test(String(h || ''))
 }
 function isDoubleMotardHebergement(h) {
-  return /motard/i.test(String(h || ''))
+  return (isHogTariff(h) ? /2 motards/i : /motard/i).test(String(h || ''))
 }
 // Nécessite un 2e formulaire (partenaire couple ou co-motard)
 function needsSecondPersonHebergement(h) {
@@ -70,21 +71,24 @@ function needsFullMotoHebergement(h) {
   return isTwoMotosHebergement(h) || isDoubleMotardHebergement(h)
 }
 
-// Membre du H.O.G Algérie : grille spécifique, en DZD, pour les zones payant sur place.
+// Membre du H.O.G Algérie résidant en Algérie : grille spécifique, en DZD, réglée sur place.
+// Un membre résidant ailleurs reste sur la grille publique de sa zone.
 function isHogMemberValue(v) {
   return ['1', 'true', 'yes', 'oui'].includes(String(v == null ? '' : v).toLowerCase().trim())
 }
-function hebergementAllowed(hebergement, residenceZone, hogMember) {
-  const onSite = ON_SITE_ZONES.includes(String(residenceZone || ''))
-  if (isHogTariff(hebergement)) return !!hogMember && onSite
-  // Un membre H.O.G résidant sur place ne choisit que dans sa grille ; « Pack test » reste un outil interne.
-  if (hogMember && onSite) return hebergement === 'Pack test'
+const HOG_RATE_ZONE = 'Algérie'
+const hasHogRate = (hogMember, residenceZone) => !!hogMember && String(residenceZone || '') === HOG_RATE_ZONE
+function hebergementAllowed(hebergement, hogMember, residenceZone) {
+  const hogRate = hasHogRate(hogMember, residenceZone)
+  if (isHogTariff(hebergement)) return hogRate
+  // Un membre H.O.G résidant en Algérie ne choisit que dans sa grille ; « Pack test » reste un outil interne.
+  if (hogRate) return hebergement === 'Pack test'
   return !!HEBERGEMENT_PRICES[hebergement]
 }
 
 function hebergementPrice(hebergement, residenceZone, hogMember = false) {
   const hog = hogTariff(hebergement)
-  if (hog) return hogMember && ON_SITE_ZONES.includes(String(residenceZone || '')) ? { amountCents: hog.perPersonCents, currency: 'DZD' } : null
+  if (hog) return hasHogRate(hogMember, residenceZone) ? { amountCents: hog.perPersonCents, currency: 'DZD' } : null
   const prices = HEBERGEMENT_PRICES[hebergement]
   if (!prices) return null
   const zone = String(residenceZone || '')
@@ -1134,7 +1138,7 @@ function createApp() {
         paymentStatus: String(row.payment_status || 'pending'),
         paymentMethod: String(row.method || ''),
         hogMember: !!Number(row.hog_member),
-        hogOptions: Number(row.hog_member) && ON_SITE_ZONES.includes(String(row.residence_zone || '')) ? HOG_TARIFFS : [],
+        hogOptions: hasHogRate(Number(row.hog_member), row.residence_zone) ? HOG_TARIFFS : [],
       })
     } catch (e) {
       return res.status(500).json({ error: 'server_error' })
@@ -1218,7 +1222,7 @@ function createApp() {
       if (row.payment_status === 'paid') return res.status(400).json({ error: 'already_paid' })
 
       const hogMember = !!Number(row.hog_member)
-      if (!hebergementAllowed(hebergement, row.residence_zone, hogMember)) return res.status(400).json({ error: 'invalid_hebergement' })
+      if (!hebergementAllowed(hebergement, hogMember, row.residence_zone)) return res.status(400).json({ error: 'invalid_hebergement' })
       const pricing = hebergementPrice(hebergement, String(row.residence_zone || ''), hogMember)
       if (!pricing) return res.status(400).json({ error: 'price_not_found' })
 
