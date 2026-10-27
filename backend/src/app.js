@@ -419,11 +419,7 @@ function createApp() {
         return res.status(400).json({ error: 'invalid_fields', fields: ['residenceZone'] })
       }
 
-      // Réservé aux propriétaires de Harley-Davidson (résidents Algérie)
-      const harleyOwner = String(body.harleyOwner || '').trim()
-      if (rz === 'Algérie' && harleyOwner === 'Non') {
-        return res.status(403).json({ error: 'not_harley_owner' })
-      }
+      // La question « Harley-Davidson » est posée aux résidents d'Algérie mais ne bloque pas l'inscription.
 
       // Validation alphanumérique stricte
       const alnum = /^[A-Za-z0-9]+$/

@@ -115,6 +115,11 @@ test('membre H.O.G résidant ailleurs qu’en Algérie : grille publique de sa z
   assert.deepEqual([abroadOk.body.amountCents, abroadOk.body.currency], [96000, 'EUR'])
 })
 
+test('résident d’Algérie : répondre « Non » à la question Harley ne bloque pas l’inscription', async () => {
+  const r = await register({ residenceZone: 'Algérie', harleyOwner: 'Non', motoModele: '' })
+  assert.equal(r.status, 201, JSON.stringify(r.body))
+})
+
 test('non-membre : grille publique inchangée, tarifs membres refusés', async () => {
   const { paymentId } = await register({})
   const i = await info(paymentId)

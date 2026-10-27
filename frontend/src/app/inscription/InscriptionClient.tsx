@@ -47,8 +47,6 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
   const ON_SITE_ZONES = [V.residence.dz, V.residence.lby, V.residence.tun]
   const isHog = hogMember === V.hog.oui
 
-  // Bloqué si résident Algérie sans Harley-Davidson
-  const blocked = residenceZone === V.residence.dz && harley === 'Non'
 
   useEffect(() => {
     // Réinitialiser la question Harley quand on quitte l'Algérie
@@ -90,9 +88,6 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
-
-    // Bloqué : pas de Harley en Algérie
-    if (blocked) return
 
     // Question Harley obligatoire pour l'Algérie
     if (residenceZone === V.residence.dz && !harley) {
@@ -264,8 +259,6 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
         const fields = Array.isArray((data as any)?.fields) ? (data as any).fields as string[] : []
         if (res.status === 409 && err === 'duplicate_passport') {
           setError('Ce numéro de passeport est déjà utilisé pour une inscription. Si vous pensez qu\'il s\'agit d\'une erreur, contactez-nous à contact@hogalgierschapteralgeria.com.')
-        } else if (res.status === 403 && err === 'not_harley_owner') {
-          setError('Les inscriptions sont réservées aux propriétaires d\'une Harley-Davidson pour le moment. Merci pour votre compréhension.')
         } else if (res.status === 400 && err === 'invalid_email') {
           setError('L\'adresse email saisie n\'est pas valide. Vérifiez le format (exemple : nom@domaine.com).')
         } else if (res.status === 400 && err === 'invalid_alnum') {
@@ -525,15 +518,8 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
                 </G>
               )}
 
-              {/* Message de blocage si pas de Harley */}
-              {blocked && (
-                <div className="border border-orange/30 bg-bg2 px-6 py-6 text-[14px] text-htext leading-relaxed">
-                  Désolé, mais les inscriptions sont ouvertes uniquement aux propriétaires d&apos;une Harley-Davidson pour le moment. Merci pour votre compréhension.
-                </div>
-              )}
-
-              {!blocked && (
-                <>
+              {/* La réponse à la question Harley n'empêche pas l'inscription. */}
+              <>
                   {/* Modèle de moto — pour les résidents Algérie avec Harley */}
                   {residenceZone === V.residence.dz && harley === 'Oui' && (
                     <F
@@ -606,8 +592,7 @@ export default function InscriptionClient({ lang }: { lang: Lang }) {
                   >
                     {loading ? t(lang, 'registration.buttons.submitting') : t(lang, 'registration.buttons.submit')}
                   </button>
-                </>
-              )}
+              </>
             </form>
           </div>
         </div>
